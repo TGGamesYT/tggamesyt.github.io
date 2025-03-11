@@ -1,14 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TG's website</title>
-    <meta property="og:title" content="TG's website" />
-    <meta property="og:image" content="https://tggamesyt.github.io/assets/new_tglogo.png" />
-    <meta property="og:description" content="Silly stuff" />
-    <meta name="theme-color" content="#0053FF">
-    <meta name="twitter:card" content="summary_large_image">
+    <div id="meta"></div>
+    <script>
+    fetch('outside.html')
+        .then(response => response.text())
+        .then(data => {
+            // Create a temporary element to parse the fetched HTML
+            let temp = document.createElement('div');
+            temp.innerHTML = data;
+
+            // Extract only the desired part (inside #nav-content)
+            let navContent = temp.querySelector('#metas');
+            if (navContent) {
+                document.getElementById('meta').innerHTML = navContent.innerHTML;
+            }
+        });
+    </script>
     <style>
         html {
             background-image: URL(assets/logo_back.png);
