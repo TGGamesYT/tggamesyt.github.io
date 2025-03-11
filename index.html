@@ -3,36 +3,6 @@
 <head>
     <title>TG's website</title>
     <div id="meta"></div>
-    <script>
-    fetch('outside.html')
-        .then(response => response.text())
-        .then(data => {
-            // Create a temporary element to parse the fetched HTML
-            let temp = document.createElement('div');
-            temp.innerHTML = data;
-
-            // Extract only the desired part (inside #nav-content)
-            let navContent = temp.querySelector('#metas');
-            if (navContent) {
-                document.getElementById('meta').innerHTML = navContent.innerHTML;
-            }
-        });
-    </script>
-    <script>
-    fetch('outside.html')
-        .then(response => response.text())
-        .then(data => {
-            // Create a temporary element to parse the fetched HTML
-            let temp = document.createElement('div');
-            temp.innerHTML = data;
-
-            // Extract only the desired part (inside #nav-content)
-            let navContent = temp.querySelector('#navigation');
-            if (navContent) {
-                document.getElementById('navbar').innerHTML = navContent.innerHTML;
-            }
-        });
-    </script>
     <style>
         html {
             background-image: URL(assets/logo_back.png);
@@ -62,3 +32,34 @@
 <img src="assets/under-construction.png" alt="under costructions image" class="constr">
 </body>
 </html>
+<script>
+    fetch('outside.html')
+        .then(response => response.text())
+        .then(data => {
+            // Create a temporary element to parse the fetched HTML
+            let temp = document.createElement('div');
+            temp.innerHTML = data;
+
+            // Extract only the desired part (inside #nav-content)
+            let navContent = temp.querySelector('#metas');
+            if (navContent) {
+                document.getElementById('meta').innerHTML = navContent.innerHTML;
+            }
+        });
+    </script>
+    <script>
+    fetch('outside.html')
+        .then(response => response.text())
+        .then(data => {
+            // Create a temporary element to parse the fetched HTML
+            let temp = document.createElement('div');
+            temp.innerHTML = data;
+
+            // Extract only the desired part (inside #nav-content)
+            let navContent = temp.querySelector('#navigation');
+            if (navContent) {
+                document.getElementById('navbar').innerHTML = navContent.innerHTML;
+            }
+        });
+    </script>
+    
