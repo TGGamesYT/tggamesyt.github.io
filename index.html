@@ -40,6 +40,23 @@
     </style>
 </head>
 <body>
+<div id="navbar"></div>
+
+<script>
+    fetch('outside.html')
+        .then(response => response.text())
+        .then(data => {
+            // Create a temporary element to parse the fetched HTML
+            let temp = document.createElement('div');
+            temp.innerHTML = data;
+
+            // Extract only the desired part (inside #nav-content)
+            let navContent = temp.querySelector('#navigation');
+            if (navContent) {
+                document.getElementById('navbar').innerHTML = navContent.innerHTML;
+            }
+        });
+</script>
 <img src="assets/logo_text.png" alt="logo text" class="logo_text">
 <h1>Welcome</h1>
 <p>This site is currently under costructions.<br>Please check back later.</p>
