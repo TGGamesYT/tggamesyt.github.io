@@ -90,9 +90,10 @@ margin-bottom: 15%;
     border: 0;    
     color: #ffffff; /* Fehér szöveg */
     border-radius: 0.5em;    
-    font-size: 1.2rem; /* Növelt méret a szöveghez */
-    width: auto; /* Az auto szélesség biztosítja, hogy a gomb a szövegre igazodjon */
-    padding: 0.35em 1.2em; /* Kisebb padding, hogy a szöveg ne lógjon le */
+    font-size: 1.2rem; /* Alapértelmezett szöveg méret */
+    width: 25%; /* A gomb szélessége maximum 25% */
+    max-width: 25%; /* A szélesség maximuma */
+    padding: 0.35em 1.2em; /* Padding finomhangolás */
     font-weight: 600;    
     text-shadow: 0 0.0625em 0 #fff;    
     box-shadow: inset 0 0.0625em 0 0 #006666, 0 0.0625em 0 0 #004d4d, /* Sötétebb árnyék */
@@ -103,6 +104,11 @@ margin-bottom: 15%;
     touch-action: manipulation;    
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);    
     cursor: pointer;    
+    
+    /* A szöveg nem törik meg és kicsinyedik, ha szükséges */
+    white-space: nowrap;    
+    overflow: hidden;    
+    text-overflow: ellipsis;    
 
     /* Aktiválás, hover, és nyomás indikátor */
     &:active {    
