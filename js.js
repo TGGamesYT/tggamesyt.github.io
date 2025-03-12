@@ -1,6 +1,8 @@
+// sidebar
 function toggleMenu() {
     document.getElementById("sidebar").classList.toggle("active");
 }
+// outside html fetcher
 fetch('https://tggamesyt.github.io/outside.html')
 .then(response => response.text())
 .then(data => {
@@ -21,8 +23,20 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('maintance').innerHTML = navContent.innerHTML;
     }
 });
-function setLanguage(lang) {
-        document.querySelectorAll('[data-lang]').forEach(el => {
-            el.style.display = el.getAttribute('data-lang') === lang ? 'block' : 'none';
-        });
+// Language changer
+let currentLang = 'en'; 
+function setInitialLanguage() {
+    document.querySelectorAll('[data-lang]').forEach(el => {
+        if (el.getAttribute('data-lang') !== currentLang) {
+            el.style.display = 'none';
+        }
+    });
 }
+function toggleLanguage() {
+    currentLang = (currentLang === 'en') ? 'hu' : 'en';
+        document.querySelectorAll('[data-lang]').forEach(el => {
+        el.style.display = (el.getAttribute('data-lang') === currentLang) ? 'block' : 'none';
+    });
+    document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar' : 'English';
+}
+setInitialLanguage();
