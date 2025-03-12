@@ -21,3 +21,8 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('maintance').innerHTML = navContent.innerHTML;
     }
 });
+function setLanguage(lang) {
+        document.querySelectorAll('[data-lang]').forEach(el => {
+            el.style.display = el.getAttribute('data-lang') === lang ? 'block' : 'none';
+        });
+}
