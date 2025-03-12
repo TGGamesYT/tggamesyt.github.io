@@ -1,160 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <title>TG's website</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="TG's website" />
-    <meta property="og:image" content="https://tggamesyt.github.io/assets/new_tglogo.png" />
-    <meta property="og:description" content="Silly stuff" />
-    <meta name="theme-color" content="#0053FF">
-    <meta name="twitter:card" content="summary_large_image">
-    <style>
-        html {
-            background-image: URL(assets/logo_back.png);
-            background-repeat: no-repeat;
-            background-size: cover;
-            background-color: #0053FF;
-            color: white;
-            text-align: center;
-        }
-        .logo_text {
-            position: relative;
-            top: 0;
-            left: 25%;
-            transform: translateX(-50%);
-            z-index: 4;
-            width: 50%;
-        img {
-            margin: auto;
-            display: block;
-        }
-        .gone {
-            /*display: none;*/
-            width: 50%;
-        }
-    </style>
-</head>
-<style>
-        /* Hamburger Button */
-        .menu-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            z-index: 3;
-        }
-
-        .menu-btn span {
-            display: block;
-            width: 30px;
-            height: 3px;
-            background: black;
-            margin: 6px 0;
-            transition: 0.4s;
-        }
-
-        /* Sidebar Menu */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            right: -100%; /* Hidden initially */
-            width: 100%; /* edited */
-            height: 100%;
-            background: #0053FF;
-            padding-top: 60px;
-            transition: right 0.3s ease-in-out;
-            box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
-            z-index: 2;
-        }
-
-        .sidebar a {
-            display: block;
-            color: white;
-            text-decoration: none;
-            padding: 15px 20px;
-            font-size: 18px;
-            transition: 0.3s;
-        }
-
-        .sidebar a:hover {
-            background: #005399;
-        }
-
-        /* Show Sidebar */
-        .sidebar.active {
-            right: 0;
-        }
-
-        /* Close Button */
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 25px;
-            color: white;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        .sidebar .a {
-        margin-bottom: 15%;
-        }
-    </style>
-    <!-- Hamburger Button -->
-    <button class="menu-btn" onclick="toggleMenu()">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-
-    <!-- Sidebar Menu -->
-    <div class="sidebar" id="sidebar">
-    <p class="a">A</p>
-        <div id="navbar"></div>
-    </div>
-
-    <script>
-        function toggleMenu() {
-            document.getElementById("sidebar").classList.toggle("active");
-        }
-    </script>
-<body>
-<img src="assets/logo_text.png" alt="logo text" class="logo_text">
-<h1>Welcome</h1>
-<p>This site is currently under costructions.<br>Please check back later.</p>
-</body>
+    <head>
+        <!-- Head Stuff -->
+        <title>TG's website</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="og:title" content="TG's website" />
+        <meta property="og:image" content="https://tggamesyt.github.io/assets/new_tglogo.png" />
+        <meta property="og:description" content="Silly stuff" />
+        <meta name="theme-color" content="#0053FF">
+        <meta name="twitter:card" content="summary_large_image">
+        <!-- Linking -->
+        <link rel="stylesheet" href="css.css">
+        <script src="js.js"></script>
+        </div>
+    </head>
+    <body>
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <p class="a">‎</p>
+            <div id="navbar"></div>
+            <p>‎</p>
+        </div>
+        <button class="menu-btn" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <!-- Page -->
+        <img src="assets/logo_text.png" alt="logo text" class="logo_text">
+        <h1>Welcome</h1>
+        <p>This site is currently under costructions.<br>Please check back later.</p>
+    </body>
 </html>
-<script>
-    fetch('https://tggamesyt.github.io/outside.html')
-        .then(response => response.text())
-        .then(data => {
-            // Create a temporary element to parse the fetched HTML
-            let temp = document.createElement('div');
-            temp.innerHTML = data;
-
-            // Extract only the desired part (inside #nav-content)
-            let navContent = temp.querySelector('#metas');
-            if (navContent) {
-                document.getElementById('meta').innerHTML = navContent.innerHTML;
-            }
-        });
-    </script>
-    <script>
-    fetch('https://tggamesyt.github.io/outside.html')
-        .then(response => response.text())
-        .then(data => {
-            // Create a temporary element to parse the fetched HTML
-            let temp = document.createElement('div');
-            temp.innerHTML = data;
-
-            // Extract only the desired part (inside #nav-content)
-            let navContent = temp.querySelector('#navigation');
-            if (navContent) {
-                document.getElementById('navbar').innerHTML = navContent.innerHTML;
-            }
-        });
-    </script>
-    
