@@ -84,16 +84,15 @@ margin-bottom: 15%;
     position: absolute;    
     z-index: 4;    
     left: 0; /* Balra igazítás */
-    top: 50%; /* Függőleges közép */
-    transform: translateY(-50%); /* Középre igazítás vertikálisan */
+    top: 0; /* Tetejére igazítás */
     font: inherit;    
     background-color: #008080; /* Zöldeskék szín */
     border: 0;    
     color: #ffffff; /* Fehér szöveg */
     border-radius: 0.5em;    
-    font-size: 1.2rem; /* Még kisebb méret */
+    font-size: 1rem; /* Kisebb méret, hogy ne lógjon le a szöveg */
     width: 10%; /* A gomb szélessége az oldal 10%-a */
-    padding: 0.25em 1em; /* Kisebb padding */
+    padding: 0.2em 0.8em; /* Kisebb padding */
     font-weight: 600;    
     text-shadow: 0 0.0625em 0 #fff;    
     box-shadow: inset 0 0.0625em 0 0 #006666, 0 0.0625em 0 0 #004d4d, /* Sötétebb árnyék */
@@ -104,19 +103,24 @@ margin-bottom: 15%;
     touch-action: manipulation;    
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);    
     cursor: pointer;    
-    
-    &:active,    
+
+    /* Aktiválás, hover, és nyomás indikátor */
+    &:active {    
+        background-color: #006666; /* Sötétebb szín aktiváláskor */
+        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333, /* Sötétebb árnyék */
+            0 0.125em 0 0 #002222, 0 0.25em 0 0 #001111, 0 0.3125em 0 0 #000000,    
+            0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;
+        transform: translateY(0.1em); /* A nyomás arányos transzformáció */
+    }
+
     &:hover {    
-        transform: translateY(0.225em);    
-        box-shadow: inset 0 0.03em 0 0 #006666, 0 0.03em 0 0 #004d4d, /* Sötétebb árnyék hover alatt */
-            0 0.0625em 0 0 #003333, 0 0.125em 0 0 #002222, 0 0.125em 0 0 #001111,    
-            0 0.2em 0 0 #000000, 0 0.225em 0 0 #000000, 0 0.225em 0.375em 0 #000000;    
-    
-        &:after {    
-            height: calc(100% + 0.225em);    
-        }    
-    }    
-    
+        background-color: #007777; /* Kisebb árnyalatú zöldeskék */
+        transform: translateY(0.1em); /* Hover transzformáció */
+        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333, /* Sötétebb árnyék */
+            0 0.125em 0 0 #002222, 0 0.25em 0 0 #001111, 0 0.3125em 0 0 #000000,    
+            0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;    
+    }
+
     &:after {    
         position: absolute;    
         content: "";    
