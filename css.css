@@ -108,7 +108,9 @@ margin-bottom: 15%;
     /* Szöveg kicsinyítése, ha túl hosszú */
     white-space: nowrap; 
     overflow: hidden;
-    font-size: calc(1rem + 1vw); /* A szöveg automatikusan kisebb lesz, ha túl széles */
+
+    /* Animációk megmaradnak */
+    transition: 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
     
     /* Aktiválás, hover, és nyomás indikátor */
     &:active {    
@@ -138,4 +140,4 @@ margin-bottom: 15%;
         background-color: transparent;    
         transition: height 0.25s ease;    
     }    
-}
+    }
