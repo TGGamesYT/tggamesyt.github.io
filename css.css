@@ -1,0 +1,106 @@
+html {
+    background-image: URL(assets/logo_back.png);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: #0053FF;
+    color: white;
+    text-align: center;
+}
+.logo_text {
+    position: relative;
+    top: 0;
+    left: 25%;
+    transform: translateX(-50%);
+    z-index: 4;
+    width: 50%;
+}
+img {
+    margin: auto;
+    display: block;
+}
+/* Hamburger Button */
+.menu-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+}
+.menu-btn span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: black;
+    margin: 6px 0;
+    transition: 0.4s;
+}
+/* Sidebar Menu */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Hidden initially */
+    width: 100%; /* edited */
+    height: 100%;
+    background: #0053FF;
+    padding-top: 60px;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+/* Sidebar Menu */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Hidden initially */
+    width: 100%; /* edited */
+    height: 100%;
+    background: #0053FF;
+    padding-top: 60px;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    overflow-y: auto; /* Enables vertical scrolling */
+    overflow-x: hidden; /* Prevents horizontal scrolling */
+}
+    /* Optional: Hide scrollbar in Webkit browsers */
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 15px 20px;
+    font-size: 18px;
+    transition: 0.3s;
+}
+.sidebar a:hover {
+    background: #005399;
+}
+/* Show Sidebar */
+.sidebar.active {
+    right: 0;
+}
+/* Close Button */
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 25px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.sidebar .a {
+margin-bottom: 15%;
+}
