@@ -39,4 +39,4 @@ function toggleLanguage() {
     });
     document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar' : 'English';
 }
-setInitialLanguage();
+window.onload = setInitialLanguage;
