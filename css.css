@@ -80,7 +80,12 @@ margin-bottom: 15%;
     width: 50%;
     margin: auto;
 }
-
+.lang-btn {
+    position: relative;
+    z-index: 4;
+    left: 0;
+    top: 0;
+}
 button {
 	position: relative;
 	font: inherit;
