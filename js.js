@@ -24,27 +24,16 @@ fetch('https://tggamesyt.github.io/outside.html')
     }
 });
 // Language changer
-document.addEventListener("DOMContentLoaded", function () {
-    let currentLang = 'en'; // Alapértelmezett nyelv
-    const langBtn = document.getElementById("lang-btn");
-
-    function setInitialLanguage() {
-        document.querySelectorAll("[data-lang]").forEach(el => {
-            el.style.display = (el.getAttribute("data-lang") === currentLang) ? "block" : "none";
-        });
-        langBtn.textContent = "Magyar"; // Gomb alapértelmezett szövege
-    }
+ let currentLang = 'en'; // Alapértelmezett nyelv
 
     function toggleLanguage() {
-        currentLang = (currentLang === "en") ? "hu" : "en";
+        currentLang = (currentLang === 'en') ? 'hu' : 'en';
 
-        document.querySelectorAll("[data-lang]").forEach(el => {
-            el.style.display = (el.getAttribute("data-lang") === currentLang) ? "block" : "none";
+        // Szövegek megjelenítése/elrejtése
+        document.querySelectorAll('[data-lang]').forEach(el => {
+            el.style.display = (el.getAttribute('data-lang') === currentLang) ? 'block' : 'none';
         });
 
-        langBtn.textContent = (currentLang === "en") ? "Magyar" : "English";
+        // Gomb szövegének frissítése
+        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar' : 'English';
     }
-
-    langBtn.addEventListener("click", toggleLanguage);
-    setInitialLanguage(); // Betöltéskor beállítja a nyelvet
-});
