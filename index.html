@@ -15,9 +15,8 @@
         <script src="js.js"></script>
     </head>
     <body>
-        <button onclick="setLanguage('hu')">Magyar</button>
-        <button onclick="setLanguage('en')">English</button>
-        <p data-lang="hu" style="display: none;">Üdvözöllek a weboldalon!</p>
+        <button id="lang-btn" onclick="toggleLanguage()">Magyar</button>
+        <p data-lang="hu">Üdvözöllek a weboldalon!</p>
         <p data-lang="en">Welcome to the website!</p>
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
