@@ -37,3 +37,22 @@ fetch('https://tggamesyt.github.io/outside.html')
         // Gomb szövegének frissítése
         document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar 🇭🇺' : 'English 🇬🇧';
     }
+// lang button relative font size
+// Figyeljük a gombot és automatikusan módosítjuk a font méretét, ha szükséges
+const langButton = document.querySelector('.lang-btn');
+
+function adjustFontSize() {
+    const buttonWidth = langButton.offsetWidth;
+    let fontSize = 1.2; // alapértelmezett font size
+    
+    // Ha a gomb szélessége túl kicsi, csökkentjük a font méretét
+    if (buttonWidth < langButton.scrollWidth) {
+        fontSize = (buttonWidth / langButton.scrollWidth) * 1.2; // Kiszámoljuk az új font size-t
+    }
+
+    langButton.style.fontSize = `${fontSize}rem`;
+}
+
+// Az oldal betöltődésekor és ablak átméretezésekor is futtatjuk
+window.addEventListener('load', adjustFontSize);
+window.addEventListener('resize', adjustFontSize);
