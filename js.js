@@ -35,5 +35,5 @@ fetch('https://tggamesyt.github.io/outside.html')
         });
 
         // Gomb szövegének frissítése
-        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar' : 'English';
+        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar 🇭🇺' : 'English 🇬🇧';
     }
