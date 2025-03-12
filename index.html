@@ -13,15 +13,12 @@
         <!-- Linking -->
         <link rel="stylesheet" href="css.css">
         <script src="js.js"></script>
-        <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'hu', includedLanguages: 'en,hu'}, 'google_translate_element');
-        }
-        </script>
-        <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     </head>
     <body>
-        <div id="google_translate_element"></div>
+        <button onclick="setLanguage('hu')">Magyar</button>
+        <button onclick="setLanguage('en')">English</button>
+        <p data-lang="hu" style="display: none;">Üdvözöllek a weboldalon!</p>
+        <p data-lang="en">Welcome to the website!</p>
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <p class="a">‎</p>
