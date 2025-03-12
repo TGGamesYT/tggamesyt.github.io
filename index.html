@@ -18,13 +18,19 @@
             color: white;
             text-align: center;
         }
-        .logo_text {
+        .container {
+            position: relative;
             width: 50%;
+            overflow: hidden;
+        }
+        .logo_text {
             position: absolute;
-            bottom: 100%;
+            top: 0;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             z-index: 4;
+            width: 50%;
+            max-height: 100vh;
         }
         .logo_text2 {
             width: 50%;
@@ -121,7 +127,7 @@
         }
     </script>
 <body>
-<img src="assets/logo_text.png" alt="logo text" class="logo_text">
+<div class="container"><img src="assets/logo_text.png" alt="logo text" class="logo_text"></div>
 <img src="assets/logo_text.png" alt="logo text" class="logo_text2">
 <h1>Welcome</h1>
 <p>This site is currently under costructions.<br>Please check back later.</p>
