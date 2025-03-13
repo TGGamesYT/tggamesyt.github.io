@@ -16,7 +16,14 @@
         <script src="https://tggamesyt.github.io/js.js"></script>
     </head>
     <body>
-        <h1><button id="lang-btn" onclick="toggleLanguage()" class="lang-btn">🇭🇺</button></h1>
+        <select id="lang-select" onchange="changeLanguage()" class="lang-select">
+        <option value="en">🇬🇧</option>
+        <option value="hu">🇭🇺</option>
+        <option value="de">🇩🇪</option>
+        <option value="fr">🇫🇷</option>
+        <option value="pl">🇵🇱</option>    
+        <option value="pr">🏴‍☠️</option>
+        </select>
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <img class="logo_text logo_nav" src="https://tggamesyt.github.io/assets/logo_text.png" alt="Logo">
