@@ -54,14 +54,5 @@ document.addEventListener("DOMContentLoaded", function () {
     menuBtn.addEventListener("click", function () {
         logoText.classList.toggle("menu-open");
         body.classList.toggle("menu-active"); // Toggles scrolling
-
-        // Wait for the transition to finish, then change the position to fixed
-        if (logoText.classList.contains("menu-open")) {
-            setTimeout(() => {
-                logoText.classList.add("transitioning");
-            }, 500); // Add the transition after the initial transition duration (0.5s)
-        } else {
-            logoText.classList.remove("transitioning");
-        }
     });
 });
