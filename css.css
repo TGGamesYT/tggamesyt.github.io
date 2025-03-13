@@ -13,8 +13,11 @@ html {
     transform: translateX(-50%);
     z-index: 2;
     width: 50%;
-    overflow-y: hidden;
-    overflow-x: hidden;
+    overflow: hidden;
+}
+.logo_text.menu-open {  
+    top: 10vh; /* Adjust this value based on where you want it to move */
+    position: fixed; /* Makes it unscrollable */
 }
 img {
     margin: auto;
