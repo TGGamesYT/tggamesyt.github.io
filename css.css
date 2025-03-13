@@ -6,10 +6,6 @@ html {
     color: white;
     text-align: center;
 }
-.logo-container {
-    position: relative;
-}
-
 .logo_text {
     position: absolute;
     top: 0;
