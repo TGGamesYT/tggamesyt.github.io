@@ -45,3 +45,12 @@ document.addEventListener("DOMContentLoaded", function () {
         this.classList.toggle("clicked");
     });
 });
+// button logo moving
+document.addEventListener("DOMContentLoaded", function () {
+    const menuBtn = document.querySelector(".menu-btn");
+    const logoText = document.querySelector(".logo_text");
+
+    menuBtn.addEventListener("click", function () {
+        logoText.classList.toggle("menu-open");
+    });
+});
