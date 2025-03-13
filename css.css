@@ -83,16 +83,16 @@ margin-bottom: 15%;
 .lang-btn {    
     position: absolute;    
     z-index: 4;    
-    left: 2px; /* 2px-rel bejjebb hozva */
-    top: 2px; /* 2px-rel bejjebb hozva */
+    left: 2px; /* Behozva balra */
+    top: 2px; /* Behozva felülről */
     font: inherit;    
-    background-color: #008080; /* Zöldeskék szín */
+    background-color: #008080; /* Zöldeskék */
     border: 0;    
     color: #ffffff; /* Fehér szöveg */
     border-radius: 0.5em;    
     font-weight: 600;    
     text-shadow: 0 0.0625em 0 #fff;    
-    box-shadow: inset 0 0.0625em 0 0 #006666, 0 0.0625em 0 0 #004d4d, /* Sötétebb árnyék */
+    box-shadow: inset 0 0.0625em 0 0 #006666, 0 0.0625em 0 0 #004d4d,    
         0 0.125em 0 0 #003333, 0 0.25em 0 0 #002222, 0 0.3125em 0 0 #001111,    
         0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;    
     transition: 0.25s ease;    
@@ -101,30 +101,35 @@ margin-bottom: 15%;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);    
     cursor: pointer;    
 
-    width: 25%; /* A gomb szélessége maximum 25% */
-    max-width: 25%; /* Maximális szélesség */
-    padding: 0.35em 1.2em; /* Padding finomhangolás */
+    width: 25%; /* Maximum 25% szélesség */
+    max-width: 25%;    
+    min-width: fit-content; /* Ha a szöveg rövidebb, ne legyen túl széles a gomb */
+    padding: 0.35em 1.2em;
+
+    /* Szöveg középre igazítása */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 
     /* Szöveg kicsinyítése, ha túl hosszú */
     white-space: nowrap; 
     overflow: hidden;
-
-    /* Animációk megmaradnak */
+    
     transition: 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
     
-    /* Aktiválás, hover, és nyomás indikátor */
     &:active {    
-        background-color: #006666; /* Sötétebb szín aktiváláskor */
-        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333, /* Sötétebb árnyék */
+        background-color: #006666; /* Sötétebb szín */
+        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333,    
             0 0.125em 0 0 #002222, 0 0.25em 0 0 #001111, 0 0.3125em 0 0 #000000,    
             0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;
-        transform: translateY(0.1em); /* A nyomás arányos transzformáció */
+        transform: translateY(0.1em);
     }
 
     &:hover {    
-        background-color: #007777; /* Kisebb árnyalatú zöldeskék */
-        transform: translateY(0.1em); /* Hover transzformáció */
-        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333, /* Sötétebb árnyék */
+        background-color: #007777;
+        transform: translateY(0.1em);
+        box-shadow: inset 0 0.0625em 0 0 #004d4d, 0 0.0625em 0 0 #003333,    
             0 0.125em 0 0 #002222, 0 0.25em 0 0 #001111, 0 0.3125em 0 0 #000000,    
             0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;    
     }
@@ -140,4 +145,4 @@ margin-bottom: 15%;
         background-color: transparent;    
         transition: height 0.25s ease;    
     }    
-    }
+}
