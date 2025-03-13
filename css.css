@@ -96,15 +96,15 @@ margin-bottom: 15%;
     border: none;
     cursor: pointer;
     border-radius: 10px;
-    transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+    transition: background-color 0.3s, transform 0.1s, box-shadow 0.1s;
     
-    /* Properly center text */
+    /* Center text */
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
 
-    /* Adding a base shadow */
+    /* Base shadow for depth */
     box-shadow: 0 6px #1f6690;
 }
 
@@ -113,8 +113,8 @@ margin-bottom: 15%;
     background-color: #2980b9;
 }
 
-/* Click effect - Toggle transform up and down */
-.lang-btn.clicked {
+/* Click effect - Move down while clicking */
+.lang-btn:active {
     transform: translateY(5px);
     box-shadow: 0 2px #1f6690;
-    }
+}
