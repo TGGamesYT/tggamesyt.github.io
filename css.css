@@ -21,9 +21,9 @@ html {
 .logo_static {
     position: absolute;
     top: 0;
-    left: 50%;
+    left: 25%;
     transform: translateX(-50%);
-    width: 100%;
+    width: 50%;
     opacity: 1; /* Visible initially */
 }
 
@@ -31,9 +31,9 @@ html {
 .logo_animated {
     position: absolute;
     top: 0;
-    left: 50%;
+    left: 25%;
     transform: translateX(-50%);
-    width: 100%;
+    width: 50%;
     opacity: 0; /* Initially invisible */
     z-index: 3; /* Ensures it appears above the static logo */
 }
@@ -42,7 +42,7 @@ html {
 .logo_text.menu-open .logo_animated {
     opacity: 1; /* Make it visible */
     top: 10vh; /* Adjust where you want it to move */
-    left: 50%;
+    left: 25%;
     transform: translateX(-50%); /* Keeps it centered */
 }
 
