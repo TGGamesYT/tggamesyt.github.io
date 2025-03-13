@@ -14,14 +14,21 @@ html {
     z-index: 2;  
     width: 50%;  
     overflow: hidden;  
-    transition: top 0.5s ease-in-out, transform 0.5s ease-in-out, position 0s; /* Smooth movement, no transition on position */
+    transition: top 0.5s ease-in-out, transform 0.5s ease-in-out, opacity 0.5s ease-in-out; /* Smooth transition for opacity, top, and transform */
+    opacity: 1;
 }  
 
 .logo_text.menu-open {
+    opacity: 0; /* Make it invisible during the animation */
+    transition: opacity 0s; /* Ensure opacity transition happens instantly */
+}
+
+.logo_text.menu-open.transitioning {
+    opacity: 1; /* Make it visible again after animation */
     position: fixed;  /* Fixes logo to the viewport */
-    top: 10vh; /* Adjust this to your desired position */
-    left: 50%; /* Horizontally centers it */
-    transform: translateX(-50%);  /* Ensures centering remains intact */
+    top: 10vh;  /* Adjust to desired position */
+    left: 50%;  /* Horizontally center */
+    transform: translateX(-50%);  /* Keep the logo centered */
 }
 
 /* Prevent body from scrolling when menu is open */
