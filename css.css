@@ -87,7 +87,7 @@ margin-bottom: 15%;
     top: 5%; /* Behozva felülről */
     width: 10%
 }
-button {
+.lang-btn {
     background-color: #3498db;
     color: white;
     font-size: 16px;
@@ -105,12 +105,12 @@ button {
 }
 
 /* Hover: Darken */
-button:hover {
+.lang-btn:hover {
     background-color: #2980b9;
 }
 
 /* Click effect - Toggle transform up and down */
-button.clicked {
+.lang-btn.clicked {
     transform: translateY(5px);
     box-shadow: 0 2px #1f6690;
 }
