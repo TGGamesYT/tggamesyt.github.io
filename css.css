@@ -20,8 +20,8 @@ img {
 }
 .menu-btn {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 5%;
+    right: 5%;
     background: none;
     border: none;
     cursor: pointer;
