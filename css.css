@@ -7,39 +7,50 @@ html {
     text-align: center;
 }
 .logo_text {
-    position: absolute;
+    position: relative;
     top: 0;
     left: 25%;
     transform: translateX(-50%);
-    width: 50%;
     z-index: 2;
-    transition: opacity 0.5s ease-in-out, top 0.5s ease-in-out, transform 0.5s ease-in-out;
+    width: 50%;
+    overflow: hidden;
+    transition: top 0.5s ease-in-out, transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
-/* Static logo (remains in place) */
+/* Static logo (remains in place and invisible when menu is open) */
 .logo_static {
-    opacity: 1;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    opacity: 1; /* Visible initially */
 }
 
-/* Animated logo (will move) */
+/* Animated logo (starts invisible) */
 .logo_animated {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
     opacity: 0; /* Initially invisible */
-    z-index: 3;
+    z-index: 3; /* Ensures it appears above the static logo */
 }
 
-/* When menu is open, animate the moving logo */
+/* When menu is open, animate the moving logo and hide static logo */
 .logo_text.menu-open .logo_animated {
     opacity: 1; /* Make it visible */
-    top: 10vh; /* Adjust to the position where you want it to move */
+    top: 10vh; /* Adjust where you want it to move */
     left: 50%;
-    transform: translateX(-50%); /* Keep it centered */
+    transform: translateX(-50%); /* Keeps it centered */
 }
 
 .logo_text.menu-open .logo_static {
-    opacity: 0; /* Make the static logo invisible */
+    opacity: 0; /* Make static logo invisible */
 }
 
-/* Prevent scrolling when menu is open */
+/* Prevent body from scrolling when menu is open */
 body.menu-active {
     overflow: hidden;
 }
