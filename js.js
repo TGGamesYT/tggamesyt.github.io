@@ -39,9 +39,9 @@ fetch('https://tggamesyt.github.io/outside.html')
 const languages = ["en", "hu", "de", "fr"]; // Add more languages here
 function load() {
     let currentLang = leker("lang"); // Load saved language
+    document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
     changeLanguage()
 }
-document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
 
 function changeLanguage() {
     currentLang = document.getElementById("lang-select").value;
