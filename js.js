@@ -48,11 +48,14 @@ document.addEventListener("DOMContentLoaded", function () {
 // button logo moving
 document.addEventListener("DOMContentLoaded", function () {
     const menuBtn = document.querySelector(".menu-btn");
-    const logoText = document.querySelector(".logo_text");
+    const logoTextNav = document.querySelector(".logo_nav");
+    const logoTextMain = document.querySelector(".logo_main");
     const body = document.body;
 
     menuBtn.addEventListener("click", function () {
-        logoText.classList.toggle("menu-open");
+        // Toggle the animation in both navbar and main content
+        logoTextNav.classList.toggle("menu-open");
+        logoTextMain.classList.toggle("menu-open");
         body.classList.toggle("menu-active"); // Toggles scrolling
     });
 });
