@@ -1,15 +1,11 @@
 window.onload = setTimeout(load, 200);
-function jegyzes(nev, ertek, defaultErtek = null) {
-    if (leker(nev) === null) {
-        localStorage.setItem(nev, JSON.stringify(defaultErtek));
-    } else {
-        localStorage.setItem(nev, JSON.stringify(ertek));
-    }
+function jegyzes(nev, ertek) {
+    localStorage.setItem(nev, JSON.stringify(ertek));
 }
 
-function leker(nev) {
+function leker(nev, defaultErtek = null) {
     const ertek = localStorage.getItem(nev);
-    return ertek ? JSON.parse(ertek) : null;
+    return ertek ? JSON.parse(ertek) : defaultErtek;
 }
 function toggleMenu() {
     document.getElementById("sidebar").classList.toggle("active");
@@ -38,14 +34,14 @@ fetch('https://tggamesyt.github.io/outside.html')
 // Language changer
 const languages = ["en", "hu", "de", "fr"]; // Add more languages here
 function load() {
-    let currentLang = leker("lang"); // Load saved language
+    let currentLang = leker("lang","en"); // Load saved language
     document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
-    changeLanguage()
+    changeLanguage();
 }
 
 function changeLanguage() {
     currentLang = document.getElementById("lang-select").value;
-    jegyzes("lang", currentLang, "en"); // Save language selection
+    jegyzes("lang", currentLang); // Save language selection
 
     // Show/hide elements based on selected language
     document.querySelectorAll("[data-lang]").forEach(el => {
