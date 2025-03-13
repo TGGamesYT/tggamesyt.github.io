@@ -35,7 +35,7 @@ fetch('https://tggamesyt.github.io/outside.html')
         });
 
         // Gomb szövegének frissítése
-        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? 'Magyar 🇭🇺' : 'English 🇬🇧';
+        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? '🇭🇺' : '🇬🇧';
     }
 // lang button relative font size
 // Figyeljük a gombot és automatikusan módosítjuk a font méretét, ha szükséges
