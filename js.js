@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
         this.classList.toggle("clicked");
     });
 });
-// button logo moving
+// navbar fixing
 document.addEventListener("DOMContentLoaded", function () {
     const menuBtn = document.querySelector(".menu-btn");
     const logoTextNav = document.querySelector(".logo_nav");
@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const body = document.body;
 
     menuBtn.addEventListener("click", function () {
-        // Toggle the animation in both navbar and main content
-        logoTextNav.classList.toggle("menu-open");
-        logoTextMain.classList.toggle("menu-open");
-        body.classList.toggle("menu-active"); // Toggles scrolling
+        const navLogoRect = logoTextNav.getBoundingClientRect();
+        const mainLogoRect = logoTextMain.getBoundingClientRect();
+        // Toggle a scroll tiltás
+        body.classList.toggle("menu-active");
     });
 });
