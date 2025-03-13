@@ -49,8 +49,10 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function () {
     const menuBtn = document.querySelector(".menu-btn");
     const logoText = document.querySelector(".logo_text");
+    const body = document.body;
 
     menuBtn.addEventListener("click", function () {
         logoText.classList.toggle("menu-open");
+        body.classList.toggle("menu-active"); // Toggles scrolling
     });
 });
