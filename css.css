@@ -91,11 +91,17 @@ button {
     background-color: #3498db;
     color: white;
     font-size: 16px;
-    padding: 10px 20px;
+    font-weight: bold;
+    padding: 12px 24px;
     border: none;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+    border-radius: 10px;
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
     position: relative;
+    display: inline-block;
+    
+    /* Adding a base shadow */
+    box-shadow: 0 6px #1f6690;
 }
 
 /* Hover: Darken */
@@ -106,4 +112,5 @@ button:hover {
 /* Click effect - Toggle transform up and down */
 button.clicked {
     transform: translateY(5px);
+    box-shadow: 0 2px #1f6690;
 }
