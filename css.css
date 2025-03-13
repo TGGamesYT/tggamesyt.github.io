@@ -97,9 +97,13 @@ margin-bottom: 15%;
     cursor: pointer;
     border-radius: 10px;
     transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
-    position: relative;
-    display: inline-block;
     
+    /* Properly center text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
     /* Adding a base shadow */
     box-shadow: 0 6px #1f6690;
 }
@@ -113,4 +117,4 @@ margin-bottom: 15%;
 .lang-btn.clicked {
     transform: translateY(5px);
     box-shadow: 0 2px #1f6690;
-}
+    }
