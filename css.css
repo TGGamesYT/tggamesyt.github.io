@@ -18,8 +18,13 @@ html {
 }  
 
 .logo_text.menu-open {  
-    top: 10vh; /* Move it down smoothly */
-    transform: translateX(-50%) translateY(0); /* Ensures proper centering */
+    top: 10vh; /* Adjust this as needed */
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Prevent body from scrolling when menu is open */
+body.menu-active {
+    overflow: hidden;
 }
 img {
     margin: auto;
