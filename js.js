@@ -1,14 +1,3 @@
-window.onload = setTimeout(toltott, 100)
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-function jegyzes(nev, ertek) {
-    localStorage.setItem(nev, JSON.stringify(ertek));
-}
-function leker(nev) {
-    const ertek = localStorage.getItem(nev);
-    return ertek ? JSON.parse(ertek) : null;
-}
 function toggleMenu() {
     document.getElementById("sidebar").classList.toggle("active");
 }
@@ -41,21 +30,25 @@ fetch('https://tggamesyt.github.io/outside.html')
     }
 });
 // Language changer
- let currentLang = 'en'; // Alapértelmezett nyelv
+const languages = ["en", "hu", "de", "fr"]; // Add more languages here
+let currentLang = localStorage.getItem("lang") || "en"; // Load saved language
 
-    function toggleLanguage() {
-        currentLang = (currentLang === 'en') ? 'hu' : 'en';
-        jegyzes("lang", currentLang);
-        
-        // Szövegek megjelenítése/elrejtése
-        document.querySelectorAll('[data-lang]').forEach(el => {
-            el.style.display = (el.getAttribute('data-lang') === currentLang) ? 'block' : 'none';
-        });
+document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
 
-        // Gomb szövegének frissítése
-        document.getElementById('lang-btn').textContent = (currentLang === 'en') ? '🇭🇺' : '🇬🇧';
-        console.log("language:", currentLang)
-    }
+function changeLanguage() {
+    currentLang = document.getElementById("lang-select").value;
+    localStorage.setItem("lang", currentLang); // Save language selection
+
+    // Show/hide elements based on selected language
+    document.querySelectorAll("[data-lang]").forEach(el => {
+        el.style.display = (el.getAttribute("data-lang") === currentLang) ? "block" : "none";
+    });
+
+    console.log("Language changed to:", currentLang);
+}
+
+// Initialize on page load
+window.onload = setTimeout(changeLanguage, 200);
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
