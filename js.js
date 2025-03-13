@@ -54,3 +54,11 @@ function adjustFontSize() {
 // Betöltéskor és átméretezéskor is alkalmazzuk
 window.addEventListener('load', adjustFontSize);
 window.addEventListener('resize', adjustFontSize);
+// button clicking
+document.addEventListener("DOMContentLoaded", function () {
+    const button = document.querySelector("button");
+
+    button.addEventListener("click", function () {
+        this.classList.toggle("clicked");
+    });
+});
