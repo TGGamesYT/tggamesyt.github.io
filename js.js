@@ -32,7 +32,7 @@ fetch('https://tggamesyt.github.io/outside.html')
     }
 });
 // Language changer
-const languages = ["en", "hu", "de", "fr"]; // Add more languages here
+const languages = ["en", "hu", "de", "fr", "pr", "pl", "no"]; // Add more languages here
 function load() {
     let currentLang = leker("lang","en"); // Load saved language
     document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
