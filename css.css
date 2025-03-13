@@ -1,3 +1,6 @@
+a {
+    color: aqua;
+}
 html {
     background-image: URL(assets/logo_back.png);
     background-repeat: no-repeat;
@@ -6,59 +9,12 @@ html {
     color: white;
     text-align: center;
 }
-/* General Logo Settings */
 .logo_text {
-    position: absolute;
-    top: 0;
-    left: 50%;
+    position: relative;
+    width: 50%;
+    left: 25%;
     transform: translateX(-50%);
-    z-index: 2;
-    width: auto;
-    overflow: hidden;
-    transition: top 0.5s ease-in-out, transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
-
-/* Static Logo Settings */
-.logo_static {
-    opacity: 1; /* Visible initially */
-    width: 100%; /* Prevent scaling */
-    max-width: 100px; /* Adjust max width to fit your needs */
-}
-
-/* Animated Logo (starts invisible) */
-.logo_animated {
-    opacity: 0; /* Initially invisible */
-    z-index: 3;
-    width: 100%;
-    max-width: 100px; /* Adjust max width to fit your needs */
-    display: none; /* Initially not displayed */
-}
-
-/* For Navbar: When the menu is open, animate the moving logo and hide static logo */
-.logo_nav.menu-open .logo_animated {
-    opacity: 1; /* Make it visible */
-    top: 10vh; /* Adjust to your desired position */
-    transform: translateX(-50%); /* Center it horizontally */
-    display: block; /* Make it visible in the layout */
-}
-
-.logo_nav.menu-open .logo_static {
-    opacity: 0; /* Make static logo invisible */
-}
-
-/* For Main Content: When the menu is open, animate the moving logo and hide static logo */
-.logo_main.menu-open .logo_animated {
-    opacity: 1; /* Make it visible */
-    top: 10vh; /* Adjust to your desired position */
-    transform: translateX(-50%); /* Center it horizontally */
-    display: block; /* Make it visible in the layout */
-}
-
-.logo_main.menu-open .logo_static {
-    opacity: 0; /* Make static logo invisible */
-}
-
-/* Prevent scrolling when menu is open */
 body.menu-active {
     overflow: hidden;
 }
