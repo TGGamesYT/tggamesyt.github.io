@@ -6,32 +6,44 @@ html {
     color: white;
     text-align: center;
 }
+.logo-container {
+    position: relative;
+}
+
 .logo_text {
-    position: relative;  
-    top: 0;  
-    left: 25%;  
-    transform: translateX(-50%);  
-    z-index: 2;  
-    width: 50%;  
-    overflow: hidden;  
-    transition: top 0.5s ease-in-out, transform 0.5s ease-in-out, opacity 0.5s ease-in-out; /* Smooth transition for opacity, top, and transform */
+    position: absolute;
+    top: 0;
+    left: 25%;
+    transform: translateX(-50%);
+    width: 50%;
+    z-index: 2;
+    transition: opacity 0.5s ease-in-out, top 0.5s ease-in-out, transform 0.5s ease-in-out;
+}
+
+/* Static logo (remains in place) */
+.logo_static {
     opacity: 1;
-}  
-
-.logo_text.menu-open {
-    opacity: 0; /* Make it invisible during the animation */
-    transition: opacity 0s; /* Ensure opacity transition happens instantly */
 }
 
-.logo_text.menu-open.transitioning {
-    opacity: 1; /* Make it visible again after animation */
-    position: fixed;  /* Fixes logo to the viewport */
-    top: 10vh;  /* Adjust to desired position */
-    left: 50%;  /* Horizontally center */
-    transform: translateX(-50%);  /* Keep the logo centered */
+/* Animated logo (will move) */
+.logo_animated {
+    opacity: 0; /* Initially invisible */
+    z-index: 3;
 }
 
-/* Prevent body from scrolling when menu is open */
+/* When menu is open, animate the moving logo */
+.logo_text.menu-open .logo_animated {
+    opacity: 1; /* Make it visible */
+    top: 10vh; /* Adjust to the position where you want it to move */
+    left: 50%;
+    transform: translateX(-50%); /* Keep it centered */
+}
+
+.logo_text.menu-open .logo_static {
+    opacity: 0; /* Make the static logo invisible */
+}
+
+/* Prevent scrolling when menu is open */
 body.menu-active {
     overflow: hidden;
 }
