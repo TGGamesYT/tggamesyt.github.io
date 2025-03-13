@@ -83,15 +83,14 @@ margin-bottom: 15%;
 .lang-btn {    
     position: absolute;    
     z-index: 4;    
-    left: 2px; /* Behozva balra */
-    top: 2px; /* Behozva felülről */
+    left: 5%; /* Behozva balra */
+    top: 5%; /* Behozva felülről */
     font: inherit;    
     background-color: #008080; /* Zöldeskék */
     border: 0;    
     color: #ffffff; /* Fehér szöveg */
     border-radius: 0.5em;    
-    font-weight: 600;    
-    text-shadow: 0 0.0625em 0 #fff;    
+    font-weight: 600;  
     box-shadow: inset 0 0.0625em 0 0 #006666, 0 0.0625em 0 0 #004d4d,    
         0 0.125em 0 0 #003333, 0 0.25em 0 0 #002222, 0 0.3125em 0 0 #001111,    
         0 0.375em 0 0 #000000, 0 0.425em 0 0 #000000, 0 0.425em 0.5em 0 #000000;    
@@ -101,7 +100,7 @@ margin-bottom: 15%;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);    
     cursor: pointer;    
 
-    width: 25%; /* Maximum 25% szélesség */
+    width: 15%; /* Maximum 25% szélesség */
     max-width: 25%;    
     min-width: fit-content; /* Ha a szöveg rövidebb, ne legyen túl széles a gomb */
     padding: 0.35em 1.2em;
