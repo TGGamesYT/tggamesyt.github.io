@@ -19,7 +19,6 @@ html {
 
 /* Static logo (remains in place and invisible when menu is open) */
 .logo_static {
-    position: absolute;
     top: 0;
     left: 25%;
     transform: translateX(-50%);
@@ -29,7 +28,6 @@ html {
 
 /* Animated logo (starts invisible) */
 .logo_animated {
-    position: absolute;
     top: 0;
     left: 25%;
     transform: translateX(-50%);
