@@ -37,23 +37,6 @@ fetch('https://tggamesyt.github.io/outside.html')
         // Gomb szövegének frissítése
         document.getElementById('lang-btn').textContent = (currentLang === 'en') ? '🇭🇺' : '🇬🇧';
     }
-// lang button relative font size
-const langButton = document.querySelector('.lang-btn');
-
-function adjustFontSize() {
-    const buttonWidth = langButton.offsetWidth;
-    let fontSize = 1.2; // Kezdő font méret (rem-ben)
-
-    // Ha a szöveg túl nagy lenne a gombhoz képest
-    while (langButton.scrollWidth > langButton.clientWidth && fontSize > 0.5) {
-        fontSize -= 0.05; // Csökkentjük a betűméretet kis lépésekben
-        langButton.style.fontSize = `${fontSize}rem`;
-    }
-}
-
-// Betöltéskor és átméretezéskor is alkalmazzuk
-window.addEventListener('load', adjustFontSize);
-window.addEventListener('resize', adjustFontSize);
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
