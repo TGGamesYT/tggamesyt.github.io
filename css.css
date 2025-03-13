@@ -7,7 +7,7 @@ html {
     text-align: center;
 }
 .logo_text {
-    position: relative;
+    position: fixed;
     top: 0;
     left: 25%;
     transform: translateX(-50%);
@@ -81,7 +81,7 @@ margin-bottom: 15%;
     margin: auto;
 }
 .lang-btn {    
-    position: absolute;    
+    position: fixed;    
     z-index: 4;    
     left: 5%; /* Behozva balra */
     top: 5%; /* Behozva felülről */
