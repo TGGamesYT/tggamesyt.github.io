@@ -85,7 +85,7 @@ margin-bottom: 15%;
     z-index: 4;    
     left: 5%; /* Behozva balra */
     top: 5%; /* Behozva felülről */
-    width: 10%
+    width: 10%;
 }
 .lang-btn {
     background-color: #3498db;
