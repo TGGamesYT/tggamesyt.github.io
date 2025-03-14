@@ -71,3 +71,20 @@ document.addEventListener("DOMContentLoaded", function () {
         body.classList.toggle("menu-active");
     });
 });
+// menu button animation
+function turn() {
+    const button = document.querySelector(".menu-btn");
+    const spans = button.querySelectorAll("span");
+
+    button.classList.toggle("open");
+
+    if (button.classList.contains("open")) {
+        spans[0].style.transform = "translateY(9px) rotate(45deg)";
+        spans[1].style.opacity = "0";
+        spans[2].style.transform = "translateY(-9px) rotate(-45deg)";
+    } else {
+        spans[0].style.transform = "translateY(0) rotate(0)";
+        spans[1].style.opacity = "1";
+        spans[2].style.transform = "translateY(0) rotate(0)";
+    }
+}
