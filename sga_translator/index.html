@@ -61,15 +61,19 @@
         let currentTranslation = "";
 
         function translateToSga(text) {
-            // Add extra spaces between SGA characters for better separation
-            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ').replace(/ /g, '   '); // Add 3 spaces where there were spaces
+            // Replace spaces with 3 spaces for clear word separation
+            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ').replace(/ /g, '   ');
         }
 
         function translateToEnglish(sgaText) {
-            // Replace triple spaces with a single space to maintain original word separation
-            const modifiedText = sgaText.replace(/   /g, ' '); // Replace 3 spaces with a single space
-            // Split by spaces between SGA letters to help with the translation
-            return modifiedText.split(' ').map(char => sgaToEnglish[char] || char).join('');
+            // First, split by 3 spaces, keeping the word boundaries intact
+            const sections = sgaText.split('   ').map(section => {
+                // Now translate each section separately by splitting by single spaces
+                return section.split(' ').map(char => sgaToEnglish[char] || char).join('');
+            });
+
+            // Join the sections back with a single space between them
+            return sections.join(' ');
         }
 
         function handleInput(event) {
