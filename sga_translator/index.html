@@ -66,8 +66,8 @@
                 if (char === ' ') {
                     return '   '; // Replace spaces with 3 spaces
                 }
-                if (char === char.toUpperCase() && char !== ' ') {
-                    // Uppercase letter: prepend ^ to the SGA character
+                if (char === char.toUpperCase() && char !== ' ' && /[a-zA-Z]/.test(char)) {
+                    // Uppercase letter (and not a symbol or number): prepend ^ to the SGA character
                     return `^${englishToSga[char.toLowerCase()] || char}`;
                 }
                 return englishToSga[char] || char; // Translate character to SGA or leave as is
