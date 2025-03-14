@@ -62,18 +62,20 @@
 
         function translateToSga(text) {
             // Replace spaces with 3 spaces, and add 1 space between SGA characters
-            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ').replace(/ /g, '   ');
+            return text.toLowerCase().split('').map(char => {
+                if (char === ' ') {
+                    return '   '; // Replace spaces with 3 spaces
+                }
+                return englishToSga[char] || char; // Translate character to SGA or leave as is
+            }).join(' '); // Join all characters with 1 space
         }
 
         function translateToEnglish(sgaText) {
-            // First, split by 3 spaces (to recover word boundaries)
-            const sections = sgaText.split('   ').map(section => {
-                // Now, translate each section separately by splitting by single spaces
+            // Replace 3 spaces with 1 space and remove spaces between characters
+            return sgaText.split('   ').map(section => {
+                // In each word, remove the spaces between characters and translate back
                 return section.split(' ').map(char => sgaToEnglish[char] || char).join('');
-            });
-
-            // Join the sections back with a single space between them to restore word boundaries
-            return sections.join(' ');
+            }).join(' '); // Join words with 1 space
         }
 
         function handleInput(event) {
