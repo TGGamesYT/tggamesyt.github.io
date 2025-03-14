@@ -133,7 +133,7 @@ function load() {
     changeLanguage();
     translatePage();
 }
-const languages = ["en", "hu", "de", "fr", "pl, "pr", "gl", "no"];
+const languages = ["en", "hu", "de", "fr", "pl", "gl", "no", "pr"];
 function changeLanguage() {
     currentLang = document.getElementById("lang-select").value;
     jegyzes("lang", currentLang); // Save language selection
