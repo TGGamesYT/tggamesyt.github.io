@@ -1,7 +1,7 @@
 window.onload = setTimeout(load, 200);
 function dotwo() {
-    toggleMenu()
-    turn()
+    toggleMenu();
+    turn();
 }
 function jegyzes(nev, ertek) {
     localStorage.setItem(nev, JSON.stringify(ertek));
