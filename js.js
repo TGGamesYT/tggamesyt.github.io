@@ -128,6 +128,7 @@ function toggleVisibility() {
 // Language changer
 function load() {
     let currentLang = leker("lang","en"); // Load saved language
+    console.log("load currentlang: ", currentLang);
     document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
     changeLanguage();
     translatePage();
