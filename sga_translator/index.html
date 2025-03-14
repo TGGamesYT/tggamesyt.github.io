@@ -62,12 +62,17 @@
 
         function translateToSga(text) {
             // Replace spaces with 3 spaces, and add 1 space between SGA characters
-            return text.toLowerCase().split('').map(char => {
+            let sgaText = text.toLowerCase().split('').map(char => {
                 if (char === ' ') {
                     return '   '; // Replace spaces with 3 spaces
                 }
                 return englishToSga[char] || char; // Translate character to SGA or leave as is
             }).join(' '); // Join all characters with 1 space
+
+            // Replace any occurrence of 5 spaces with 3 spaces
+            sgaText = sgaText.replace(/     /g, '   ');
+
+            return sgaText;
         }
 
         function translateToEnglish(sgaText) {
