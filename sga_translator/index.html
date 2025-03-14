@@ -62,9 +62,13 @@
 
         function translateToSga(text) {
             // Replace spaces with 3 spaces, and add 1 space between SGA characters
-            let sgaText = text.toLowerCase().split('').map(char => {
+            let sgaText = text.split('').map(char => {
                 if (char === ' ') {
                     return '   '; // Replace spaces with 3 spaces
+                }
+                if (char === char.toUpperCase() && char !== ' ') {
+                    // Uppercase letter: prepend ^ to the SGA character
+                    return `^${englishToSga[char.toLowerCase()] || char}`;
                 }
                 return englishToSga[char] || char; // Translate character to SGA or leave as is
             }).join(' '); // Join all characters with 1 space
@@ -79,7 +83,13 @@
             // Replace 3 spaces with 1 space and remove spaces between characters
             return sgaText.split('   ').map(section => {
                 // In each word, remove the spaces between characters and translate back
-                return section.split(' ').map(char => sgaToEnglish[char] || char).join('');
+                return section.split(' ').map(char => {
+                    if (char.startsWith('^')) {
+                        // Handle uppercase by removing the ^ and converting to uppercase
+                        return sgaToEnglish[char.slice(1)]?.toUpperCase() || char;
+                    }
+                    return sgaToEnglish[char] || char;
+                }).join('');
             }).join(' '); // Join words with 1 space
         }
 
