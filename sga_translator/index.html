@@ -43,7 +43,7 @@
 <body>
     <div id="console">Welcome to the SGA Translator Console!\n</div>
     <input type="text" id="input" placeholder="Type your command here..." />
-    <button onclick="copyToClipboard()">Copy Output</button>
+    <button onclick="copyToClipboard()">Copy Translation</button>
 
     <script>
         const englishToSga = {
@@ -58,12 +58,14 @@
         );
 
         let consoleOutput = "Welcome to the SGA Translator Console!\n";
+        let currentTranslation = "";
 
         function translateToSga(text) {
             return text.toLowerCase().split('').map(char => englishToSga[char] || char).join('');
         }
 
         function translateToEnglish(sgaText) {
+            // Split by extra spaces between SGA letters
             return sgaText.split(' ').map(char => sgaToEnglish[char] || char).join('');
         }
 
@@ -74,10 +76,12 @@
 
             if (inputText.startsWith("1")) {
                 const textToTranslate = inputText.slice(2); // Remove the "1 " part
-                response = `Translated to SGA: ${translateToSga(textToTranslate)}\n`;
+                currentTranslation = translateToSga(textToTranslate);
+                response = `Translated to SGA: ${currentTranslation}\n`;
             } else if (inputText.startsWith("2")) {
                 const textToTranslate = inputText.slice(2); // Remove the "2 " part
-                response = `Translated to English: ${translateToEnglish(textToTranslate)}\n`;
+                currentTranslation = translateToEnglish(textToTranslate);
+                response = `Translated to English: ${currentTranslation}\n`;
             } else {
                 response = "Invalid command. Type '1 <text>' to translate to SGA or '2 <text>' to translate to English.\n";
             }
@@ -88,9 +92,8 @@
         }
 
         function copyToClipboard() {
-            const consoleElement = document.getElementById('console');
-            navigator.clipboard.writeText(consoleElement.textContent).then(() => {
-                alert('Console output copied!');
+            navigator.clipboard.writeText(currentTranslation).then(() => {
+                alert('Translation copied!');
             });
         }
 
