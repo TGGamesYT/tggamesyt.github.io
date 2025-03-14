@@ -88,6 +88,15 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('silly').innerHTML = navContent.innerHTML;
     }
 });
+fetch('https://tggamesyt.github.io/outside.html')
+.then(response => response.text())
+.then(data => {
+    let temp = document.createElement('div');
+    temp.innerHTML = data;
+    let navContent = temp.querySelector('#buttons');
+    if (navContent) {
+        document.getElementById('buttons').innerHTML = navContent.innerHTML;
+    }
 // silly navbar
 function toggleVisibility() {
             let navbar = document.getElementById("navbar");
