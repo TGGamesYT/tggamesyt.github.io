@@ -3,101 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA Translator with Brython</title>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.10.5/brython.min.js"></script>
+    <title>SGA Translator</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: monospace;
+            background-color: black;
+            color: green;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #console {
+            white-space: pre-wrap;
         }
         input, button {
-            margin: 10px;
-            padding: 10px;
-            font-size: 14px;
+            background-color: black;
+            color: green;
+            border: none;
+            font-family: monospace;
+            font-size: 16px;
+            padding: 5px;
+            width: 100%;
         }
     </style>
 </head>
-<body onload="brython()">
+<body>
+    <div id="console">
+        <p>Welcome to SGA Translator Console</p>
+        <p>Type "exit" to quit.</p>
+        <p>1 => English to Standard Galactic</p>
+        <p>2 => Standard Galactic to English</p>
+        <p>What would you like to translate?</p>
+        <input type="number" id="typeInput" placeholder="Choose option 1 or 2">
+        <textarea id="textInput" placeholder="Enter text to translate..."></textarea>
+        <button id="translateButton">Translate</button>
+        <p id="output"></p>
+    </div>
 
-    <h1>SGA Translator</h1>
-
-    <label for="inputText">Enter text to translate:</label>
-    <input type="text" id="inputText" placeholder="Enter text to translate" />
-
-    <br>
-
-    <label for="translateType">Select translation type:</label>
-    <select id="translateType">
-        <option value="1">English to SGA</option>
-        <option value="2">SGA to English</option>
-    </select>
-
-    <br>
-
-    <button onclick="translate()">Translate</button>
-
-    <h3>Result:</h3>
-    [<p id="result">default</p>]
-
-    <script type="text/python">
-
-        from browser import document
-
-        # Mapping of English letters to Standard Galactic Alphabet (SGA)
-        english_to_sga = {
+    <script>
+        const englishToSGA = {
             'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
             'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
             'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
             'y': '||', 'z': '⨅'
+        };
+
+        const sgaToEnglish = Object.fromEntries(Object.entries(englishToSGA).map(([k, v]) => [v, k]));
+
+        function translateToSGA(text) {
+            return text.toLowerCase().split('').map(char => englishToSGA[char] || char).join(' ');
         }
 
-        # Reverse mapping for SGA to English
-        sga_to_english = {v: k for k, v in english_to_sga.items()}
+        function translateToEnglish(sgaText) {
+            return sgaText.split(' ').map(char => sgaToEnglish[char] || 'o').join('');
+        }
 
-        # Function to translate English text to Standard Galactic Alphabet (SGA)
-        def translate_to_sga(text):
-            return ' '.join(english_to_sga.get(char, char) for char in text.lower())
+        document.getElementById('translateButton').addEventListener('click', function () {
+            const type = parseInt(document.getElementById('typeInput').value);
+            const text = document.getElementById('textInput').value;
 
-        # Function to translate SGA text to English
-        def translate_to_english(sga_text):
-            # Fix corrupted 'o' (unknown chars default to 'o')
-            sga_text = sga_text.replace('�', '𝙹')  
+            let output = '';
 
-            # Split while preserving spaces
-            words = sga_text.split(' ')
-            translated_text = []
+            if (type === 1) {
+                output = `Translated to SGA: ${translateToSGA(text)}`;
+            } else if (type === 2) {
+                output = `Translated to English: ${translateToEnglish(text)}`;
+            } else {
+                output = 'Invalid option. Please choose 1 or 2.';
+            }
 
-            for char in words:
-                if char in sga_to_english:
-                    translated_text.append(sga_to_english[char])
-                elif char == '':
-                    translated_text.append(' ')  # Preserve single spaces
-                else:
-                    translated_text.append('o')  # Default unknown characters to 'o'
-
-            return ''.join(translated_text).replace('  ', ' ')  # Remove double spaces
-
-        # Function to handle the translation process
-        def translate():
-            input_text = document["inputText"].value.strip()
-            translate_type = int(document["translateType"].value)
-
-            if not input_text:
-                document["result"].text = "Please enter some text to translate."
-                return
-
-            result_text = ""
-
-            if translate_type == 1:
-                result_text = translate_to_sga(input_text)
-            elif translate_type == 2:
-                result_text = translate_to_english(input_text)
-            else:
-                result_text = "Invalid option selected."
-
-            document["result"].text = result_text
-
+            document.getElementById('output').textContent = output;
+        });
     </script>
-
 </body>
 </html>
