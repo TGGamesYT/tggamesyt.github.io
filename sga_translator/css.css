@@ -1,0 +1,111 @@
+        body {
+            font-family: monospace;
+            background-color: #111;
+            color: #00FF00;
+            padding: 20px;
+        }
+        #console {
+            background-color: black;
+            color: #00FF00;
+            border: 1px solid #333;
+            padding: 20px;
+            width: 90%;
+            height: 300px;
+            margin: 0 auto;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            left: 5%;
+        }
+        #input {
+            width: 100%;
+            padding: 10px;
+            background-color: black;
+            color: #00FF00;
+            border: none;
+            border-top: 1px solid #333;
+        }
+        button {
+            background-color: #00FF00;
+            color: black;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #keyboard {
+            margin: auto;
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            background-color: black;
+            border: 2px solid #00FF00;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            gap: 5px;
+        }
+        #keyboard button {
+            background-color: #00FF00;
+            color: black;
+            border: 1px solid #333;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .menu-btn {
+    position: fixed;
+    top: 5%;
+    right: 5%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+}
+.menu-btn span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: black;
+    margin: 6px 0;
+    transition: 0.4s;
+}
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%; 
+    height: 100%;
+    background: #0053FF;
+    padding-top: 60px;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 15px 20px;
+    font-size: 18px;
+    transition: 0.3s;
+}
+.sidebar a:hover {
+    background: #005399;
+}
+.sidebar.active {
+    right: 0;
+}
+.sidebar .a {
+margin-bottom: 15%;
+}
