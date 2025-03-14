@@ -1,9 +1,3 @@
-window.onload = load;
-window.onbeforeunload = function () {
-    if (performance.navigation.type === 1) { // 1 = Reload
-        changeLanguage();
-    }
-};
         const englishToSga = {
             'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
             'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
@@ -189,3 +183,9 @@ function turn() {
         spans[2].style.transform = "translateY(0) rotate(0)";
     }
 }
+window.onload = load;
+window.onbeforeunload = function () {
+    if (performance.navigation.type === 1) { // 1 = Reload
+        changeLanguage();
+    }
+};
