@@ -54,13 +54,20 @@
             'y': '||', 'z': '⨅'
         };
 
-        //const sgaToEnglish = Object.fromEntries(Object.entries(englishToSGA).map(([k, v]) => [v, k]));
-        //sgaToEnglish['𝙹'] = 'o'; // Manually mapping the "𝙹" back to "o"
+        const sgaToEnglish = Object.fromEntries(Object.entries(englishToSGA).map(([k, v]) => [v, k]));
+        sgaToEnglish['𝙹'] = 'o'; // Manually mapping the "𝙹" back to "o"
 
         function translateToSGA(text) {
             return text.split('').map(char => {
                 if (char === ' ') return ' ';  // Preserve spaces
-                return englishToSGA[char.toLowerCase()] || char;
+                return englishToSGA[char.toLowerCase()] || char; // Don't change unknown characters
+            }).join('');
+        }
+
+        function translateToEnglish(sgaText) {
+            return sgaText.split('').map(char => {
+                if (char === ' ') return ' ';  // Preserve spaces
+                return sgaToEnglish[char] || char; // Don't change unknown characters
             }).join('');
         }
 
