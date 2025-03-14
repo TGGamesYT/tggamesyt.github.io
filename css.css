@@ -96,4 +96,6 @@ margin-bottom: 15%;
     justify-content: center;
     text-align: center;
 }
-
+#silly {
+    display: none;
+}
