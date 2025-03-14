@@ -35,6 +35,16 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('options').innerHTML = navContent.innerHTML;
     }
 });
+fetch('https://tggamesyt.github.io/outside.html')
+.then(response => response.text())
+.then(data => {
+    let temp = document.createElement('div');
+    temp.innerHTML = data;
+    let navContent = temp.querySelector('#silly');
+    if (navContent) {
+        document.getElementById('silly').innerHTML = navContent.innerHTML;
+    }
+});
 // Language changer
 function load() {
     let currentLang = leker("lang","en"); // Load saved language
