@@ -45,6 +45,19 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('silly').innerHTML = navContent.innerHTML;
     }
 });
+// silly navbar
+function toggleVisibility() {
+            let navbar = document.getElementById("navbar");
+            let silly = document.getElementById("silly");
+
+            if (navbar.style.display !== "none") {
+                navbar.style.display = "none";
+                silly.style.display = "block";
+            } else {
+                navbar.style.display = "block";
+                silly.style.display = "none";
+            }
+}
 // Language changer
 function load() {
     let currentLang = leker("lang","en"); // Load saved language
