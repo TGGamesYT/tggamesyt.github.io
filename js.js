@@ -26,13 +26,12 @@ fetch('https://tggamesyt.github.io/outside.html')
 .then(data => {
     let temp = document.createElement('div');
     temp.innerHTML = data;
-    let navContent = temp.querySelector('#maintance');
+    let navContent = temp.querySelector('#langs');
     if (navContent) {
-        document.getElementById('maintance').innerHTML = navContent.innerHTML;
+        document.getElementById('options').innerHTML = navContent.innerHTML;
     }
 });
 // Language changer
-const languages = ["en", "hu", "de", "fr", "pr", "pl", "no"]; // Add more languages here
 function load() {
     let currentLang = leker("lang","en"); // Load saved language
     document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
