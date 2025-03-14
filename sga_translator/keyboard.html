@@ -120,7 +120,11 @@
 
         function addCharacter(character) {
             const inputField = document.getElementById('input');
-            inputField.value += character;
+            if (character === ' ') {
+                inputField.value += '  ';  // Insert two spaces for the space button
+            } else {
+                inputField.value += character + ' ';  // Insert space after each character
+            }
         }
 
         function translateToSga(text) {
@@ -184,4 +188,4 @@
         });
     </script>
 </body>
-                                                 </html>
+</html>
