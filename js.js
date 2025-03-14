@@ -41,9 +41,7 @@
                 }
             }
         }
-
-        window.onload = translatePage;
-onload = setTimeout(load, 200);
+onload = setTimeout(load, 20);
 function dotwo() {
     toggleMenu();
     turn();
@@ -108,6 +106,7 @@ function load() {
     let currentLang = leker("lang","en"); // Load saved language
     document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
     changeLanguage();
+    translatePage();
 }
 
 function changeLanguage() {
