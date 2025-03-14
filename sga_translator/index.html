@@ -53,24 +53,90 @@
             'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
             'y': '||', 'z': '⨅'
         };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA Translator</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: black;
+            color: green;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #console {
+            white-space: pre-wrap;
+        }
+        input, button {
+            background-color: black;
+            color: green;
+            border: none;
+            font-family: monospace;
+            font-size: 16px;
+            padding: 5px;
+            width: 100%;
+            margin: 5px 0;
+        }
+        #output {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="console">
+        <p>Welcome to SGA Translator Console</p>
+        <p>Type "exit" to quit.</p>
+        <p>1 => English to Standard Galactic</p>
+        <p>2 => Standard Galactic to English</p>
+        <p>What would you like to translate?</p>
+        <input type="number" id="typeInput" placeholder="Choose option 1 or 2">
+        <textarea id="textInput" placeholder="Enter text to translate..."></textarea>
+        <button id="translateButton">Translate</button>
+        <p id="output"></p>
+        <button id="copyButton" style="display:none;">Copy Translation</button> <!-- Initially hidden -->
+    </div>
+
+    <script>
+        const englishToSGA = {
+            'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
+            'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
+            'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
+            'y': '||', 'z': '⨅'
+        };
 
         const sgaToEnglish = Object.fromEntries(Object.entries(englishToSGA).map(([k, v]) => [v, k]));
-        
-        // Manually adding reverse mapping for ℸ̣ (t) and 𝙹 (o)
-        sgaToEnglish['ℸ̣'] = 't';  // Reverse for 't'
-        sgaToEnglish['𝙹'] = 'o';   // Reverse for 'o'
 
         function translateToSGA(text) {
             return text.split('').map(char => {
                 if (char === ' ') return ' ';  // Preserve spaces
                 return englishToSGA[char.toLowerCase()] || char; // Don't change unknown characters
-            }).join('');
+            }).join(' '); // Add space between each translated character for visibility
         }
 
         function translateToEnglish(sgaText) {
             return sgaText.split('').map(char => {
                 if (char === ' ') return ' ';  // Preserve spaces
                 return sgaToEnglish[char] || char; // Don't change unknown characters
+            }).join('');
+        }
+
+        // Replace ℸ̣ with t and 𝙹 with o after translation, and restore spaces
+        function fixTranslation(text, originalText) {
+            let fixedText = text
+                .replace(/ℸ̣/g, 't')   // Replace ℸ̣ with 't'
+                .replace(/𝙹/g, 'o');    // Replace 𝙹 with 'o'
+
+            // Add an extra space if there was one in the original text
+            return fixedText.split('').map((char, index) => {
+                if (originalText[index] === ' ') {
+                    return char + ' '; // Add an extra space where original text had a space
+                }
+                return char;
             }).join('');
         }
 
@@ -91,12 +157,14 @@
 
             if (type === 1) {
                 const translatedSGA = translateToSGA(text);
-                output = `Translated to SGA: ${translatedSGA}`;
-                document.getElementById('copyButton').setAttribute('data-text', translatedSGA); // Store the SGA translation for copying
+                const fixedSGA = fixTranslation(translatedSGA, text); // Fix translation and restore spaces
+                output = `Translated to SGA: ${fixedSGA}`;
+                document.getElementById('copyButton').setAttribute('data-text', fixedSGA); // Store the fixed SGA translation for copying
             } else if (type === 2) {
                 const translatedEnglish = translateToEnglish(text);
-                output = `Translated to English: ${translatedEnglish}`;
-                document.getElementById('copyButton').setAttribute('data-text', translatedEnglish); // Store the English translation for copying
+                const fixedEnglish = fixTranslation(translatedEnglish, text); // Fix translation and restore spaces
+                output = `Translated to English: ${fixedEnglish}`;
+                document.getElementById('copyButton').setAttribute('data-text', fixedEnglish); // Store the fixed English translation for copying
             } else {
                 output = 'Invalid option. Please choose 1 or 2.';
             }
