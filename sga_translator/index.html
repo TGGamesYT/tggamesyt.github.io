@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGA Translator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>SGA Translator</h1>
+
+    <label for="inputText">Enter text to translate:</label>
+    <input type="text" id="inputText" placeholder="Enter text to translate" />
+
+    <br>
+
+    <label for="translateType">Select translation type:</label>
+    <select id="translateType">
+        <option value="1">English to SGA</option>
+        <option value="2">SGA to English</option>
+    </select>
+
+    <br>
+
+    <button onclick="translate()">Translate</button>
+
+    <h3>Result:</h3>
+    <p id="result"></p>
+
+    <script>
+        // Mapping of English letters to Standard Galactic Alphabet (SGA)
+        const englishToSga = {
+            'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
+            'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
+            'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
+            'y': '||', 'z': '⨅'
+        };
+
+        // Reverse mapping for SGA to English
+        const sgaToEnglish = Object.fromEntries(
+            Object.entries(englishToSga).map(([k, v]) => [v, k])
+        );
+
+        // Function to translate English text to Standard Galactic Alphabet (SGA)
+        function translateToSga(text) {
+            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ');
+        }
+
+        // Function to translate SGA text to English
+        function translateToEnglish(sgaText) {
+            // Fix corrupted 'o' (unknown chars default to 'o')
+            sgaText = sgaText.replace('�', '𝙹');
+
+            const words = sgaText.split(' ');
+            let translatedText = [];
+
+            words.forEach(char => {
+                if (sgaToEnglish[char]) {
+                    translatedText.push(sgaToEnglish[char]);
+                } else if (char === '') {
+                    translatedText.push(' ');  // Preserve single spaces
+                } else {
+                    translatedText.push('o');  // Default unknown characters to 'o'
+                }
+            });
+
+            return translatedText.join('').replace('  ', ' ');  // Remove double spaces
+        }
+
+        // Function to handle the translation process
+        function translate() {
+            const inputText = document.getElementById('inputText').value;
+            const translateType = parseInt(document.getElementById('translateType').value);
+
+            let resultText = '';
+
+            if (translateType === 1) {
+                resultText = translateToSga(inputText);
+            } else if (translateType === 2) {
+                resultText = translateToEnglish(inputText);
+            } else {
+                resultText = 'Invalid option selected.';
+            }
+
+            document.getElementById('result').innerText = resultText;
+        }
+    </script>
+
+</body>
+</html>
