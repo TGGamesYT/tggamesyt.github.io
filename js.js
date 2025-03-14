@@ -6,13 +6,14 @@
         };
 
         function translateToSga(text) {
-            return text.split('').map(char => {
-                if (char === ' ') return '   '; // 3 spaces for word separation
-                if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
-                    return `^${englishToSga[char.toLowerCase()] || char}`;
-                }
-                return englishToSga[char] || char;
-            }).join(' ');
+            return text.split(' ').map(word => {
+                return word.split('').map(char => {
+                    if (/[A-Z]/.test(char)) {
+                        return `^${englishToSga[char.toLowerCase()] || char}`;
+                    }
+                    return englishToSga[char] || char;
+                }).join(' ');
+            }).join('   '); // 3 spaces between words
         }
 
         async function googleTranslate(text, targetLang) {
@@ -23,7 +24,7 @@
                 return result[0].map(item => item[0]).join('');
             } catch (error) {
                 console.error("Translation error:", error);
-                return text; // Return original text in case of error
+                return text;
             }
         }
 
