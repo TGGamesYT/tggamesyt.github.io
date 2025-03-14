@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA Translator</title>
+    <title>SGA Translator with Brython</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.10.5/brython.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,7 +17,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="brython()">
 
     <h1>SGA Translator</h1>
 
@@ -38,71 +39,64 @@
     <h3>Result:</h3>
     <p id="result"></p>
 
-    <script>
-        // Mapping of English letters to Standard Galactic Alphabet (SGA)
-        const englishToSga = {
+    <script type="text/python">
+
+        from browser import document
+
+        # Mapping of English letters to Standard Galactic Alphabet (SGA)
+        english_to_sga = {
             'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
             'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
             'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
             'y': '||', 'z': '⨅'
-        };
-
-        // Reverse mapping for SGA to English
-        const sgaToEnglish = Object.fromEntries(
-            Object.entries(englishToSga).map(([k, v]) => [v, k])
-        );
-
-        // Function to translate English text to Standard Galactic Alphabet (SGA)
-        function translateToSga(text) {
-            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ');
         }
 
-        // Function to translate SGA text to English
-        function translateToEnglish(sgaText) {
-            // Fix corrupted 'o' (unknown chars default to 'o')
-            sgaText = sgaText.replace('�', '𝙹');
+        # Reverse mapping for SGA to English
+        sga_to_english = {v: k for k, v in english_to_sga.items()}
 
-            const words = sgaText.split(' ');
-            let translatedText = [];
+        # Function to translate English text to Standard Galactic Alphabet (SGA)
+        def translate_to_sga(text):
+            return ' '.join(english_to_sga.get(char, char) for char in text.lower())
 
-            words.forEach(char => {
-                if (sgaToEnglish[char]) {
-                    translatedText.push(sgaToEnglish[char]);
-                } else if (char === '') {
-                    translatedText.push(' ');  // Preserve single spaces
-                } else {
-                    translatedText.push('o');  // Default unknown characters to 'o'
-                }
-            });
+        # Function to translate SGA text to English
+        def translate_to_english(sga_text):
+            # Fix corrupted 'o' (unknown chars default to 'o')
+            sga_text = sga_text.replace('�', '𝙹')  
 
-            return translatedText.join('').replace('  ', ' ');  // Remove double spaces
-        }
+            # Split while preserving spaces
+            words = sga_text.split(' ')
+            translated_text = []
 
-        // Function to handle the translation process
-        function translate() {
-            const inputText = document.getElementById('inputText').value.trim();
-            const translateType = parseInt(document.getElementById('translateType').value);
+            for char in words:
+                if char in sga_to_english:
+                    translated_text.append(sga_to_english[char])
+                elif char == '':
+                    translated_text.append(' ')  # Preserve single spaces
+                else:
+                    translated_text.append('o')  # Default unknown characters to 'o'
 
-            // Check if input text is empty
-            if (!inputText) {
-                document.getElementById('result').innerText = 'Please enter some text to translate.';
-                return;
-            }
+            return ''.join(translated_text).replace('  ', ' ')  # Remove double spaces
 
-            let resultText = '';
+        # Function to handle the translation process
+        def translate():
+            input_text = document["inputText"].value.strip()
+            translate_type = int(document["translateType"].value)
 
-            // Translate based on the selected type
-            if (translateType === 1) {
-                resultText = translateToSga(inputText);
-            } else if (translateType === 2) {
-                resultText = translateToEnglish(inputText);
-            } else {
-                resultText = 'Invalid option selected.';
-            }
+            if not input_text:
+                document["result"].text = "Please enter some text to translate."
+                return
 
-            // Display the result
-            document.getElementById('result').innerText = resultText;
-        }
+            result_text = ""
+
+            if translate_type == 1:
+                result_text = translate_to_sga(input_text)
+            elif translate_type == 2:
+                result_text = translate_to_english(input_text)
+            else:
+                result_text = "Invalid option selected."
+
+            document["result"].text = result_text
+
     </script>
 
 </body>
