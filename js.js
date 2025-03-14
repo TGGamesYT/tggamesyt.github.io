@@ -65,7 +65,7 @@
                 translateHTMLContent(element, targetLang);
             });
         }
-onload = setTimeout(load, 20);
+onload = setTimeout(load, 1);
 function dotwo() {
     toggleMenu();
     turn();
