@@ -25,6 +25,10 @@
             font-size: 16px;
             padding: 5px;
             width: 100%;
+            margin: 5px 0;
+        }
+        #output {
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -39,6 +43,7 @@
         <textarea id="textInput" placeholder="Enter text to translate..."></textarea>
         <button id="translateButton">Translate</button>
         <p id="output"></p>
+        <button id="copyButton" style="display:none;">Copy Translation</button> <!-- Initially hidden -->
     </div>
 
     <script>
@@ -65,6 +70,15 @@
             }).join('');
         }
 
+        // Function to copy the translation to the clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Copied to clipboard!');
+            }).catch(function(err) {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
         document.getElementById('translateButton').addEventListener('click', function () {
             const type = parseInt(document.getElementById('typeInput').value);
             const text = document.getElementById('textInput').value;
@@ -80,6 +94,13 @@
             }
 
             document.getElementById('output').textContent = output;
+            document.getElementById('copyButton').style.display = 'block'; // Show copy button
+            document.getElementById('copyButton').setAttribute('data-text', output); // Store the output text for copying
+        });
+
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const translatedText = document.getElementById('copyButton').getAttribute('data-text');
+            copyToClipboard(translatedText); // Copy the stored translation
         });
     </script>
 </body>
