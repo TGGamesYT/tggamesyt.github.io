@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGA Translator</title>
+    <title>SGA Translator Console</title>
     <style>
         body {
             font-family: monospace;
@@ -41,8 +41,8 @@
     </style>
 </head>
 <body>
-    <div id="console"></div>
-    <input type="text" id="input" placeholder="Type here..." />
+    <div id="console">Welcome to the SGA Translator Console!\n</div>
+    <input type="text" id="input" placeholder="Type your command here..." />
     <button onclick="copyToClipboard()">Copy Output</button>
 
     <script>
@@ -57,10 +57,10 @@
             Object.entries(englishToSga).map(([k, v]) => [v, k])
         );
 
-        let consoleOutput = "";
+        let consoleOutput = "Welcome to the SGA Translator Console!\n";
 
         function translateToSga(text) {
-            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ');
+            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join('');
         }
 
         function translateToEnglish(sgaText) {
@@ -70,23 +70,26 @@
         function handleInput(event) {
             const inputText = event.target.value;
             const consoleElement = document.getElementById('console');
+            let response = "";
 
-            if (inputText.includes("1")) {
-                const translatedText = translateToSga(inputText.split(" ")[1]);
-                consoleOutput += `Translated to SGA: ${translatedText}\n`;
-            } else if (inputText.includes("2")) {
-                const translatedText = translateToEnglish(inputText.split(" ")[1]);
-                consoleOutput += `Translated to English: ${translatedText}\n`;
+            if (inputText.startsWith("1")) {
+                const textToTranslate = inputText.slice(2); // Remove the "1 " part
+                response = `Translated to SGA: ${translateToSga(textToTranslate)}\n`;
+            } else if (inputText.startsWith("2")) {
+                const textToTranslate = inputText.slice(2); // Remove the "2 " part
+                response = `Translated to English: ${translateToEnglish(textToTranslate)}\n`;
             } else {
-                consoleOutput += "Invalid number\n";
+                response = "Invalid command. Type '1 <text>' to translate to SGA or '2 <text>' to translate to English.\n";
             }
 
+            consoleOutput += response;
             consoleElement.textContent = consoleOutput;
             event.target.value = "";
         }
 
         function copyToClipboard() {
-            navigator.clipboard.writeText(consoleOutput).then(() => {
+            const consoleElement = document.getElementById('console');
+            navigator.clipboard.writeText(consoleElement.textContent).then(() => {
                 alert('Console output copied!');
             });
         }
