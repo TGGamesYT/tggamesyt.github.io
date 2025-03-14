@@ -1,4 +1,49 @@
-window.onload = setTimeout(load, 200);
+        const englishToSga = {
+            'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
+            'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
+            'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
+            'y': '||', 'z': '⨅'
+        };
+
+        function translateToSga(text) {
+            return text.split('').map(char => {
+                if (char === ' ') return '   '; // 3 spaces for word separation
+                if (char === char.toUpperCase() && /[A-Z]/.test(char)) {
+                    return `^${englishToSga[char.toLowerCase()] || char}`;
+                }
+                return englishToSga[char] || char;
+            }).join(' ');
+        }
+
+        async function googleTranslate(text, targetLang) {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                return result[0].map(item => item[0]).join('');
+            } catch (error) {
+                console.error("Translation error:", error);
+                return text; // Return original text in case of error
+            }
+        }
+
+        async function translatePage() {
+            const elements = document.querySelectorAll("[data-translate]");
+            for (const element of elements) {
+                const targetLang = element.getAttribute("data-translate");
+                const originalText = element.innerText.trim();
+
+                if (targetLang === "galactic") {
+                    element.innerText = translateToSga(originalText);
+                } else {
+                    const translatedText = await googleTranslate(originalText, targetLang);
+                    element.innerText = translatedText;
+                }
+            }
+        }
+
+        window.onload = translatePage;
+onload = setTimeout(load, 200);
 function dotwo() {
     toggleMenu();
     turn();
