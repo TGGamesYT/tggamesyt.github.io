@@ -6,16 +6,15 @@
         };
 
         function translateToSga(text) {
-            return text.split(' ').map(word => {
-                return word.split('').map(char => {
-                    if (/[A-Z]/.test(char)) {
-                        return `^${englishToSga[char.toLowerCase()] || char}`;
-                    }
-                    return englishToSga[char] || char;
-                }).join(' ');
-            }).join('   '); // 3 spaces between words
+            return text.split(' ').map(word =>  // Split words
+                word.split('').map(char => {  // Split letters
+                    if (char === char.toUpperCase() && /[A-Z]/.test(char)) {  
+                        return `^${englishToSga[char.toLowerCase()] || char}`;  
+                    }  
+                    return englishToSga[char] || char;  
+                }).join(' ') // Add 1 space between letters
+            ).join('&nbsp;&nbsp;&nbsp;'); // Add 3 non-breaking spaces between words
         }
-
         async function googleTranslate(text, targetLang) {
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
             try {
@@ -35,7 +34,7 @@
                 const originalText = element.innerText.trim();
 
                 if (targetLang === "galactic") {
-                    element.innerText = translateToSga(originalText);
+                    element.innerHTML = translateToSga(originalText);
                 } else {
                     const translatedText = await googleTranslate(originalText, targetLang);
                     element.innerText = translatedText;
