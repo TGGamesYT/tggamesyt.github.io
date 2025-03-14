@@ -3,17 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standart Galactic Translator</title>
-        <link rel="icon" type="image/x-icon" href="https://tggamesyt.github.io/assets/icon.png">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta property="og:title" content="TG's Standard Galactic Translator" />
-        <meta property="og:image" content="https://tggamesyt.github.io/assets/new_tglogo.png" />
-        <meta property="og:description" content="Translate Minecraft Enchant table language here!" />
-        <meta name="theme-color" content="#0053FF">
-        <meta name="twitter:card" content="summary_large_image">
-        <script src="https://tggamesyt.github.io/js.js"></script>
-        <script>
-                    const englishToSga = {
+    <title>SGA Translator Console</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #111;
+            color: #00FF00;
+            padding: 20px;
+        }
+        #console {
+            background-color: black;
+            color: #00FF00;
+            border: 1px solid #333;
+            padding: 20px;
+            width: 90%;
+            height: 300px;
+            margin: 0 auto;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        #input {
+            width: 100%;
+            padding: 10px;
+            background-color: black;
+            color: #00FF00;
+            border: none;
+            border-top: 1px solid #333;
+        }
+        button {
+            background-color: #00FF00;
+            color: black;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #keyboard {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: black;
+            border: 2px solid #00FF00;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            gap: 5px;
+        }
+        #keyboard button {
+            background-color: #00FF00;
+            color: black;
+            border: 1px solid #333;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="console">Welcome to the SGA Translator Console!\n</div>
+    <input type="text" id="input" placeholder="Type your command here..." />
+    <button onclick="copyToClipboard()">Copy Translation</button>
+    <button onclick="toggleKeyboard()">Toggle SGA Keyboard</button>
+
+    <div id="keyboard">
+        <!-- SGA Keyboard Buttons -->
+        <button onclick="addCharacter('ᔑ')">ᔑ</button>
+        <button onclick="addCharacter('ʖ')">ʖ</button>
+        <button onclick="addCharacter('ᓵ')">ᓵ</button>
+        <button onclick="addCharacter('↸')">↸</button>
+        <button onclick="addCharacter('ᒷ')">ᒷ</button>
+        <button onclick="addCharacter('⎓')">⎓</button>
+        <button onclick="addCharacter('⊣')">⊣</button>
+        <button onclick="addCharacter('⍑')">⍑</button>
+        <button onclick="addCharacter('╎')">╎</button>
+        <button onclick="addCharacter('⋮')">⋮</button>
+
+        <button onclick="addCharacter('ꖌ')">ꖌ</button>
+        <button onclick="addCharacter('ꖎ')">ꖎ</button>
+        <button onclick="addCharacter('ᒲ')">ᒲ</button>
+        <button onclick="addCharacter('リ')">リ</button>
+        <button onclick="addCharacter('𝙹')">𝙹</button>
+        <button onclick="addCharacter('!¡')">!¡</button>
+        <button onclick="addCharacter('ᑑ')">ᑑ</button>
+        <button onclick="addCharacter('∷')">∷</button>
+        <button onclick="addCharacter('ᓭ')">ᓭ</button>
+
+        <button onclick="addCharacter('ℸ̣')">ℸ̣</button>
+        <button onclick="addCharacter('⚍')">⚍</button>
+        <button onclick="addCharacter('⍊')">⍊</button>
+        <button onclick="addCharacter('∴')">∴</button>
+        <button onclick="addCharacter('̇/')">̇/</button>
+        <button onclick="addCharacter('||')">||</button>
+        <button onclick="addCharacter('⨅')">⨅</button>
+        <button onclick="addCharacter(' ')">Space</button>
+    </div>
+
+    <script>
+        const englishToSga = {
             'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
             'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
             'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
@@ -100,59 +186,6 @@
                 handleInput(event);
             }
         });
-        </script>
-        <link rel="stylesheet" href="css.css">
-</head>
-<body>
-        <div class="sidebar" id="sidebar">
-            <img class="logo_text logo_nav" src="assets/logo_text.png" alt="Logo">
-            <div id="navbar"></div>
-            <div id="silly"></div>
-            <p>‎</p>
-        </div>
-        <button class="menu-btn" onclick="dotwo()">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-    <h1>Standart Galactic translator.</h1>
-    <p>The Minecraft Enchant table language.</p>
-    <div id="console">Welcome to the SGA Translator Console!<br>Type "1 <word>" to translate normal text to Standart Galactic. Type "2 <word>" to translate from Standart Galactic to normal text. You can also open the SGA keyboard to type Galactic charachters.\n</div>
-    <input type="text" id="input" placeholder="Type your command here..." />
-    <button onclick="copyToClipboard()">Copy Translation</button>
-    <button onclick="toggleKeyboard()">Toggle SGA Keyboard</button>
-
-    <div id="keyboard">
-        <!-- SGA Keyboard Buttons -->
-        <button onclick="addCharacter('ᔑ')">ᔑ</button>
-        <button onclick="addCharacter('ʖ')">ʖ</button>
-        <button onclick="addCharacter('ᓵ')">ᓵ</button>
-        <button onclick="addCharacter('↸')">↸</button>
-        <button onclick="addCharacter('ᒷ')">ᒷ</button>
-        <button onclick="addCharacter('⎓')">⎓</button>
-        <button onclick="addCharacter('⊣')">⊣</button>
-        <button onclick="addCharacter('⍑')">⍑</button>
-        <button onclick="addCharacter('╎')">╎</button>
-        <button onclick="addCharacter('⋮')">⋮</button>
-
-        <button onclick="addCharacter('ꖌ')">ꖌ</button>
-        <button onclick="addCharacter('ꖎ')">ꖎ</button>
-        <button onclick="addCharacter('ᒲ')">ᒲ</button>
-        <button onclick="addCharacter('リ')">リ</button>
-        <button onclick="addCharacter('𝙹')">𝙹</button>
-        <button onclick="addCharacter('!¡')">!¡</button>
-        <button onclick="addCharacter('ᑑ')">ᑑ</button>
-        <button onclick="addCharacter('∷')">∷</button>
-        <button onclick="addCharacter('ᓭ')">ᓭ</button>
-
-        <button onclick="addCharacter('ℸ̣')">ℸ̣</button>
-        <button onclick="addCharacter('⚍')">⚍</button>
-        <button onclick="addCharacter('⍊')">⍊</button>
-        <button onclick="addCharacter('∴')">∴</button>
-        <button onclick="addCharacter('̇/')">̇/</button>
-        <button onclick="addCharacter('||')">||</button>
-        <button onclick="addCharacter('⨅')">⨅</button>
-        <button onclick="addCharacter(' ')">Space</button>
-    </div>
+    </script>
 </body>
 </html>
