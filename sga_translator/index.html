@@ -55,7 +55,10 @@
         };
 
         const sgaToEnglish = Object.fromEntries(Object.entries(englishToSGA).map(([k, v]) => [v, k]));
-        sgaToEnglish['𝙹'] = 'o'; // Manually mapping the "𝙹" back to "o"
+        
+        // Manually adding reverse mapping for ℸ̣ (t) and 𝙹 (o)
+        sgaToEnglish['ℸ̣'] = 't';  // Reverse for 't'
+        sgaToEnglish['𝙹'] = 'o';   // Reverse for 'o'
 
         function translateToSGA(text) {
             return text.split('').map(char => {
