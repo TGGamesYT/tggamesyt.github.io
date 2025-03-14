@@ -62,12 +62,14 @@
 
         function translateToSga(text) {
             // Add extra spaces between SGA characters for better separation
-            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ');
+            return text.toLowerCase().split('').map(char => englishToSga[char] || char).join(' ').replace(/ /g, '   '); // Add 3 spaces where there were spaces
         }
 
         function translateToEnglish(sgaText) {
+            // Replace triple spaces with a single space to maintain original word separation
+            const modifiedText = sgaText.replace(/   /g, ' '); // Replace 3 spaces with a single space
             // Split by spaces between SGA letters to help with the translation
-            return sgaText.split(' ').map(char => sgaToEnglish[char] || char).join('');
+            return modifiedText.split(' ').map(char => sgaToEnglish[char] || char).join('');
         }
 
         function handleInput(event) {
