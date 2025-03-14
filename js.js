@@ -6,15 +6,28 @@
         };
 
         function translateToSga(text) {
-            return text.split(' ').map(word =>  // Split words
-                word.split('').map(char => {  // Split letters
+            return text.split(' ').map(word => 
+                word.split('').map(char => {  
                     if (char === char.toUpperCase() && /[A-Z]/.test(char)) {  
                         return `^${englishToSga[char.toLowerCase()] || char}`;  
                     }  
                     return englishToSga[char] || char;  
                 }).join(' ') // Add 1 space between letters
-            ).join('&nbsp;&nbsp;&nbsp;'); // Add 3 non-breaking spaces between words
+            ).join('  '); // Use actual non-breaking spaces for 3-space gaps
         }
+
+        function translateFromSga(sgaText) {
+            return sgaText.split('  ').map(word => 
+                word.split(' ').map(char => {  
+                    for (let key in englishToSga) {
+                        if (englishToSga[key] === char) return key;  
+                    }
+                    if (char.startsWith('^')) return char[1].toUpperCase();
+                    return char;
+                }).join('')
+            ).join(' '); // Restore single space between words
+        }
+
         async function googleTranslate(text, targetLang) {
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
             try {
@@ -27,19 +40,30 @@
             }
         }
 
-        async function translatePage() {
-            const elements = document.querySelectorAll("[data-translate]");
-            for (const element of elements) {
-                const targetLang = element.getAttribute("data-translate");
-                const originalText = element.innerText.trim();
+        function translateHTMLContent(element, targetLang) {
+            let walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            let nodes = [];
 
-                if (targetLang === "galactic") {
-                    element.innerHTML = translateToSga(originalText);
-                } else {
-                    const translatedText = await googleTranslate(originalText, targetLang);
-                    element.innerText = translatedText;
-                }
+            while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
             }
+
+            nodes.forEach(node => {
+                if (targetLang === "galactic") {
+                    node.nodeValue = translateToSga(node.nodeValue);
+                } else {
+                    googleTranslate(node.nodeValue, targetLang).then(translatedText => {
+                        node.nodeValue = translatedText;
+                    });
+                }
+            });
+        }
+
+        function translatePage() {
+            document.querySelectorAll("[data-translate]").forEach(element => {
+                let targetLang = element.getAttribute("data-translate");
+                translateHTMLContent(element, targetLang);
+            });
         }
 onload = setTimeout(load, 20);
 function dotwo() {
