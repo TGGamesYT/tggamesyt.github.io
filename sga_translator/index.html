@@ -56,7 +56,7 @@
         }
 
         function translateToEnglish(sgaText) {
-            return sgaText.split(' ').map(char => sgaToEnglish[char] || 'o').join('');
+            return sgaText.split(' ').map(char => sgaToEnglish[char] || 'o').join('�');
         }
 
         document.getElementById('translateButton').addEventListener('click', function () {
