@@ -89,7 +89,6 @@ function restorePlaceholders(text, placeholders) {
 
 async function changeLanguage() {
     let selectedLang = document.getElementById("lang-select").value;
-    let isPreset = document.querySelector(`#lang-select option[value="${selectedLang}"]`)?.getAttribute("data-preset") === "true";
     let targetLang = selectedLang;
 
     // If "Custom Language" is selected, prompt for a language code
@@ -123,26 +122,26 @@ async function changeLanguage() {
     let hasPreset = false;
     document.querySelectorAll("[data-lang]").forEach(el => {
         if (el.getAttribute("data-lang") === targetLang) {
-            el.style.display = "block";
+            el.style.display = "block"; // Display preset language elements
             hasPreset = true;
         } else {
-            el.style.display = "none";
+            el.style.display = "none"; // Hide non-matching preset elements
         }
     });
 
-    // If language is not preset, translate dynamically
+    // If the language is not preset, dynamically translate and display
     if (!hasPreset || selectedLang === "custom") {
-        let defaultElement = document.querySelector('[data-lang="en"]');
+        let defaultElement = document.querySelector('[data-lang="en"]'); // Assuming English is the default
         let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
-        let translatedText = await translateText(text, targetLang);
+        let translatedText = await translateText(text, targetLang); // Get translated text from Google
         let finalHTML = restorePlaceholders(translatedText, placeholders);
 
         let translatedElement = document.createElement("p");
         translatedElement.setAttribute("data-lang", targetLang);
         translatedElement.innerHTML = finalHTML;
-        translatedElement.style.display = "block";
+        translatedElement.style.display = "block"; // Ensure it's displayed
 
-        // Append translated element inside the same parent as original <p>
+        // Append the translated element to the same parent as the original <p>
         defaultElement.parentNode.appendChild(translatedElement);
     }
 
