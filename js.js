@@ -112,28 +112,38 @@ async function changeLanguage() {
     // Save selected language
     localStorage.setItem("selectedLang", targetLang);
 
-    document.querySelectorAll("[data-lang]").forEach(async (el) => {
+    // Remove all dynamically added translations before adding a new one
+    document.querySelectorAll("[data-lang]").forEach(el => {
+        if (!el.hasAttribute("data-preset")) { // Remove only dynamically created elements
+            el.remove();
+        }
+    });
+
+    // Show preset translations if available
+    let hasPreset = false;
+    document.querySelectorAll("[data-lang]").forEach(el => {
         if (el.getAttribute("data-lang") === targetLang) {
             el.style.display = "block";
+            hasPreset = true;
         } else {
             el.style.display = "none";
         }
-
-        // If language is not preset, translate dynamically
-        if (!isPreset || selectedLang === "custom") {
-            let defaultElement = document.querySelector('[data-lang="en"]');
-            let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
-            let translatedText = await translateText(text, targetLang);
-            let finalHTML = restorePlaceholders(translatedText, placeholders);
-
-            let translatedElement = document.createElement("p");
-            translatedElement.setAttribute("data-lang", targetLang);
-            translatedElement.style.display = "block";
-            translatedElement.innerHTML = finalHTML;
-
-            document.body.appendChild(translatedElement);
-        }
     });
+
+    // If language is not preset, translate dynamically
+    if (!hasPreset || selectedLang === "custom") {
+        let defaultElement = document.querySelector('[data-lang="en"]');
+        let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
+        let translatedText = await translateText(text, targetLang);
+        let finalHTML = restorePlaceholders(translatedText, placeholders);
+
+        let translatedElement = document.createElement("p");
+        translatedElement.setAttribute("data-lang", targetLang);
+        translatedElement.innerHTML = finalHTML;
+        translatedElement.style.display = "block";
+
+        document.body.appendChild(translatedElement);
+    }
 
     console.log("Language changed to:", targetLang);
 }
@@ -150,7 +160,7 @@ window.onload = function () {
         document.getElementById("lang-select").value = savedLang;
     }
 
-    window.onload = changeLanguage();
+    changeLanguage(); // Apply saved language
 };
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
