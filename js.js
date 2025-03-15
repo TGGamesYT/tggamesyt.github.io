@@ -1,70 +1,3 @@
-        const englishToSga = {
-            'a': 'ᔑ', 'b': 'ʖ', 'c': 'ᓵ', 'd': '↸', 'e': 'ᒷ', 'f': '⎓', 'g': '⊣', 'h': '⍑',
-            'i': '╎', 'j': '⋮', 'k': 'ꖌ', 'l': 'ꖎ', 'm': 'ᒲ', 'n': 'リ', 'o': '𝙹', 'p': '!¡',
-            'q': 'ᑑ', 'r': '∷', 's': 'ᓭ', 't': 'ℸ̣', 'u': '⚍', 'v': '⍊', 'w': '∴', 'x': '̇/',
-            'y': '||', 'z': '⨅'
-        };
-
-        function translateToSga(text) {
-            return text.split(' ').map(word => 
-                word.split('').map(char => {  
-                    if (char === char.toUpperCase() && /[A-Z]/.test(char)) {  
-                        return `^${englishToSga[char.toLowerCase()] || char}`;  
-                    }  
-                    return englishToSga[char] || char;  
-                }).join(' ') // Add 1 space between letters
-            ).join('  '); // Use actual non-breaking spaces for 3-space gaps
-        }
-
-        function translateFromSga(sgaText) {
-            return sgaText.split('  ').map(word => 
-                word.split(' ').map(char => {  
-                    for (let key in englishToSga) {
-                        if (englishToSga[key] === char) return key;  
-                    }
-                    if (char.startsWith('^')) return char[1].toUpperCase();
-                    return char;
-                }).join('')
-            ).join(' '); // Restore single space between words
-        }
-
-        async function googleTranslate(text, targetLang) {
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-            try {
-                const response = await fetch(url);
-                const result = await response.json();
-                return result[0].map(item => item[0]).join('');
-            } catch (error) {
-                console.error("Translation error:", error);
-                return text;
-            }
-        }
-
-        function translateHTMLContent(element, targetLang) {
-            let walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-            let nodes = [];
-
-            while (walker.nextNode()) {
-                nodes.push(walker.currentNode);
-            }
-
-            nodes.forEach(node => {
-                if (targetLang === "galactic") {
-                    node.nodeValue = translateToSga(node.nodeValue);
-                } else {
-                    googleTranslate(node.nodeValue, targetLang).then(translatedText => {
-                        node.nodeValue = translatedText;
-                    });
-                }
-            });
-        }
-
-        function translatePage() {
-            document.querySelectorAll("[data-translate]").forEach(element => {
-                let targetLang = element.getAttribute("data-translate");
-                translateHTMLContent(element, targetLang);
-            });
-        }
 function dotwo() {
     toggleMenu();
     turn();
@@ -125,24 +58,55 @@ function toggleVisibility() {
             }
 }
 // Language changer
-function load() {
-    let currentLang = leker("lang","en"); // Load saved language
-    console.log("load currentlang: ", currentLang);
-    document.getElementById("lang-select").value = currentLang; // Set dropdown to saved language
-    changeLanguage();
-    translatePage();
-}
-const languages = ["en", "hu", "de", "fr", "pl", "gl", "no", "pr"];
-function changeLanguage() {
-    currentLang = document.getElementById("lang-select").value;
-    jegyzes("lang", currentLang); // Save language selection
+async function changeLanguage() {
+    let selectedLang = document.getElementById("lang-select").value;
+    let isPreset = document.querySelector(`#lang-select option[value="${selectedLang}"]`)?.getAttribute("data-preset") === "true";
+    let targetLang = selectedLang;
 
-    // Show/hide elements based on selected language
-    document.querySelectorAll("[data-lang]").forEach(el => {
-        el.style.display = (el.getAttribute("data-lang") === currentLang) ? "block" : "none";
+    // If "Custom Language" is selected, prompt for a language code
+    if (selectedLang === "custom") {
+        targetLang = prompt("Enter a 2-letter language code (e.g., es for Spanish, it for Italian):").toLowerCase();
+
+        // Validate input
+        if (!/^[a-z]{2}$/.test(targetLang)) {
+            alert("Invalid language code! Please enter a valid 2-letter code.");
+            document.getElementById("lang-select").value = "en"; // Reset to English
+            return;
+        }
+
+        // Save custom language choice
+        localStorage.setItem("customLang", targetLang);
+    } else {
+        localStorage.setItem("customLang", ""); // Clear custom language if not used
+    }
+
+    // Save selected language
+    localStorage.setItem("selectedLang", targetLang);
+
+    document.querySelectorAll("[data-lang]").forEach(async (el) => {
+        if (el.getAttribute("data-lang") === targetLang) {
+            el.style.display = "block";
+        } else {
+            el.style.display = "none";
+        }
+
+        // If language is not preset, translate dynamically
+        if (!isPreset || selectedLang === "custom") {
+            let defaultElement = document.querySelector('[data-lang="en"]');
+            let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
+            let translatedText = await translateText(text, targetLang);
+            let finalHTML = restorePlaceholders(translatedText, placeholders);
+
+            let translatedElement = document.createElement("p");
+            translatedElement.setAttribute("data-lang", targetLang);
+            translatedElement.style.display = "block";
+            translatedElement.innerHTML = finalHTML;
+
+            document.body.appendChild(translatedElement);
+        }
     });
 
-    console.log("Language changed to:", currentLang);
+    console.log("Language changed to:", targetLang);
 }
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
