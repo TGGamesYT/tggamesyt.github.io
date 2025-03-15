@@ -57,11 +57,11 @@ function toggleVisibility() {
                 silly.style.display = "none";
             }
 }
-// Language changer
+// language changer
 async function translateText(text, targetLang) {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
     try {
-        const response = await fetch(url); // Call Google Translate API
+        const response = await fetch(url);
         const result = await response.json();
         return result[0][0][0]; // Extract translated text
     } catch (error) {
@@ -89,79 +89,48 @@ function restorePlaceholders(text, placeholders) {
 
 async function changeLanguage() {
     let selectedLang = document.getElementById("lang-select").value;
+    let isPreset = document.querySelector(`#lang-select option[value="${selectedLang}"]`).getAttribute("data-preset") === "true";
     let targetLang = selectedLang;
 
     // If "Custom Language" is selected, prompt for a language code
     if (selectedLang === "custom") {
         targetLang = prompt("Enter a 2-letter language code (e.g., es for Spanish, it for Italian):").toLowerCase();
-
-        // Validate input
+        
+        // Validate the input (must be 2 letters)
         if (!/^[a-z]{2}$/.test(targetLang)) {
             alert("Invalid language code! Please enter a valid 2-letter code.");
             document.getElementById("lang-select").value = "en"; // Reset to English
             return;
         }
-
-        // Save custom language choice
-        localStorage.setItem("customLang", targetLang);
-    } else {
-        localStorage.setItem("customLang", ""); // Clear custom language if not used
     }
 
-    // Save selected language
-    localStorage.setItem("selectedLang", targetLang);
+    jegyzes("lang", targetLang); // Save language selection
 
-    // Remove all dynamically added translations before adding a new one
-    document.querySelectorAll("[data-lang]").forEach(el => {
-        if (!el.hasAttribute("data-preset")) { // Remove only dynamically created elements
-            el.remove();
-        }
-    });
-
-    // Show preset translations if available
-    let hasPreset = false;
-    document.querySelectorAll("[data-lang]").forEach(el => {
+    document.querySelectorAll("[data-lang]").forEach(async (el) => {
         if (el.getAttribute("data-lang") === targetLang) {
-            el.style.display = "block"; // Display preset language elements
-            hasPreset = true;
+            el.style.display = "block";
         } else {
-            el.style.display = "none"; // Hide non-matching preset elements
+            el.style.display = "none";
+        }
+
+        // If language is not preset or custom is selected, translate while preserving HTML
+        if (!isPreset || selectedLang === "custom") {
+            let defaultElement = document.querySelector('[data-lang="en"]');
+            let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
+            let translatedText = await translateText(text, targetLang);
+            let finalHTML = restorePlaceholders(translatedText, placeholders);
+
+            let translatedElement = document.createElement("p");
+            translatedElement.setAttribute("data-lang", targetLang);
+            translatedElement.style.display = "block";
+            translatedElement.innerHTML = finalHTML;
+
+            document.body.appendChild(translatedElement); // Append translation to document
         }
     });
-
-    // If the language is not preset, dynamically translate and display
-    if (!hasPreset || selectedLang === "custom") {
-        let defaultElement = document.querySelector('[data-lang="en"]'); // Assuming English is the default
-        let { text, placeholders } = extractTextWithPlaceholders(defaultElement);
-        let translatedText = await translateText(text, targetLang); // Get translated text from Google
-        let finalHTML = restorePlaceholders(translatedText, placeholders);
-
-        let translatedElement = document.createElement("p");
-        translatedElement.setAttribute("data-lang", targetLang);
-        translatedElement.innerHTML = finalHTML;
-        translatedElement.style.display = "block"; // Ensure it's displayed
-
-        // Append the translated element to the same parent as the original <p>
-        defaultElement.parentNode.appendChild(translatedElement);
-    }
 
     console.log("Language changed to:", targetLang);
-}
-
-// Load saved language on page load
-window.onload = function () {
-    let savedLang = localStorage.getItem("selectedLang") || "en"; // Default to English
-    let customLang = localStorage.getItem("customLang");
-
-    // If a custom language was used before, restore it
-    if (customLang) {
-        document.getElementById("lang-select").value = "custom"; // Set dropdown to "Custom"
-    } else {
-        document.getElementById("lang-select").value = savedLang;
-    }
-
-    changeLanguage(); // Apply saved language
-};
+                     }
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
