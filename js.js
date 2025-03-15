@@ -79,7 +79,13 @@ function changeLanguage() {
                 el.style.display = "none";
             }
         });
-        translatePage(); // Translate text based on the selected language
+        
+        // Translate if the language is either auto or custom
+        if (document.querySelector(`#lang-select option[value="${currentLang}"]`).getAttribute("data-type") === "auto") {
+            translatePageTo(currentLang); // Translate to selected auto language
+        } else {
+            translatePage(); // Translate based on preset or custom logic
+        }
     }
 
     console.log("Language changed to:", currentLang);
@@ -94,17 +100,34 @@ function handleCustomLangChange() {
         jegyzes("lang", currentLang); // Save custom language selection
 
         // Apply translation for all translatable elements
-        translatePage();
+        translatePageTo(currentLang);
     }
 }
 
-// Function to translate the entire page
+// Function to translate the page to the selected language
 function translatePage() {
     document.querySelectorAll("[data-lang]").forEach(el => {
         let defaultText = el.innerHTML;
         let targetLang = currentLang;
 
         // Avoid translating text inside <tags> or HTML elements
+        let textContent = el.innerText || el.textContent;
+
+        // Call Google Translate API to translate text content
+        if (targetLang !== 'en') {
+            googleTranslateText(textContent, targetLang, (translatedText) => {
+                el.innerHTML = defaultText.replace(textContent, translatedText);
+            });
+        } else {
+            el.innerHTML = defaultText; // Keep the default text for English
+        }
+    });
+}
+
+// Function to translate the page to the selected language code
+function translatePageTo(targetLang) {
+    document.querySelectorAll("[data-lang]").forEach(el => {
+        let defaultText = el.innerHTML;
         let textContent = el.innerText || el.textContent;
 
         // Call Google Translate API to translate text content
