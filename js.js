@@ -142,7 +142,8 @@ async function changeLanguage() {
         translatedElement.innerHTML = finalHTML;
         translatedElement.style.display = "block";
 
-        document.body.appendChild(translatedElement);
+        // Append translated element inside the same parent as original <p>
+        defaultElement.parentNode.appendChild(translatedElement);
     }
 
     console.log("Language changed to:", targetLang);
