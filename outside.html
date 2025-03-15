@@ -4,56 +4,32 @@
         <a href="https://tggamesyt.github.io/" data-lang="en">Main</a>
         <a href="https://tggamesyt.github.io/" data-lang="hu" style="display: none;">Főoldal</a>
         <a href="https://tggamesyt.github.io/" data-lang="pr" style="display: none;">Captain’s Log</a>
-        <a href="https://tggamesyt.github.io/" data-lang="de" data-translate="de" style="display: none;">Main page</a>
-        <a href="https://tggamesyt.github.io/" data-lang="fr" data-translate="fr" style="display: none;">Main page</a>
-        <a href="https://tggamesyt.github.io/" data-lang="pl" data-translate="pl" style="display: none;">Main page</a>
-        <a href="https://tggamesyt.github.io/" data-lang="gl" data-translate="galactic" style="display: none;">Main</a>
         <a href="https://tggamesyt.github.io/aboutme" data-lang="en">About Me</a>
         <a href="https://tggamesyt.github.io/aboutme" data-lang="hu" style="display: none;">Rólam</a>
         <a href="https://tggamesyt.github.io/aboutme" data-lang="pr" style="display: none;">‘Bout Me Tale</a>
-        <a href="https://tggamesyt.github.io/aboutme" data-lang="de" data-translate="de" style="display: none;">About Me</a>
-        <a href="https://tggamesyt.github.io/aboutme" data-lang="fr" data-translate="fr" style="display: none;">About Me</a>
-        <a href="https://tggamesyt.github.io/aboutme" data-lang="pl" data-translate="pl" style="display: none;">About Me</a>
-        <a href="https://tggamesyt.github.io/aboutme" data-lang="gl" data-translate="galactic" style="display: none;">About Me</a>
         <a href="#" data-lang="en">Social</a>
         <a href="#" data-lang="hu" style="display: none;">Közösség</a>
         <a href="#" data-lang="pr" style="display: none;">Matey’s Cove</a>
-        <a href="#" data-lang="de" data-translate="de" style="display: none;">Social</a>
-        <a href="#" data-lang="fr" data-translate="fr" style="display: none;">Social</a>
-        <a href="#" data-lang="pl" data-translate="pl" style="display: none;">Social</a>
-        <a href="#" data-lang="gl" data-translate="galactic" style="display: none;">Social</a>
         <a href="#" onclick="toggleVisibility()" data-lang="en">Silly Sites</a>
         <a href="#" onclick="toggleVisibility()" data-lang="hu" style="display: none;">Butus Oldalak</a>
         <a href="#" onclick="toggleVisibility()" data-lang="pr" style="display: none;">Fool's Ports</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="de" data-translate="de" style="display: none;">Silly Sites</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="fr" data-translate="fr" style="display: none;">Silly Sites</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="pl" data-translate="pl" style="display: none;">Silly Sites</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="gl" data-translate="galactic" style="display: none;">Silly Sites</a>
- 
 </div>
 <div id="langs">
-        <option value="en">🇬🇧 English</option>
-        <option value="hu">🇭🇺 Magyar</option>
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="fr">🇫🇷 Français</option>
-        <option value="pl">🇵🇱 Polski</option>    
-        <option value="pr">🏴‍☠️ Englis’</option>
-        <option value="gl">ᓭℸ ̣ᔑリ↸ᔑ∷↸ ⊣ᔑꖎᔑᓵℸ ̣╎ᓵ</option>
-        <option value="no">🤷‍♂️ None</option>
+        <select id="lang-select" onchange="changeLanguage()" class="lang-select">
+    <option value="en" data-preset="true">🇬🇧 English</option>
+    <option value="hu" data-preset="true">🇭🇺 Magyar</option>
+    <option value="de" data-preset="false">🇩🇪 Deutsch</option>
+    <option value="fr" data-preset="false">🇫🇷 Français</option>
+    <option value="pl" data-preset="false">🇵🇱 Polski</option>
+    <option value="custom" data-preset="false">🌍 Custom Language</option>
+    <option value="pr" data-preset="true">🏴‍☠️ Englis'</option>
+    <option value="no" data-preset="true">🤷‍♂️</select>
 </div>
 <div id="silly">
         <a href="#" onclick="toggleVisibility()" data-lang="en">Normal Navbar</a>
         <a href="#" onclick="toggleVisibility()" data-lang="hu" style="display: none;">Normál Panel</a>
         <a href="#" onclick="toggleVisibility()" data-lang="pr" style="display: none;">Steady Helmsman’s Rail</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="de" data-translate="de" style="display: none;">Normal Navbar</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="fr" data-translate="fr" style="display: none;">Normal Navbar</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="pl" data-translate="pl" style="display: none;">Normal Navbar</a>
-        <a href="#" onclick="toggleVisibility()" data-lang="gl" data-translate="galactic" style="display: none;">Normal Navbar</a>
         <a href="https://tggamesyt.github.io/sga_translator/" data-lang="en">Galactic Translator</a>
         <a href="https://tggamesyt.github.io/sga_translator/" data-lang="hu" style="display: none;">Galactikus Fordító</a>
         <a href="https://tggamesyt.github.io/sga_translator/" data-lang="pr" style="display: none;">Galactic Tongue Swapper</a>
-        <a href="https://tggamesyt.github.io/sga_translator/" data-lang="de" data-translate="de" style="display: none;">Galactic Translator</a>
-        <a href="https://tggamesyt.github.io/sga_translator/" data-lang="fr" data-translate="fr" style="display: none;">Galactic Translator</a>
-        <a href="https://tggamesyt.github.io/sga_translator/" data-lang="pl" data-translate="pl" style="display: none;">Galactic Translator</a>
-        <a href="https://tggamesyt.github.io/sga_translator/" data-lang="gl" data-translate="galactic" style="display: none;">Galactic Translator</a>
 </div>
