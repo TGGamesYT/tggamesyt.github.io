@@ -64,7 +64,7 @@ let currentLang = 'en'; // Default language
 function changeLanguage() {
     currentLang = document.getElementById("lang-select").value;
 
-    // Show the input field for custom language if "Custom" is selected
+    // Check if the selected option is "Custom"
     if (currentLang === "custom") {
         document.getElementById("custom-lang-input").style.display = "block";
     } else {
@@ -80,11 +80,11 @@ function changeLanguage() {
             }
         });
 
-        // Check if language is auto or custom
-        if (document.querySelector(`#lang-select option[value="${currentLang}"]`).getAttribute("data-type") === "auto") {
-            translatePageTo(currentLang); // Translate to the selected language (from value attribute)
+        // Check if the selected language is an auto option
+        if (document.querySelector(`option[value="${currentLang}"][data-type="auto"]`)) {
+            translatePage(currentLang); // If it's an auto language, translate the page
         } else {
-            translatePage(); // Translate based on preset or custom logic
+            translatePresetPage(currentLang); // If it's a preset language, show preset language
         }
     }
 
@@ -100,43 +100,38 @@ function handleCustomLangChange() {
         jegyzes("lang", currentLang); // Save custom language selection
 
         // Apply translation for all translatable elements
-        translatePageTo(currentLang);
+        translatePage(currentLang);
     }
 }
 
-// Function to translate the page to the selected language code
-function translatePageTo(targetLang) {
+// Function to translate the entire page when an auto language is selected
+function translatePage(targetLang) {
     document.querySelectorAll("[data-lang]").forEach(el => {
         let defaultText = el.innerHTML;
         let textContent = el.innerText || el.textContent;
 
-        // Call Google Translate API to translate text content
-        if (targetLang !== 'en') {
+        if (el.getAttribute("data-lang") !== targetLang) {
             googleTranslateText(textContent, targetLang, (translatedText) => {
                 el.innerHTML = defaultText.replace(textContent, translatedText);
             });
         } else {
-            el.innerHTML = defaultText; // Keep the default text for English
+            el.style.display = "block";  // Show only the selected language content
         }
     });
 }
 
-// Function to translate the entire page
-function translatePage() {
+// Function to show/hide preset language elements
+function translatePresetPage(targetLang) {
     document.querySelectorAll("[data-lang]").forEach(el => {
         let defaultText = el.innerHTML;
-        let targetLang = currentLang;
+        let lang = el.getAttribute("data-lang");
 
-        // Avoid translating text inside <tags> or HTML elements
-        let textContent = el.innerText || el.textContent;
-
-        // Call Google Translate API to translate text content
-        if (targetLang !== 'en') {
-            googleTranslateText(textContent, targetLang, (translatedText) => {
-                el.innerHTML = defaultText.replace(textContent, translatedText);
-            });
+        if (lang === "en" && targetLang !== "en") {
+            el.style.display = "none";  // Hide the English text
+        } else if (lang === targetLang) {
+            el.style.display = "block"; // Show the selected language content
         } else {
-            el.innerHTML = defaultText; // Keep the default text for English
+            el.style.display = "none";  // Hide other languages
         }
     });
 }
@@ -156,7 +151,7 @@ function googleTranslateText(text, targetLang, callback) {
             console.error("Translation error:", error);
             callback(text); // Return original text in case of an error
         });
-        }                                                     }
+} 
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
