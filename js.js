@@ -79,10 +79,10 @@ function changeLanguage() {
                 el.style.display = "none";
             }
         });
-        
-        // Translate if the language is either auto or custom
+
+        // Check if language is auto or custom
         if (document.querySelector(`#lang-select option[value="${currentLang}"]`).getAttribute("data-type") === "auto") {
-            translatePageTo(currentLang); // Translate to selected auto language
+            translatePageTo(currentLang); // Translate to the selected language (from value attribute)
         } else {
             translatePage(); // Translate based on preset or custom logic
         }
@@ -104,13 +104,10 @@ function handleCustomLangChange() {
     }
 }
 
-// Function to translate the page to the selected language
-function translatePage() {
+// Function to translate the page to the selected language code
+function translatePageTo(targetLang) {
     document.querySelectorAll("[data-lang]").forEach(el => {
         let defaultText = el.innerHTML;
-        let targetLang = currentLang;
-
-        // Avoid translating text inside <tags> or HTML elements
         let textContent = el.innerText || el.textContent;
 
         // Call Google Translate API to translate text content
@@ -124,10 +121,13 @@ function translatePage() {
     });
 }
 
-// Function to translate the page to the selected language code
-function translatePageTo(targetLang) {
+// Function to translate the entire page
+function translatePage() {
     document.querySelectorAll("[data-lang]").forEach(el => {
         let defaultText = el.innerHTML;
+        let targetLang = currentLang;
+
+        // Avoid translating text inside <tags> or HTML elements
         let textContent = el.innerText || el.textContent;
 
         // Call Google Translate API to translate text content
@@ -156,7 +156,7 @@ function googleTranslateText(text, targetLang, callback) {
             console.error("Translation error:", error);
             callback(text); // Return original text in case of an error
         });
-                                                     }
+        }                                                     }
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
