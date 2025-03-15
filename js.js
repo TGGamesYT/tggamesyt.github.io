@@ -58,6 +58,17 @@ function toggleVisibility() {
             }
 }
 // Language changer
+async function translateText(text, targetLang) {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    try {
+        const response = await fetch(url); // Call Google Translate API
+        const result = await response.json();
+        return result[0][0][0]; // Extract translated text
+    } catch (error) {
+        console.error("Translation error:", error);
+        return text; // Fallback to original text if translation fails
+    }
+}
 async function changeLanguage() {
     let selectedLang = document.getElementById("lang-select").value;
     let isPreset = document.querySelector(`#lang-select option[value="${selectedLang}"]`)?.getAttribute("data-preset") === "true";
