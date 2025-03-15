@@ -2,10 +2,12 @@
 <p data-lang="en">default</p>
 <p data-lang="hu" style="display: none;">magyar</p>
 <select id="lang-select" onchange="changeLanguage()" class="lang-select">
-    <option value="en" data-preset="true">🇬🇧 English</option>
-    <option value="hu" data-preset="true">🇭🇺 Magyar</option>
-    <option value="de" data-preset="false">🇩🇪 Deutsch</option>
-    <option value="fr" data-preset="false">🇫🇷 Français</option>
-    <option value="pl" data-preset="false">🇵🇱 Polski</option>
-    <option value="custom" data-preset="false">🌍 Custom Language</option>
+    <option value="en" data-type="preset">🇬🇧 English</option>
+    <option value="hu" data-type="preset">🇭🇺 Magyar</option>
+    <option value="de" data-type="preset">🇩🇪 Deutsch</option>
+    <option value="fr" data-type="preset">🇫🇷 Français</option>
+    <option value="pl" data-type="preset">🇵🇱 Polski</option>
+    <option value="custom" data-type="custom">Custom (Enter language code)</option>
 </select>
+
+<input type="text" id="custom-lang-input" style="display:none;" placeholder="Enter language code (e.g. es, fr)" onchange="handleCustomLangChange()" />
