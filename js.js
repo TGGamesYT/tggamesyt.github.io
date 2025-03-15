@@ -69,6 +69,24 @@ async function translateText(text, targetLang) {
         return text; // Fallback to original text if translation fails
     }
 }
+
+function extractTextWithPlaceholders(element) {
+    let html = element.innerHTML;
+    let placeholders = [];
+    
+    // Replace HTML tags with placeholders
+    html = html.replace(/<[^>]+>/g, (match) => {
+        placeholders.push(match);
+        return `%%%${placeholders.length - 1}%%%`;
+    });
+
+    return { text: html, placeholders };
+}
+
+function restorePlaceholders(text, placeholders) {
+    return text.replace(/%%%(\d+)%%%/g, (_, index) => placeholders[index]);
+}
+
 async function changeLanguage() {
     let selectedLang = document.getElementById("lang-select").value;
     let isPreset = document.querySelector(`#lang-select option[value="${selectedLang}"]`)?.getAttribute("data-preset") === "true";
@@ -119,6 +137,21 @@ async function changeLanguage() {
 
     console.log("Language changed to:", targetLang);
 }
+
+// Load saved language on page load
+window.onload = function () {
+    let savedLang = localStorage.getItem("selectedLang") || "en"; // Default to English
+    let customLang = localStorage.getItem("customLang");
+
+    // If a custom language was used before, restore it
+    if (customLang) {
+        document.getElementById("lang-select").value = "custom"; // Set dropdown to "Custom"
+    } else {
+        document.getElementById("lang-select").value = savedLang;
+    }
+
+    window.onload = changeLanguage();
+};
 // button clicking
 document.addEventListener("DOMContentLoaded", function () {
     const button = document.querySelector("button");
