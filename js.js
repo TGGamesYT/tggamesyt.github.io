@@ -29,9 +29,9 @@ fetch('https://tggamesyt.github.io/outside.html')
 .then(data => {
     let temp = document.createElement('div');
     temp.innerHTML = data;
-    let navContent = temp.querySelector('#langs');
+    let navContent = temp.querySelector('#silly');
     if (navContent) {
-        document.getElementById('options').innerHTML = navContent.innerHTML;
+        document.getElementById('silly').innerHTML = navContent.innerHTML;
     }
 });
 fetch('https://tggamesyt.github.io/outside.html')
@@ -39,9 +39,9 @@ fetch('https://tggamesyt.github.io/outside.html')
 .then(data => {
     let temp = document.createElement('div');
     temp.innerHTML = data;
-    let navContent = temp.querySelector('#silly');
+    let navContent = temp.querySelector('#langs');
     if (navContent) {
-        document.getElementById('silly').innerHTML = navContent.innerHTML;
+        document.getElementById('options').innerHTML = navContent.innerHTML;
     }
 });
 // silly navbar
@@ -58,8 +58,10 @@ function toggleVisibility() {
             }
 }
 // language changer
-let currentLang = 'en'; // Default language
-
+function load() {
+    let currentLang = leker("lang", "en"); // Default language
+    changeLanguage();
+}
 // Function to handle the language change
 function changeLanguage() {
     currentLang = document.getElementById("lang-select").value;
