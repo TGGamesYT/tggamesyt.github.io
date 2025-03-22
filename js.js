@@ -60,6 +60,7 @@ function toggleVisibility() {
 // language changer
 function load() {
     let currentLang = leker("lang", "en"); // Default language
+    document.getElementById("lang-select").value = currentLang;
     changeLanguage();
 }
 // Function to handle the language change
