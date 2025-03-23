@@ -1,81 +1,71 @@
 #!/bin/bash
 
-# Download the versions.sh file from the remote location
-curl -s https://tggamesyt.github.io/termuxmc/versions.sh -o versions.sh
+# Define the function to fetch the latest build and other details from the given version
+get_latest_build() {
+    VERSION=$1
+    URL="https://tggamesyt.github.io/termuxmc/latestbuild.html?version=$VERSION"
 
-# Source the versions.sh file to use the arrays defined in it
-source ./versions.sh
+    # Fetch the JSON data from the URL using curl
+    JSON=$(curl -s "$URL")
 
-# Ask the user to select a Minecraft version
-read -p "Enter the Minecraft version you want to install (e.g., 1.21, 1.19): " MINECRAFT_VERSION
+    # Extract the latest build number from the JSON response
+    LATEST_BUILD=$(echo "$JSON" | jq -r '.latestBuild')
 
-# Check if the version has a third number; if not, append ".0"
-if [[ ! "$MINECRAFT_VERSION" =~ \. ]]; then
-    MINECRAFT_VERSION="$MINECRAFT_VERSION.0"
-fi
+    # Extract the JAR file name from the JSON response
+    JAR_FILE=$(echo "$JSON" | jq -r '.downloads.application.name')
 
-# Check if the selected version exists in the predefined versions array
-if [[ -z "${JAVA_VERSIONS[$MINECRAFT_VERSION]}" ]] || [[ -z "${JAR_LOCATIONS[$MINECRAFT_VERSION]}" ]]; then
-    echo "Minecraft version $MINECRAFT_VERSION is not found in the predefined versions."
-    # Ask the user for custom input
-    read -p "Enter the custom Minecraft JAR URL: " JAR_URL
-    read -p "Enter the custom Java version (e.g., openjdk-21, openjdk-17): " JAVA_VERSION
-
-    # Check if the custom Java version is valid
-    if [[ -z "$JAVA_VERSION" ]]; then
-        echo "Java version is required."
+    # If jq doesn't parse correctly, return an error
+    if [ "$LATEST_BUILD" == "null" ] || [ "$JAR_FILE" == "null" ]; then
+        echo "Error: Failed to fetch or parse the build data for version $VERSION"
         exit 1
     fi
 
-    # Download the custom JAR file
-    echo "Downloading the custom Minecraft JAR from $JAR_URL..."
-    wget $JAR_URL -O paper-custom.jar
+    # Return the latest build number and JAR file
+    echo "Minecraft Version: $VERSION, Latest Build: $LATEST_BUILD, JAR File: $JAR_FILE"
+    echo $LATEST_BUILD $JAR_FILE
+}
 
-    # Set the downloaded JAR location and Java version
-    JAR_URL="paper-custom.jar"
-else
-    # If the version exists in the predefined array, use it
-    echo "Using predefined Minecraft version $MINECRAFT_VERSION..."
-    JAR_URL=${JAR_LOCATIONS[$MINECRAFT_VERSION]}
-    JAVA_VERSION=${JAVA_VERSIONS[$MINECRAFT_VERSION]}
-fi
+# Ask the user for the Minecraft version
+read -p "Enter the Minecraft version you want to install (e.g., 1.21.4): " MINECRAFT_VERSION
 
-# Update package manager
-pkg update -y
+# Get the latest build and jar file using the get_latest_build function
+build_data=$(get_latest_build "$MINECRAFT_VERSION")
 
-# Install the required Java version automatically
-echo "Installing Java version: $JAVA_VERSION"
-pkg install $JAVA_VERSION -y
+# Extract the latest build and JAR file from the function's output
+LATEST_BUILD=$(echo "$build_data" | awk '{print $1}')
+JAR_FILE=$(echo "$build_data" | awk '{print $2}')
 
-# Check if the installation was successful
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to install $JAVA_VERSION. Please check the version and try again."
+# Check if a valid build and jar file were returned
+if [ -z "$LATEST_BUILD" ] || [ -z "$JAR_FILE" ]; then
+    echo "Error: Could not fetch valid build data."
     exit 1
 fi
 
-# Download the Minecraft Paper JAR (either custom or predefined)
-echo "Downloading PaperMC for Minecraft version $MINECRAFT_VERSION..."
-wget $JAR_URL -O paper-$MINECRAFT_VERSION.jar
+echo "Using Minecraft version $MINECRAFT_VERSION with build $LATEST_BUILD."
+
+# Java version selection (you can customize this part)
+# Use OpenJDK 21 (adjust based on your system's availability)
+JAVA_VERSION="openjdk-21"
+
+# Install the required Java version
+pkg update -y
+pkg install $JAVA_VERSION -y
+
+# Download the correct Minecraft JAR file
+echo "Downloading PaperMC for Minecraft version $MINECRAFT_VERSION, build $LATEST_BUILD..."
+wget "https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds/$LATEST_BUILD/downloads/$JAR_FILE" -O paper-$MINECRAFT_VERSION-$LATEST_BUILD.jar
 
 # Create eula.txt to agree to the Minecraft EULA
 echo "eula=true" > eula.txt
 
 # Create the startup file to run the Minecraft server
 echo "#!/bin/bash" > start.sh
-echo "export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/$(pkg list-installed | grep $JAVA_VERSION | tail -n 1)" >> start.sh
+echo "export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/$(pkg list-installed | grep openjdk-21 | tail -n 1)" >> start.sh
 echo 'export PATH=$JAVA_HOME/bin:$PATH' >> start.sh
-echo "java -Xms512M -Xmx1G -jar paper-$MINECRAFT_VERSION.jar nogui" >> start.sh
+echo "java -Xms512M -Xmx1G -jar paper-$MINECRAFT_VERSION-$LATEST_BUILD.jar nogui" >> start.sh
 
 # Make the startup file executable
 chmod +x start.sh
 
-# Optional: Install the playit.gg plugin to connect without port forwarding
-mkdir -p plugins
-echo 'cd plugins' > playitgg.sh
-echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitgg.sh
-echo 'cd ..' >> playitgg.sh
-echo 'rm -- "$0"' >> playitgg.sh
-chmod +x playitgg.sh
-
-echo "Minecraft $MINECRAFT_VERSION setup complete!"
+echo "Minecraft server for version $MINECRAFT_VERSION, build $LATEST_BUILD is ready!"
 echo "Run ./start.sh to start the server."
