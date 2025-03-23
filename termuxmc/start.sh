@@ -82,23 +82,13 @@ fi
 
 # Create eula.txt to agree to the Minecraft EULA
 echo "eula=true" > eula.txt
-
-# Create the startup file to run the Minecraft server
-echo "#!/bin/bash" > start.sh
-echo 'export JAVA_HOME=$JAVA_HOME' >> start.sh
-echo 'export PATH=$JAVA_HOME/bin:$PATH' >> start.sh
-echo "java -Xms512M -Xmx1G -jar $JAR_NAME nogui" >> start.sh
-
-# Make the startup file executable
-chmod +x start.sh
-
 # Optional: Install the playit.gg plugin to connect without port forwarding
 mkdir -p plugins
 echo "#!/bin/bash" > playitgg.sh
 echo "cd plugins" >> playitgg.sh
 echo "wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar" >> playitgg.sh
 echo "cd .." >> playitgg.sh
-echo 'echo "You just installed playit.gg"' >> playitgg.sh
+echo "echo "You just installed playit.gg"" >> playitgg.sh
 echo 'rm -- "$(basename "$0")"' >> playitgg.sh
 chmod +x playitgg.sh
 
@@ -109,4 +99,14 @@ echo "CONSIDER DONATING AT"
 echo "https://ko-fi.com/tggamesyt"
 echo "Run ./playitgg.sh to install ghe playit.gg plugin, which allows you to connect to the server via a generated domain adress"
 echo "Run ./start.sh to start the server."
+# Create the startup file to run the Minecraft server
+echo "#!/bin/bash" > start.sh
+echo 'export JAVA_HOME=$JAVA_HOME' >> start.sh
+echo 'export PATH=$JAVA_HOME/bin:$PATH' >> start.sh
+echo "java -Xms512M -Xmx1G -jar $JAR_NAME nogui" >> start.sh
+
+# Make the startup file executable
+chmod +x start.sh
+
+
 rm -- "$0"
