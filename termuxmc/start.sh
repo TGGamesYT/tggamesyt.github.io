@@ -1,4 +1,8 @@
 #!/bin/bash
+# run the code below in termux to have yourself
+# a papermc/minecraft server running on your own
+# android device!
+# wget https://tggamesyt.github.io/termuxmc/start.sh -O start.sh && chmod +x start.sh && ./start.sh
 
 # Ask the user to select a Minecraft version
 read -p "Enter the Minecraft version you want to install (e.g., 1.21.4): " MINECRAFT_VERSION
@@ -101,3 +105,4 @@ echo "CONSIDER DONATING AT"
 echo "https://ko-fi.com/tggamesyt"
 echo "Run ./playitgg.sh to install ghe playit.gg plugin, which allows you to connect to the server via a generated domain adress"
 echo "Run ./start.sh to start the server."
+rm -- "$0"
