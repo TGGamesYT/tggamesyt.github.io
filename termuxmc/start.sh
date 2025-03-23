@@ -9,6 +9,11 @@ source ./versions.sh
 # Ask the user to select a Minecraft version
 read -p "Enter the Minecraft version you want to install (e.g., 1.21, 1.19): " MINECRAFT_VERSION
 
+# Check if the version has a third number; if not, append ".0"
+if [[ ! "$MINECRAFT_VERSION" =~ \. ]]; then
+    MINECRAFT_VERSION="$MINECRAFT_VERSION.0"
+fi
+
 # Check if the selected version exists in the predefined versions array
 if [[ -z "${JAVA_VERSIONS[$MINECRAFT_VERSION]}" ]] || [[ -z "${JAR_LOCATIONS[$MINECRAFT_VERSION]}" ]]; then
     echo "Minecraft version $MINECRAFT_VERSION is not found in the predefined versions."
@@ -38,9 +43,15 @@ fi
 # Update package manager
 pkg update -y
 
-# Install the required Java version
+# Install the required Java version automatically
 echo "Installing Java version: $JAVA_VERSION"
 pkg install $JAVA_VERSION -y
+
+# Check if the installation was successful
+if [[ $? -ne 0 ]]; then
+    echo "Error: Failed to install $JAVA_VERSION. Please check the version and try again."
+    exit 1
+fi
 
 # Download the Minecraft Paper JAR (either custom or predefined)
 echo "Downloading PaperMC for Minecraft version $MINECRAFT_VERSION..."
