@@ -34,7 +34,7 @@ chmod +x start.sh
 # needing to port forward, which is hard to do.
 echo 'mkdir plugins' > playitgg.sh
 echo 'cd plugins' >> playitgg.sh
-echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitg>
+echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitgg.sh
 echo 'cd ..' >> playitgg.sh
 echo 'rm -- "$0"' >> playitgg.sh
 chmod +x playitgg.sh
