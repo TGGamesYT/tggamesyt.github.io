@@ -2,7 +2,7 @@
 # run the code below in termux to have yourself
 # a papermc/minecraft server running on your own
 # android device!
-# wget https://tggamesyt.github.io/termuxmc/start.sh -O start.sh && chmod +x start.sh && ./start.sh
+# wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x server.sh && ./server.sh
 
 # installing depencies and updating everything
 pkg install wget curl jq bash -y
