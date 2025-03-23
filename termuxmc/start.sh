@@ -4,6 +4,9 @@
 # android device!
 # wget https://tggamesyt.github.io/termuxmc/start.sh -O start.sh && chmod +x start.sh && ./start.sh
 
+# installing depencies and updating everything
+pkg install wget curl jq bash -y
+pkg update
 # Ask the user to select a Minecraft version
 read -p "Enter the Minecraft version you want to install (e.g., 1.21.4): " MINECRAFT_VERSION
 
