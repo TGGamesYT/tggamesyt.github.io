@@ -1,13 +1,94 @@
 #!/bin/bash
-# run the code below in termux to have yourself
-# a papermc/minecraft server running on your own
-# android device!
+# run the following command in termux to get a minecraft server running on android:
 # wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x server.sh && ./server.sh
 
-# installing depencies and updating everything
-pkg install wget curl jq bash -y
-pkg update
-hash -r
-wget https://tggamesyt.github.io/termuxmc/conf.sh -O conf.sh && chmod +x conf.sh
-echo "please run ./conf.sh to continue"
+
+# Install dependencies
+echo "Installing dependencies..."
+pkg update -y && pkg upgrade -y
+pkg install -y curl wget jq openjdk-17 openjdk-21
+
+# Ask user for Minecraft version
+read -p "Enter Minecraft version: " MINECRAFT_VERSION
+
+# Define Java versions
+declare -A JAVA_VERSIONS
+JAVA_VERSIONS=(
+  ["1.17.1"]="17" ["1.17.2"]="17" ["1.18"]="17"
+  ["1.18.1"]="17" ["1.18.2"]="17" ["1.19"]="17"
+  ["1.19.1"]="17" ["1.19.2"]="17" ["1.19.3"]="17"
+  ["1.19.4"]="17" ["1.20"]="17" ["1.20.1"]="17"
+  ["1.20.2"]="17" ["1.20.3"]="17" ["1.20.4"]="17"
+  ["1.21"]="21" ["1.21.1"]="21" ["1.21.2"]="21"
+  ["1.21.3"]="21" ["1.21.4"]="21"
+)
+
+# Determine Java version
+JAVA_VERSION=${JAVA_VERSIONS[$MINECRAFT_VERSION]}
+if [[ -z "$JAVA_VERSION" ]]; then
+  echo "Unsupported Minecraft version! Switching to custom mode."
+  read -p "Enter the URL for the custom server jar: " CUSTOM_JAR_URL
+  read -p "Enter Java version (17 or 21): " JAVA_VERSION
+  if [[ "$JAVA_VERSION" != "17" && "$JAVA_VERSION" != "21" ]]; then
+    echo "Termux does not support this Java version. Exiting."
+    exit 1
+  fi
+  wget -O server.jar "$CUSTOM_JAR_URL"
+else
+  LATEST_BUILD=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds" | jq '.builds | last | .build')
+  SERVER_URL="https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds/$LATEST_BUILD/downloads/paper-$MINECRAFT_VERSION-$LATEST_BUILD.jar"
+  wget -O server.jar "$SERVER_URL"
+fi
+
+# Set Java environment
+export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
+export PATH=$JAVA_HOME/bin:$PATH
+
+# Create start.sh
+echo "Creating start.sh..."
+cat > start.sh <<EOL
+#!/bin/bash
+export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
+export PATH=\$JAVA_HOME/bin:\$PATH
+java -Xms512M -Xmx1G -jar server.jar nogui
+EOL
+chmod +x start.sh
+
+# Create del.sh
+echo "Creating del.sh..."
+cat > del.sh <<EOL
+#!/bin/bash
+rm -rf *
+wget -O setup.sh "\$0"
+chmod +x setup.sh
+echo "Restored original setup script."
+EOL
+chmod +x del.sh
+
+# Create playitgg.sh
+echo "Creating playitgg.sh..."
+cat > playitgg.sh <<EOL
+#!/bin/bash
+mkdir -p plugins
+cd plugins
+wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar
+cd ..
+echo "You just installed playit.gg"
+rm -- "\$0"
+EOL
+chmod +x playitgg.sh
+
+# Accept EULA
+echo "eula=true" > eula.txt
+
+# Final messages
+echo "Minecraft $MINECRAFT_VERSION setup complete!"
+echo "THANKS FOR INSTALLING"
+echo "TGGAMESYT'S TERMUXMC"
+echo "CONSIDER DONATING AT"
+echo "https://ko-fi.com/tggamesyt"
+echo "Run ./playitgg.sh to install the playit.gg plugin, which allows you to connect to the server via a generated domain address."
+echo "Run ./start.sh to start the server."
+
+# Self-delete
 rm -- "$0"
