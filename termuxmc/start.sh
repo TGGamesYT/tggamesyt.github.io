@@ -53,7 +53,7 @@ pkg install "openjdk-$JAVA_VERSION" -y
 JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 
 # Apply the correct Java version for the session
-export JAVA_HOME="$JAVA_HOME"
+export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-$JAVA_VERSION-openjdk"
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # Fetch the latest build number from the PaperMC API for the specified version
@@ -83,14 +83,19 @@ fi
 # Create eula.txt to agree to the Minecraft EULA
 echo "eula=true" > eula.txt
 # Optional: Install the playit.gg plugin to connect without port forwarding
-mkdir -p plugins
 echo "#!/bin/bash" > playitgg.sh
+echo "mkdir -p plugins" >> playitgg.sh
 echo "cd plugins" >> playitgg.sh
 echo "wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar" >> playitgg.sh
 echo "cd .." >> playitgg.sh
 echo "echo "You just installed playit.gg"" >> playitgg.sh
 echo 'rm -- "$(basename "$0")"' >> playitgg.sh
 chmod +x playitgg.sh
+echo "# uninstall sh file" > del.sh
+echo "# run this file to uninstall all minecraft files and folders" >> del.sh
+echo "rm -r *" >> del.sh
+echo "echo "uninstalled minecraft server, and installed a new start.sh file."" >> del.sh
+echo "echo "./start.sh to make a new server""
 
 echo "Minecraft $MINECRAFT_VERSION setup complete!"
 echo "THANKS FOR INSTALLING"
