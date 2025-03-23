@@ -94,7 +94,8 @@ chmod +x start.sh
 
 # Optional: Install the playit.gg plugin to connect without port forwarding
 mkdir -p plugins
-echo 'cd plugins' > playitgg.sh
+echo "#!/bin/bash" > playitgg.sh
+echo "cd plugins" >> playitgg.sh
 echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitgg.sh
 echo 'cd ..' >> playitgg.sh
 echo 'echo "You just installed playit.gg"' >> playitgg.sh
