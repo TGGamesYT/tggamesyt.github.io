@@ -59,8 +59,7 @@ echo "Creating del.sh..."
 cat > del.sh <<EOL
 #!/bin/bash
 rm -rf *
-wget -O setup.sh "\$0"
-chmod +x setup.sh
+wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x server.sh
 echo "Restored original setup script."
 EOL
 chmod +x del.sh
