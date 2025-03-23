@@ -9,21 +9,21 @@ pkg update -y
 pkg install openjdk-21 -y
 
 # minecraft jar, currently paper 1.21, change if needed
-wget https://api.papermc.io/v2/projects/paper/versions/1.21/build>
+wget https://api.papermc.io/v2/projects/paper/versions/1.21/builds/130/downloads/paper-1.21-130.jar
 
 # eula
 echo "eula=true" > eula.txt
 
-# create the startup file - you will execute this to start the se>
+# create the startup file - you will execute this to start the server
 echo "#!/bin/bash" > start.sh
 
 # get the location of the right java version and apply it
 # change if needed
-echo "export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/ja>
+echo "export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-21-openjdk" >> start.sh
 echo 'export PATH=$JAVA_HOME/bin:$PATH' >> start.sh
 
 # normal startup command
-echo "java -Xms512M -Xmx1G -jar paper-1.21-130.jar nogui" >> star>
+echo "java -Xms512M -Xmx1G -jar paper-1.21-130.jar nogui" >> start.sh
 
 # make the file executable
 chmod +x start.sh
@@ -33,7 +33,7 @@ chmod +x start.sh
 # needing to port forward, which is hard to do.
 echo 'mkdir plugins' > playitgg.sh
 echo 'cd plugins' >> playitgg.sh
-echo 'wget https://github.com/playit-cloud/playit-minecraft-plugi>
+echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitgg.sh
 echo 'cd ..' >> playitgg.sh
 echo 'rm -- "$0"' >> playitgg.sh
 chmod +x playitgg.sh
