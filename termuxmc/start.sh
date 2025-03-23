@@ -96,10 +96,10 @@ chmod +x start.sh
 mkdir -p plugins
 echo "#!/bin/bash" > playitgg.sh
 echo "cd plugins" >> playitgg.sh
-echo 'wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar' >> playitgg.sh
-echo 'cd ..' >> playitgg.sh
+echo "wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar" >> playitgg.sh
+echo "cd .." >> playitgg.sh
 echo 'echo "You just installed playit.gg"' >> playitgg.sh
-echo 'rm -- "$0"' >> playitgg.sh
+echo 'rm -- "$(basename "$0")"' >> playitgg.sh
 chmod +x playitgg.sh
 
 echo "Minecraft $MINECRAFT_VERSION setup complete!"
