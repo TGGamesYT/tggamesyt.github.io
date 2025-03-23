@@ -9,4 +9,5 @@ pkg install wget curl jq bash -y
 pkg update
 hash -r
 wget https://tggamesyt.github.io/termuxmc/conf.sh -O conf.sh && chmod +x conf.sh && ./conf.sh
+echo "please run ./conf.sh to continue"
 rm -- "$0"
