@@ -7,6 +7,7 @@
 # installing depencies and updating everything
 pkg install wget curl jq bash -y
 pkg update
+hash -r
 # Ask the user to select a Minecraft version
 read -p "Enter the Minecraft version you want to install (e.g., 1.21.4): " MINECRAFT_VERSION
 
