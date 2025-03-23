@@ -53,8 +53,7 @@ pkg install "openjdk-$JAVA_VERSION" -y
 JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 
 # Apply the correct Java version for the session
-export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-$JAVA_VERSION-openjdk"
-export PATH="$JAVA_HOME/bin:$PATH"
+export PATH='$JAVA_HOME/bin:$PATH'
 
 # Fetch the latest build number from the PaperMC API for the specified version
 LATEST_BUILD=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds" | jq '.builds | last | .build')
