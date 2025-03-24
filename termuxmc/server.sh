@@ -69,6 +69,87 @@ echo "Restored original setup script."
 EOL
 chmod +x del.sh
 
+# backup.sh
+cat > backup.sh <<EOL
+#!/bin/bash
+
+# Define backup directory
+BACKUP_DIR="$HOME/backup"
+
+# Ensure backup directory exists
+if [ ! -d "$BACKUP_DIR" ]; then
+    mkdir -p "$BACKUP_DIR"
+    echo "Backup folder created at $BACKUP_DIR"
+fi
+
+# Function to display usage
+usage() {
+    echo "Usage:"
+    echo "  ./backup.sh create    - Create a backup"
+    echo "  ./backup.sh restore   - Restore a backup"
+    exit 1
+}
+
+# Function to create a backup
+create_backup() {
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    DEST_DIR="$BACKUP_DIR/$TIMESTAMP"
+
+    mkdir -p "$DEST_DIR"
+    cp -r ./* "$DEST_DIR"
+    echo "Backup created at $DEST_DIR"
+}
+
+# Function to restore a backup
+restore_backup() {
+    echo "Available backups:"
+    BACKUPS=("$BACKUP_DIR"/*)
+    
+    if [ ${#BACKUPS[@]} -eq 0 ]; then
+        echo "No backups found!"
+        exit 1
+    fi
+
+    # List backups with numbers
+    for i in "${!BACKUPS[@]}"; do
+        BASENAME=$(basename "${BACKUPS[$i]}")
+        echo "[$i] $BASENAME"
+    done
+
+    # Get user choice
+    echo -n "Enter the number of the backup to restore: "
+    read CHOICE
+
+    if [[ ! "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -ge "${#BACKUPS[@]}" ]; then
+        echo "Invalid choice!"
+        exit 1
+    fi
+
+    BACKUP_PATH="${BACKUPS[$CHOICE]}"
+
+    # Delete all files except the backup folder
+    find . -mindepth 1 -maxdepth 1 ! -name "backup" -exec rm -rf {} +
+
+    # Copy backup files to current directory
+    cp -r "$BACKUP_PATH"/* ./
+    echo "Restored from backup: $(basename "$BACKUP_PATH")"
+}
+
+# Main logic
+case "$1" in
+    create)
+        create_backup
+        ;;
+    restore)
+        restore_backup
+        ;;
+    *)
+        usage
+        ;;
+esac
+EOL
+chmod +x backup.sh
+
 echo "creating server.properties"
 cat > server.properties <<EOL
 # TermuxMC server config
