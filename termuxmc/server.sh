@@ -79,8 +79,9 @@ chmod +x del.sh
 cat > backup.sh <<EOL
 #!/bin/bash
 
-# Define backup directory
-BACKUP_DIR="$HOME/backup"
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKUP_DIR="$SCRIPT_DIR/backup"
 
 # Ensure backup directory exists
 if [ ! -d "$BACKUP_DIR" ]; then
@@ -102,7 +103,10 @@ create_backup() {
     DEST_DIR="$BACKUP_DIR/$TIMESTAMP"
 
     mkdir -p "$DEST_DIR"
-    cp -r ./* "$DEST_DIR"
+    
+    # Copy everything except the backup folder itself
+    find "$SCRIPT_DIR" -mindepth 1 -maxdepth 1 ! -name "backup" -exec cp -r {} "$DEST_DIR" \;
+
     echo "Backup created at $DEST_DIR"
 }
 
@@ -110,19 +114,17 @@ create_backup() {
 restore_backup() {
     echo "Available backups:"
     BACKUPS=("$BACKUP_DIR"/*)
-    
+
     if [ ${#BACKUPS[@]} -eq 0 ]; then
         echo "No backups found!"
         exit 1
     fi
 
-    # List backups with numbers
     for i in "${!BACKUPS[@]}"; do
         BASENAME=$(basename "${BACKUPS[$i]}")
         echo "[$i] $BASENAME"
     done
 
-    # Get user choice
     echo -n "Enter the number of the backup to restore: "
     read CHOICE
 
@@ -134,10 +136,9 @@ restore_backup() {
     BACKUP_PATH="${BACKUPS[$CHOICE]}"
 
     # Delete all files except the backup folder
-    find . -mindepth 1 -maxdepth 1 ! -name "backup" -exec rm -rf {} +
+    find "$SCRIPT_DIR" -mindepth 1 -maxdepth 1 ! -name "backup" -exec rm -rf {} +
 
-    # Copy backup files to current directory
-    cp -r "$BACKUP_PATH"/* ./
+    cp -r "$BACKUP_PATH"/* "$SCRIPT_DIR"
     echo "Restored from backup: $(basename "$BACKUP_PATH")"
 }
 
