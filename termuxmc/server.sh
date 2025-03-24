@@ -138,7 +138,8 @@ EOL
 
 # Create playitgg.sh
 echo "Downloading plugins.sh..."
-wget https://tggamesyt.github.io/termuxmc/plugins.sh
+rm -r plugins.sh
+wget https://tggamesyt.github.io/termuxmc/plugins.sh -O plugins.sh
 chmod +x plugins.sh
 echo "Done"
 
