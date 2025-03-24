@@ -65,17 +65,11 @@ EOL
 chmod +x del.sh
 
 # Create playitgg.sh
-echo "Creating playitgg.sh..."
-cat > playitgg.sh <<EOL
-#!/bin/bash
-mkdir -p plugins
-cd plugins
-wget https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar
-cd ..
-echo "You just installed playit.gg"
-rm -- "\$0"
-EOL
-chmod +x playitgg.sh
+echo "Downloading plugins.sh..."
+wget https://tggamesyt.github.io/termuxmc/plugins.sh
+chmod +x plugins.sh
+echo "Done"
+echo "use ./plugins -i plugin to install pre set plugins"
 
 # Accept EULA
 echo "eula=true" > eula.txt
