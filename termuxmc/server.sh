@@ -48,8 +48,9 @@ export PATH=$JAVA_HOME/bin:$PATH
 echo "Creating start.sh..."
 cat > start.sh <<EOL
 #!/bin/bash
+rm -r plugins.sh
 wget https://tggamesyt.github.io/termuxmc/plugins.sh
-chmod plugins.sh
+chmod +x plugins.sh
 echo "updated plugins.sh"
 echo "starting minecraft server..."
 export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
@@ -62,7 +63,7 @@ chmod +x start.sh
 echo "Creating del.sh..."
 cat > del.sh <<EOL
 #!/bin/bash
-rm -r *
+rm -rf *
 wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x server.sh
 echo "Restored original setup script."
 EOL
@@ -118,8 +119,6 @@ enforce-whitelist=false
 resource-pack-sha1=
 spawn-protection=16
 max-world-size=29999984
-restart-on-crash=true
-restart-script=start.sh
 EOL
 
 # Create playitgg.sh
