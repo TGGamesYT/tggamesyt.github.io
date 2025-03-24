@@ -56,6 +56,12 @@ echo "starting minecraft server..."
 export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 export PATH=\$JAVA_HOME/bin:\$PATH
 java -Xms512M -Xmx2G -jar server.jar nogui
+AUTOBACKUP=$(grep "^termuxmc-autobackup=" "server.properties" | cut -d '=' -f2)
+if [ "$AUTOBACKUP" = "true" ]; then
+    ./backup.sh create
+else
+    echo "Auto-backup is disabled."
+fi
 EOL
 chmod +x start.sh
 
@@ -153,6 +159,12 @@ chmod +x backup.sh
 echo "creating server.properties"
 cat > server.properties <<EOL
 # TermuxMC server config
+
+termuxmc-autobackup=true
+
+# Minecraft config
+
+
 rcon.port=25575
 gamemode=survival
 enable-command-block=false
