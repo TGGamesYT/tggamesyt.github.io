@@ -54,21 +54,7 @@ echo "updated plugins.sh"
 echo "starting minecraft server..."
 export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 export PATH=\$JAVA_HOME/bin:\$PATH
-while true; do
-    java -Xms512M -Xmx2G -jar server.jar nogui
-
-    echo "Server stopped. Checking restart condition..."
-    
-    # Check if restart.txt exists (set by /restart command)
-    if [ -f restart.txt ]; then
-        echo "Restarting server..."
-        rm restart.txt  # Remove the flag file before restarting
-        sleep 5
-    else
-        echo "Server stopped by user. Exiting..."
-        break
-    fi
-done
+java -Xms512M -Xmx2G -jar server.jar nogui
 EOL
 chmod +x start.sh
 
@@ -76,7 +62,7 @@ chmod +x start.sh
 echo "Creating del.sh..."
 cat > del.sh <<EOL
 #!/bin/bash
-rm -rf *
+rm -r *
 wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x server.sh
 echo "Restored original setup script."
 EOL
