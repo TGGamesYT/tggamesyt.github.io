@@ -6,9 +6,10 @@
 declare -A PLUGINS
 
 PLUGINS["viaversion"]="5.2.1|https://github.com/ViaVersion/ViaVersion/releases/download/5.2.1/ViaVersion-5.2.1.jar"
-PLUGINS["playitgg"]="0.1.4|https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar"
+PLUGINS["playitgg"]="Latest|https://github.com/playit-cloud/playit-minecraft-plugin/releases/latest/download/playit-minecraft-plugin.jar"
 PLUGINS["viabackwards"]="5.2.1|https://github.com/ViaVersion/ViaBackwards/releases/download/5.2.1/ViaBackwards-5.2.1.jar"
 PLUGINS["geysermc"]="Latest|https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
+PLUGINS["floodgate"]="Latest|https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
 
 
 
