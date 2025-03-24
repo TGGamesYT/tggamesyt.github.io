@@ -70,6 +70,7 @@ chmod +x del.sh
 
 echo "creating server.properties"
 cat > server.properties <<EOL
+# TermuxMC server config
 rcon.port=25575
 gamemode=survival
 enable-command-block=false
