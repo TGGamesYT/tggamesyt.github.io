@@ -64,6 +64,38 @@ else
 fi
 EOL
 chmod +x start.sh
+# help.sh
+echo "creating help.sh..."
+cat > help.sh <<EOL
+echo "----------------------------------"
+echo "welcome to"
+echo "TGGAMESYT's MINECRAFT SERVER SETUP"
+echo "HELP INFO"
+echo "----------------------------------"
+echo "./plugins.sh"
+echo "    usage:"
+echo "         ./plugins.sh -l = list available preset plugins"
+echo "         ./plugins.sh -i plugin1 plugin2 = installs plugins"
+echo "         ./plugins.sh -u plugin1 = uninstalls plugins"
+echo "./backup.sh"
+echo "    usage:"
+echo "        ./backup.sh create = creates a backup"
+echo "        ./backup.sh restore = restores a backup"
+echo "./start.sh"
+echo "    starts the server"
+echo "./del.sh"
+echo "    deletes every file in the folder and restores the original setup script"
+echo "    WARNING: THIS CANT BE UNDONE"
+echo "./help.sh"
+echo "    shows this list."
+echo "./debug.sh"
+echo "    nothing you should know"
+EOL
+chmod +x help.sh
+
+echo "#!/bin/bash" > debug.sh
+echo "curl https://ascii.live/rick" >> debug.sh
+chmod +x debug.sh
 
 # Create del.sh
 echo "Creating del.sh..."
@@ -74,6 +106,8 @@ wget https://tggamesyt.github.io/termuxmc/server.sh -O server.sh && chmod +x ser
 echo "Restored original setup script."
 EOL
 chmod +x del.sh
+
+
 
 # backup.sh
 wget https://tggamesyt.github.io/termuxmc/backup.sh
@@ -153,8 +187,7 @@ echo "THANKS FOR INSTALLING"
 echo "TGGAMESYT'S TERMUXMC"
 echo "CONSIDER DONATING AT"
 echo "https://ko-fi.com/tggamesyt"
-echo "use ./plugins -i plugin to install pre set plugins"
-echo "use ./del.sh to delete the server files and restore the setup file"
+echo "do ./help.sh to show the usage of the tool commands"
 echo "Run ./start.sh to start the server."
 
 # Self-delete
