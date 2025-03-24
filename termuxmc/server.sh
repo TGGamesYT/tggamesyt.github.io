@@ -69,7 +69,6 @@ echo "Downloading plugins.sh..."
 wget https://tggamesyt.github.io/termuxmc/plugins.sh
 chmod +x plugins.sh
 echo "Done"
-echo "use ./plugins -i plugin to install pre set plugins"
 
 # Accept EULA
 echo "eula=true" > eula.txt
@@ -80,7 +79,8 @@ echo "THANKS FOR INSTALLING"
 echo "TGGAMESYT'S TERMUXMC"
 echo "CONSIDER DONATING AT"
 echo "https://ko-fi.com/tggamesyt"
-echo "Run ./playitgg.sh to install the playit.gg plugin, which allows you to connect to the server via a generated domain address."
+echo "use ./plugins -i plugin to install pre set plugins"
+echo "use ./del.sh to delete the server files and restore the setup file"
 echo "Run ./start.sh to start the server."
 
 # Self-delete
