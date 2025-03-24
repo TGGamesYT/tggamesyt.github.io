@@ -171,6 +171,8 @@ resource-pack-sha1=
 spawn-protection=16
 max-world-size=29999984
 EOL
+# default server icon
+wget https://tggamesyt.github.io/termuxmc/termuxmc-icon.png -O icon.png
 
 # Create playitgg.sh
 echo "Downloading plugins.sh..."
