@@ -79,8 +79,9 @@ chmod +x del.sh
 cat > backup.sh <<EOL
 #!/bin/bash
 
-# Get the directory where the script is located
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Get the absolute path of the script directory
+SCRIPT_PATH="$(realpath "$0")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 BACKUP_DIR="$SCRIPT_DIR/backup"
 
 # Ensure backup directory exists
@@ -103,7 +104,7 @@ create_backup() {
     DEST_DIR="$BACKUP_DIR/$TIMESTAMP"
 
     mkdir -p "$DEST_DIR"
-    
+
     # Copy everything except the backup folder itself
     find "$SCRIPT_DIR" -mindepth 1 -maxdepth 1 ! -name "backup" -exec cp -r {} "$DEST_DIR" \;
 
@@ -128,7 +129,7 @@ restore_backup() {
     echo -n "Enter the number of the backup to restore: "
     read CHOICE
 
-    if [[ ! "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -ge "${#BACKUPS[@]}" ]; then
+    if [[ ! "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -ge "${#BACKUPS[@]}" ]]; then
         echo "Invalid choice!"
         exit 1
     fi
