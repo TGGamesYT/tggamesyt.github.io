@@ -48,6 +48,10 @@ export PATH=$JAVA_HOME/bin:$PATH
 echo "Creating start.sh..."
 cat > start.sh <<EOL
 #!/bin/bash
+wget https://tggamesyt.github.io/termuxmc/plugins.sh
+chmod plugins.sh
+echo "updated plugins.sh"
+echo "starting minecraft server..."
 export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 export PATH=\$JAVA_HOME/bin:\$PATH
 java -Xms512M -Xmx1G -jar server.jar nogui
