@@ -94,7 +94,7 @@ EOL
 chmod +x help.sh
 
 echo "#!/bin/bash" > debug.sh
-echo "curl https://ascii.live/rick" >> debug.sh
+echo "curl ascii.live/rick" >> debug.sh
 chmod +x debug.sh
 
 # Create del.sh
