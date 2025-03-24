@@ -68,6 +68,59 @@ echo "Restored original setup script."
 EOL
 chmod +x del.sh
 
+echo "creating server.properties"
+cat > server.properties <<EOL
+rcon.port=25575
+gamemode=survival
+enable-command-block=false
+enable-query=false
+level-name=world
+motd=RUNNING ON ANDROID?
+query.port=25565
+pvp=true
+difficulty=easy
+network-compression-threshold=256
+require-resource-pack=false
+max-tick-time=60000
+use-native-transport=true
+max-players=20
+online-mode=true
+enable-status=true
+allow-flight=false
+broadcast-rcon-to-ops=true
+view-distance=10
+server-ip=
+resource-pack-prompt=
+allow-nether=true
+server-port=25565
+enable-rcon=false
+sync-chunk-writes=true
+op-permission-level=4
+prevent-proxy-connections=false
+resource-pack=
+entity-broadcast-range-percentage=100
+rcon.password=
+player-idle-timeout=0
+debug=false
+force-gamemode=false
+rate-limit=0
+hardcore=false
+white-list=false
+broadcast-console-to-ops=true
+spawn-npcs=true
+spawn-animals=true
+snooper-enabled=true
+function-permission-level=2
+text-filtering-config=
+spawn-monsters=true
+enforce-whitelist=false
+resource-pack-sha1=
+spawn-protection=16
+max-world-size=29999984
+restart-on-crash=true
+restart-script=start.sh
+EOL
+
 # Create playitgg.sh
 echo "Downloading plugins.sh..."
 wget https://tggamesyt.github.io/termuxmc/plugins.sh
