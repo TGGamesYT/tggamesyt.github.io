@@ -59,10 +59,10 @@ java -Xms512M -Xmx2G -jar server.jar nogui
 
 if grep -q "termuxmc-autobackup=true" "server.properties"; then
     ./backup.sh create
-    echo "termux-autobackup=true" >> server.properties
+    echo "termuxmc-autobackup=true" >> server.properties
 else
     echo "Auto-backup is disabled."
-    echo "termux-autobackup=false" >> server.properties
+    echo "termuxmc-autobackup=false" >> server.properties
 fi
 EOL
 chmod +x start.sh
