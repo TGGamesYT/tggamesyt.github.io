@@ -117,18 +117,14 @@ chmod +x backup.sh
 echo "creating server.properties"
 cat > server.properties <<EOL
 # TermuxMC server config
-
-termuxmc-autobackup=true
-
 # Minecraft config
-
 
 rcon.port=25575
 gamemode=survival
 enable-command-block=false
 enable-query=false
 level-name=world
-motd=RUNNING ON ANDROID?
+motd=\u00A76Running on \u00A7aANDROID\u00A7c??
 query.port=25565
 pvp=true
 difficulty=easy
@@ -170,6 +166,7 @@ enforce-whitelist=false
 resource-pack-sha1=
 spawn-protection=16
 max-world-size=29999984
+termuxmc-autobackup=true
 EOL
 # default server icon
 wget https://tggamesyt.github.io/termuxmc/termuxmc-icon.png -O server-icon.png
