@@ -6,7 +6,8 @@ if (!TOKEN || !CHANNEL_ID) { console.error('Missing TOKEN or CHANNEL_ID in .env'
 
 const bot = new Eris(TOKEN); let lastSize = 0;
 
-bot.on('ready', () => { console.log('Bot is online.'); sendToMinecraft('[Server] Bot online.'); bot.createMessage(CHANNEL_ID, '🟢 Server bot online!'); // Initialize lastSize to current file size to prevent dumping old logs if (fs.existsSync(LOG_PATH)) { lastSize = fs.statSync(LOG_PATH).size; } });
+bot.on('ready', () => { console.log('Bot is online.'); sendToMinecraft('[Server] Bot online.'); bot.createMessage(CHANNEL_ID, '🟢 Server bot online!');
+if (fs.existsSync(LOG_PATH)) { lastSize = fs.statSync(LOG_PATH).size; } });
 
 bot.on('messageCreate', msg => { if (msg.channel.id !== CHANNEL_ID || msg.author.bot) return; const username = msg.author.username.replace(/[^a-zA-Z0-9_]/g, ''); const text = msg.content.replace(/[ \n]/g, ' ').replace(/[\"]/g, '');
 
