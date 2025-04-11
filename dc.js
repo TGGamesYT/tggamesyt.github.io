@@ -1,93 +1,34 @@
-require('dotenv').config();
-const fs = require('fs');
-const readline = require('readline');
-const Discord = require('discord.js');
-const { exec } = require('child_process');
+require('dotenv').config(); const fs = require('fs'); const { exec } = require('child_process'); const Eris = require('eris');
 
-const token = process.env.BOT_TOKEN;
-const channelId = process.env.CHANNEL_ID;
-const screenSession = 'mc';
+const TOKEN = process.env.TOKEN; const CHANNEL_ID = process.env.CHANNEL_ID; const LOG_PATH = process.env.LOG_PATH || '/home/tothgergoci/server/logs/latest.log'; const SCREEN_NAME = process.env.SCREEN_NAME || 'mc';
 
-const client = new Discord.Client({
-  intents: [
-    Discord.Intents.FLAGS.GUILDS,
-    Discord.Intents.FLAGS.GUILD_MESSAGES
-  ]
-});
+if (!TOKEN || !CHANNEL_ID) { console.error('Missing TOKEN or CHANNEL_ID in .env'); process.exit(1); }
 
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  sendToDiscord('[Server] Bot online.');
-});
+const bot = new Eris(TOKEN); let lastSize = 0;
 
-client.login(token);
+bot.on('ready', () => { console.log('Bot is online.'); sendToMinecraft('[Server] Bot online.'); bot.createMessage(CHANNEL_ID, '🟢 Server bot online!'); // Initialize lastSize to current file size to prevent dumping old logs if (fs.existsSync(LOG_PATH)) { lastSize = fs.statSync(LOG_PATH).size; } });
 
-const logFile = 'logs/latest.log';
-const logSize = fs.statSync(logFile).size;
+bot.on('messageCreate', msg => { if (msg.channel.id !== CHANNEL_ID || msg.author.bot) return; const username = msg.author.username.replace(/[^a-zA-Z0-9_]/g, ''); const text = msg.content.replace(/[ \n]/g, ' ').replace(/[\"]/g, '');
 
-const stream = fs.createReadStream(logFile, {
-  encoding: 'utf8',
-  start: logSize
-});
+console.log([Discord -> MC] <${username}> ${text});
 
-const rl = readline.createInterface({ input: stream });
+const tellraw = /tellraw @a {\"text\":\"<${username}> ${text}\"}; exec(screen -S ${SCREEN_NAME} -p 0 -X stuff '${tellraw}\n', (err) => { if (err) console.log("Send error:", err); }); });
 
-fs.watchFile(logFile, () => {
-  const size = fs.statSync(logFile).size;
-  const newStream = fs.createReadStream(logFile, {
-    encoding: 'utf8',
-    start: size
-  });
-  newStream.on('data', chunk => rl.write(chunk));
-});
+function monitorLog() { if (!fs.existsSync(LOG_PATH)) return setTimeout(monitorLog, 2000);
 
-rl.on('line', (line) => {
-  const chat = line.match(/INFO\]: <([^>]+)> (.+)/);
-  if (chat) {
-    const player = chat[1];
-    const msg = chat[2];
-    sendToDiscord(`[Chat] <${player}> ${msg}`);
-    return;
-  }
+const stat = fs.statSync(LOG_PATH); if (stat.size < lastSize) lastSize = 0;
 
-  if (line.includes('joined the game')) {
-    const m = line.match(/INFO\]: ([^ ]+) joined the game/);
-    if (m) sendToDiscord(`[Join] ${m[1]} joined.`);
-  }
+const stream = fs.createReadStream(LOG_PATH, { start: lastSize, end: stat.size });
 
-  if (line.includes('left the game')) {
-    const m = line.match(/INFO\]: ([^ ]+) left the game/);
-    if (m) sendToDiscord(`[Leave] ${m[1]} left.`);
-  }
+let buffer = ''; stream.on('data', chunk => buffer += chunk); stream.on('end', () => { lastSize = stat.size; const lines = buffer.split('\n'); let recentlyLeft = new Set();
 
-  if (line.includes('lost connection')) {
-    const m = line.match(/INFO\]: ([^ ]+) lost connection: (.+)/);
-    if (m) sendToDiscord(`[Disconnect] ${m[1]} (${m[2]})`);
-  }
+for (const line of lines) { if (!line.includes('INFO]:')) continue; if (line.includes('joined the game')) { const player = line.split('INFO]: ')[1].split(' joined')[0]; sendToDiscord(`🟢 **${player} joined the game**`); recentlyLeft.delete(player); } else if (line.includes('lost connection')) { const player = line.split('INFO]: ')[1].split(' ')[0]; recentlyLeft.add(player); } else if (line.includes('left the game')) { const player = line.split('INFO]: ')[1].split(' ')[0]; if (!recentlyLeft.has(player)) { sendToDiscord(`🔴 **${player} left the game**`); } recentlyLeft.delete(player); } else if (line.includes('<') && line.includes('>')) { const chat = line.split('INFO]: ')[1]; sendToDiscord(`💬 ${chat}`); } else if (line.includes('Done (')) { sendToDiscord('✅ **Server started.**'); } } setTimeout(monitorLog, 1000); 
 
-  if (line.includes('Starting minecraft server')) {
-    sendToDiscord('[Server] Starting...');
-  }
+}); }
 
-  if (line.includes('Stopping server')) {
-    sendToDiscord('[Server] Stopping...');
-  }
-});
+function sendToDiscord(msg) { bot.createMessage(CHANNEL_ID, msg).catch(console.error); }
 
-client.on('message', (msg) => {
-  if (msg.author.bot) return;
-  const content = msg.content.replace(/"/g, '\\"');
-  const mcCmd =
-    `/tellraw @a {"text":"<${msg.author.username}>: ${content}"}`;
-  const cmd =
-    `screen -S ${screenSession} -p 0 -X stuff "${mcCmd}\\n"`;
-  exec(cmd, err => {
-    if (err) console.error('MC send failed:', err);
-  });
-});
+function sendToMinecraft(text) { const command = /tellraw @a {\"text\":\"${text.replace(/\"/g, '\\\"')}\"}; exec(screen -S ${SCREEN_NAME} -p 0 -X stuff '${command}\n', (err) => { if (err) console.log("Send error:", err); }); }
 
-function sendToDiscord(text) {
-  const ch = client.channels.cache.get(channelId);
-  if (ch) ch.send(text).catch(console.error);
-  else console.warn('Channel not found');
-}
+bot.connect(); monitorLog();
+
