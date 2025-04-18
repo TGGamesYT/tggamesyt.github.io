@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pytml External Test</title>
+</head>
+<body>
+  <h1 id="output">Waiting...</h1>
+  <button id="button">Click Me</button>
+
+  <script>
+    const BACKEND_URL = "https://pytml-production.up.railway.app/"; // change to your server
+
+    async function callButton(buttonId) {
+      try {
+        await fetch(`${BACKEND_URL}/_pycall/${buttonId}`);
+        const js = await fetch(`${BACKEND_URL}/script.js`).then(r => r.text());
+        eval(js);
+      } catch (e) {
+        console.error("Error communicating with backend:", e);
+      }
+    }
+
+    // Hook up button to trigger backend + update page
+    document.getElementById("button").addEventListener("click", () => callButton("button"));
+
+    // Initial state on load
+    window.onload = async () => {
+      const js = await fetch(`${BACKEND_URL}/script.js`).then(r => r.text());
+      eval(js);
+    };
+  </script>
+</body>
+</html>
