@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minecraft Music Disc Player</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    .jukebox {
+      width: 160px;
+      height: 160px;
+      margin: auto;
+      position: relative;
+      background: url("https://minecraft.wiki/images/Jukebox_JE2_BE2.png") center/cover no-repeat;
+      border-radius: 8px;
+      border: 4px solid #333;
+    }
+    .jukebox img {
+      width: 100px;
+      height: 100px;
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      image-rendering: pixelated;
+    }
+    #drag-area {
+      border: 3px dashed #555;
+      padding: 30px;
+      margin-top: 30px;
+      width: 320px;
+      background: #222;
+      border-radius: 10px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #audio-player {
+      margin-top: 30px;
+      width: 300px;
+    }
+    a { color: #7cf; }
+  </style>
+</head>
+<body>
+  <h1>Minecraft Music Disc Player</h1>
+
+  <div class="jukebox" id="jukebox">
+    <img id="disc-image" src="https://minecraft.wiki/images/Invicon_Music_Disc_13.png" alt="Music Disc">
+  </div>
+
+  <div id="drag-area">
+    <p>🎵 Drag & drop a music disc image</p>
+    <p><small>From <a href="https://minecraft.wiki" target="_blank">Minecraft Wiki</a></small></p>
+  </div>
+
+  <audio id="audio-player" controls></audio>
+
+  <script>
+    const discImage = document.getElementById('disc-image');
+    const audioPlayer = document.getElementById('audio-player');
+    const dragArea = document.getElementById('drag-area');
+
+    // Only allow these numbers
+    const allowedNumbers = ["11", "13", "5"];
+
+    function normalizeDiscName(filename) {
+      const match = filename.match(/Music_Disc_(.+?)\.png/i);
+      if (!match) return null;
+
+      let raw = match[1];
+
+      // Replace URL encodings
+      raw = decodeURIComponent(raw);
+
+      // Lowercase
+      raw = raw.toLowerCase();
+
+      // Remove special characters except underscores and digits
+      raw = raw.replace(/[^a-z0-9_]/g, "_");
+
+      // Keep only 11, 13, 5 and remove other numbers
+      raw = raw.replace(/\b(\d+)\b/g, (m) => allowedNumbers.includes(m) ? m : "");
+
+      // Remove multiple underscores
+      raw = raw.replace(/_+/g, "_").replace(/^_|_$/g, "");
+
+      return raw;
+    }
+
+    function buildOggUrl(discName) {
+      return `https://tggamesyt.github.io/jukebox/${discName}.ogg`;
+    }
+
+    function handleDiscDrop(name, imageUrl) {
+      const oggUrl = buildOggUrl(name);
+      discImage.src = imageUrl;
+      audioPlayer.src = oggUrl;
+      audioPlayer.play().catch(err => {
+        alert("Couldn't play audio. May not exist or be blocked by CORS.");
+        console.error(err);
+      });
+    }
+
+    dragArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      dragArea.style.backgroundColor = '#333';
+    });
+
+    dragArea.addEventListener('dragleave', () => {
+      dragArea.style.backgroundColor = '#222';
+    });
+
+    dragArea.addEventListener('drop', e => {
+      e.preventDefault();
+      dragArea.style.backgroundColor = '#222';
+
+      const item = e.dataTransfer.items?.[0];
+      if (item?.kind === 'file') {
+        const file = item.getAsFile();
+        const name = normalizeDiscName(file.name);
+        if (name) handleDiscDrop(name, URL.createObjectURL(file));
+        else alert("Couldn't extract disc name from filename.");
+      } else if (item?.kind === 'string') {
+        item.getAsString(url => {
+          try {
+            const parsedUrl = new URL(url);
+            const filename = parsedUrl.pathname.split('/').pop();
+            const name = normalizeDiscName(filename);
+            if (name) handleDiscDrop(name, url);
+            else alert("Couldn't extract disc name from URL.");
+          } catch {
+            alert("Invalid URL dropped.");
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
