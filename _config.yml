@@ -1,0 +1,5 @@
+title: TGs website
+description: Silly Stuff Over Here
+url: "https://tggamesyt.github.io"
+plugins:
+  - jekyll-sitemap
