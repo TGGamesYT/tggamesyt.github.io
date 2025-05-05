@@ -2,7 +2,13 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Sigma Radio — Live Stream</title>
+  <title>Sigma Radio</title>
+  <meta property="og:title" content="Sigma Radio" />
+  <meta property="og:image" content="https://tggamesyt.github.io/assets/radio/icon.png" />
+  <meta property="og:description" content="Sigma Songs 24/7" />
+  <meta name="theme-color" content="#0053FF">
+  <meta name="twitter:card" content="summary_large_image">
+
   <style>
     body { font-family: sans-serif; text-align: center; padding: 20px; }
     button, input[type=range] { margin: 10px; }
@@ -10,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>Sigma Radio — Fake Live Stream</h1>
+  <h1>Sigma Radio</h1>
   <audio id="player"></audio>
   <div>
     <button id="playPauseBtn">Start</button>
@@ -125,8 +131,9 @@
         } else {
         // Normal song entry
         const label = displayCount === 0 ? "▶️ " : "⏩ ";
-        const manifestItem = manifest.find(m => "songs/" + m.file === item.file);
-        const name = manifestItem?.title || item.file.split("/").pop().replace(".mp3", "");
+        const filename = item.file.split("/").pop();
+        const manifestItem = manifest.find(m => m.file === filename);
+        const name = manifestItem ? manifestItem.title : filename.replace(".mp3", "");
         list.innerHTML += label + name + "<br>";
         i++; // Move to the next track
         }
