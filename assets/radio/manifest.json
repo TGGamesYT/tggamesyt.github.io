@@ -1,14 +1,14 @@
 [
-  { "file": "deafkev_invincible.mp3", "duration": 273 },
-  { "file": "differentheaven_myheart.mp3", "duration": 267 },
-  { "file": "disfigure_blank.mp3", "duration": 209 },
-  { "file": "electrolight_symbolism.mp3", "duration": 291 },
-  { "file": "elektronomia_limitless.mp3", "duration": 244 },
-  { "file": "elektronomia_skyhigh.mp3", "duration": 238 },
-  { "file": "janji_heroestonight.mp3", "duration": 208 },
-  { "file": "jeja_on&on.mp3", "duration": 207 },
-  { "file": "jimyosef_link.mp3", "duration": 224 },
-  { "file": "lensko_letsgo.mp3", "duration": 207 },
-  { "file": "suburban_cradles.mp3", "duration": 209 },
-  { "file": "syncole_feelgood.mp3", "duration": 182 }
+  { "file": "deafkev_invincible.mp3", "duration": 273, "title": "DEAF KEV - Invincible" },
+  { "file": "differentheaven_myheart.mp3", "duration": 267, "title": "Different Heaven & EH!DE - My Heart" },
+  { "file": "disfigure_blank.mp3", "duration": 209, "title": "Disfigure - Blank" },
+  { "file": "electrolight_symbolism.mp3", "duration": 291, "title": "Electro-Light - Symbolism" },
+  { "file": "elektronomia_limitless.mp3", "duration": 244, "title": "Elektronomia - Limitless" },
+  { "file": "elektronomia_skyhigh.mp3", "duration": 238, "title": "Elektronomia - Sky High" },
+  { "file": "janji_heroestonight.mp3", "duration": 208, "title": "Janji - Heroes Tonight (feat. Johnning)" },
+  { "file": "jeja_on&on.mp3", "duration": 207, "title": "Cartoon - On & On (feat. Daniel Levi)" },
+  { "file": "jimyosef_link.mp3", "duration": 224, "title": "Jim Yosef - Link" },
+  { "file": "lensko_letsgo.mp3", "duration": 207, "title": "Lensko - Let's Go!" },
+  { "file": "suburban_cradles.mp3", "duration": 209, "title": "Sub Urban - Cradles" },
+  { "file": "syncole_feelgood.mp3", "duration": 182, "title": "Syn Cole - Feel Good" }
 ]
