@@ -125,7 +125,8 @@
         } else {
         // Normal song entry
         const label = displayCount === 0 ? "▶️ " : "⏩ ";
-        const name = item.file.split("/").pop().replace(".mp3", "");
+        const manifestItem = manifest.find(m => "songs/" + m.file === item.file);
+        const name = manifestItem?.title || item.file.split("/").pop().replace(".mp3", "");
         list.innerHTML += label + name + "<br>";
         i++; // Move to the next track
         }
