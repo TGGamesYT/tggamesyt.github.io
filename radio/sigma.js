@@ -118,6 +118,7 @@
 
 
     async function initPlayer() {
+        populateTrackSelect();
       manifest = await fetch(base + 'manifest.json').then(res => res.json());
 
       function syncToLive() {
@@ -232,72 +233,5 @@ document.getElementById("forcePlayBtn").addEventListener("click", () => {
   audio.play();
   updateTrackList(); // Update the track list display
 });
-async function initPlayer() {
-  manifest = await fetch(base + 'manifest.json').then(res => res.json());
-
-  // Populate the track select dropdown
-  populateTrackSelect();
-
-  function syncToLive() {
-    const now = Date.now();
-    const elapsed = Math.floor((now - startTime) / 1000);
-    const rand = seededRandom(seed);
-    currentPlaylist = generatePlaylist(elapsed, rand);
-
-    let t = 0;
-    for (let i = 0; i < currentPlaylist.length; i++) {
-        const item = currentPlaylist[i];
-        if (t + item.duration > elapsed) {
-        currentTrackIndex = i;
-        currentOffset = elapsed - t;
-        playCurrent();
-        break;
-        }
-        t += item.duration;
-    }
-  }
-
-  function playCurrent() {
-    if (currentTrackIndex >= 0 && currentTrackIndex < currentPlaylist.length) {
-      const track = currentPlaylist[currentTrackIndex];
-      audio.src = track.file;
-      audio.currentTime = currentOffset;
-      audio.play();
-      updateTrackList();
-    }
-  }
-
-  function playNext() {
-    currentTrackIndex++;
-    currentOffset = 0;
-    if (currentTrackIndex < currentPlaylist.length) {
-      playCurrent();
-    } else {
-      syncToLive(); // refresh playlist
-    }
-  }
-
-  audio.addEventListener('ended', () => {
-    if (!isPaused) playNext();
-  });
-
-  document.getElementById("volumeSlider").addEventListener("input", (e) => {
-    audio.volume = parseFloat(e.target.value);
-  });
-
-  const btn = document.getElementById("playPauseBtn");
-  btn.addEventListener("click", () => {
-    if (isPaused) {
-      syncToLive();
-      isPaused = false;
-      btn.textContent = "Pause";
-    } else {
-      audio.pause();
-      isPaused = true;
-      btn.textContent = "Resume";
-    }
-  });
-}
-
 
     initPlayer();
