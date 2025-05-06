@@ -219,7 +219,7 @@ setInterval(() => {
 
 
 //audio visuality
-window.onload = function() {
+/*window.onload = function() {
   
   var file = document.getElementById("thefile");
   var audio = document.getElementById("audio");
