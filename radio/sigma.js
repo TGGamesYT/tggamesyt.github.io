@@ -181,23 +181,123 @@
         }
       });
     }
-    function getCookie(name) {
-        let decodedCookies = decodeURIComponent(document.cookie);
-        let cookies = decodedCookies.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.indexOf(name + "=") == 0) {
-                return cookie.substring(name.length + 1, cookie.length);
-            }
-        }
-        return "";
-    }
+function isSigmaRadioTGCookieSet() {
+  return document.cookie.split(';').some(cookie => cookie.trim().startsWith('SigmaRadioTG=true'));
+}
+function populateTrackSelect() {
+  const select = document.getElementById("trackSelect");
 
-    // Check if the 'admin' cookie exists
-    let adminCookie = getCookie('admin');
-    if (adminCookie === 'true') {
-        // If the 'admin' cookie exists and its value is 'true', show the admin panel
-        document.getElementById('adminPanel').style.display = 'block';
+  // Add time events
+  const timeEvent = createTimeAnnouncement(new Date());
+  timeEvent.forEach((event, index) => {
+    const option = document.createElement("option");
+    option.value = `timeEvent-${index}`;
+    option.textContent = `Time Event: ${event.file.split('/').pop()}`;
+    select.appendChild(option);
+  });
+
+  // Add songs from the manifest
+  manifest.forEach((song, index) => {
+    const option = document.createElement("option");
+    option.value = `song-${index}`;
+    option.textContent = `Song: ${song.title || song.file.split('/').pop()}`;
+    select.appendChild(option);
+  });
+}
+document.getElementById("forcePlayBtn").addEventListener("click", () => {
+  if (!isSigmaRadioTGCookieSet()) {
+    alert("You need to set the SigmaRadioTG cookie to use this feature.");
+    return;
+  }
+
+  const selectedValue = document.getElementById("trackSelect").value;
+
+  if (!selectedValue) {
+    alert("Please select a track or time event.");
+    return;
+  }
+
+  let selectedItem;
+
+  if (selectedValue.startsWith("timeEvent-")) {
+    const index = parseInt(selectedValue.replace("timeEvent-", ""));
+    selectedItem = createTimeAnnouncement(new Date())[index];
+  } else if (selectedValue.startsWith("song-")) {
+    const index = parseInt(selectedValue.replace("song-", ""));
+    selectedItem = manifest[index];
+  }
+
+  // Force play the selected item
+  audio.src = selectedItem.file;
+  audio.play();
+  updateTrackList(); // Update the track list display
+});
+async function initPlayer() {
+  manifest = await fetch(base + 'manifest.json').then(res => res.json());
+
+  // Populate the track select dropdown
+  populateTrackSelect();
+
+  function syncToLive() {
+    const now = Date.now();
+    const elapsed = Math.floor((now - startTime) / 1000);
+    const rand = seededRandom(seed);
+    currentPlaylist = generatePlaylist(elapsed, rand);
+
+    let t = 0;
+    for (let i = 0; i < currentPlaylist.length; i++) {
+        const item = currentPlaylist[i];
+        if (t + item.duration > elapsed) {
+        currentTrackIndex = i;
+        currentOffset = elapsed - t;
+        playCurrent();
+        break;
+        }
+        t += item.duration;
     }
+  }
+
+  function playCurrent() {
+    if (currentTrackIndex >= 0 && currentTrackIndex < currentPlaylist.length) {
+      const track = currentPlaylist[currentTrackIndex];
+      audio.src = track.file;
+      audio.currentTime = currentOffset;
+      audio.play();
+      updateTrackList();
+    }
+  }
+
+  function playNext() {
+    currentTrackIndex++;
+    currentOffset = 0;
+    if (currentTrackIndex < currentPlaylist.length) {
+      playCurrent();
+    } else {
+      syncToLive(); // refresh playlist
+    }
+  }
+
+  audio.addEventListener('ended', () => {
+    if (!isPaused) playNext();
+  });
+
+  document.getElementById("volumeSlider").addEventListener("input", (e) => {
+    audio.volume = parseFloat(e.target.value);
+  });
+
+  const btn = document.getElementById("playPauseBtn");
+  btn.addEventListener("click", () => {
+    if (isPaused) {
+      syncToLive();
+      isPaused = false;
+      btn.textContent = "Pause";
+    } else {
+      audio.pause();
+      isPaused = true;
+      btn.textContent = "Resume";
+    }
+  });
+}
+
 
     initPlayer();
