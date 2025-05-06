@@ -27,14 +27,7 @@ img#logo, .logo {
   height: auto;
   margin-bottom: 20px;
   filter: drop-shadow(0 0 8px #00ffc8);
-}
-
-/* Header */
-h1 {
-  font-size: 2.5em;
-  margin-bottom: 10px;
-  letter-spacing: 1px;
-  text-shadow: 0 0 5px #00ffc8, 0 0 15px #00ffc8;
+  z-index: 100;
 }
 
 /* Audio (hidden), Buttons, Sliders */
@@ -52,9 +45,11 @@ audio {
 
 audio, button, input[type="range"] {
   margin: 12px;
+  z-index: 100;
 }
 
 button {
+  z-index: 100;
   background-color: #00ffc8;
   border: none;
   padding: 16px 28px;
@@ -68,6 +63,7 @@ button {
 }
 
 button:hover {
+  z-index: 100;
   background-color: #00cc9f;
 }
 
@@ -80,12 +76,14 @@ input[type="range"] {
 
 /* Label and track list */
 label {
+  z-index: 100;
   display: block;
   margin: 1rem 0;
   font-size: 1.1rem;
 }
 
 #trackList {
+  z-index: 100;
   margin-top: 30px;
   text-align: left;
   display: inline-block;
@@ -99,6 +97,7 @@ label {
 }
 
 p {
+  z-index: 100;
   font-size: 0.9em;
   color: #ccc;
   margin-top: 40px;
