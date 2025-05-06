@@ -12,57 +12,6 @@ html, body {
   align-items: center;
 }
 
-h1 {
-  font-size: 2rem;
-  margin: 1rem 0;
-}
-
-img#logo {
-  width: 40vw;
-  max-width: 200px;
-  height: auto;
-  margin: 1rem;
-}
-
-audio {
-  display: none;
-}
-
-button {
-  font-size: 1.2rem;
-  padding: 1rem 2rem;
-  margin: 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  background-color: #2196F3;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #1976D2;
-}
-
-input[type=range] {
-  width: 80vw;
-  max-width: 400px;
-  height: 30px;
-}
-
-label {
-  display: block;
-  margin: 1rem 0;
-  font-size: 1.1rem;
-}
-
-#trackList {
-  margin-top: 2rem;
-  font-size: 1rem;
-  line-height: 1.6;
-  text-align: left;
-  max-width: 90vw;
-}
-
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(to bottom, #0d0d0d, #1a1a1a);
@@ -71,6 +20,16 @@ body {
   padding: 40px 20px;
 }
 
+/* Logo styling */
+img#logo, .logo {
+  width: 50vw;
+  max-width: 200px;
+  height: auto;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 8px #00ffc8);
+}
+
+/* Header */
 h1 {
   font-size: 2.5em;
   margin-bottom: 10px;
@@ -78,11 +37,9 @@ h1 {
   text-shadow: 0 0 5px #00ffc8, 0 0 15px #00ffc8;
 }
 
-.logo {
-  width: 120px;
-  height: auto;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 0 8px #00ffc8);
+/* Audio (hidden), Buttons, Sliders */
+audio {
+  display: none;
 }
 
 audio, button, input[type="range"] {
@@ -92,11 +49,11 @@ audio, button, input[type="range"] {
 button {
   background-color: #00ffc8;
   border: none;
-  padding: 10px 20px;
+  padding: 16px 28px;
   border-radius: 5px;
   color: black;
   font-weight: bold;
-  font-size: 1em;
+  font-size: 1.4em;
   cursor: pointer;
   box-shadow: 0 0 10px #00ffc8;
   transition: background-color 0.2s ease;
@@ -108,7 +65,16 @@ button:hover {
 
 input[type="range"] {
   accent-color: #00ffc8;
-  width: 150px;
+  width: 80vw;
+  max-width: 400px;
+  height: 30px;
+}
+
+/* Label and track list */
+label {
+  display: block;
+  margin: 1rem 0;
+  font-size: 1.1rem;
 }
 
 #trackList {
@@ -119,6 +85,9 @@ input[type="range"] {
   padding: 15px 20px;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 90vw;
 }
 
 p {
@@ -128,4 +97,29 @@ p {
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* --- Responsive for portrait mobile --- */
+@media (max-width: 500px) {
+  h1 {
+    font-size: 2em;
   }
+
+  img#logo, .logo {
+    width: 60vw;
+    max-width: none;
+  }
+
+  button {
+    font-size: 1.2em;
+    padding: 14px 24px;
+  }
+
+  input[type="range"] {
+    width: 90vw;
+  }
+
+  #trackList {
+    font-size: 0.95rem;
+  }
+}
