@@ -119,29 +119,7 @@
 
     async function initPlayer() {
       manifest = await fetch(base + 'manifest.json').then(res => res.json());
-
-      audio.addEventListener('ended', () => {
-        if (!isPaused) playNext();
-      });
-
-      document.getElementById("volumeSlider").addEventListener("input", (e) => {
-        audio.volume = parseFloat(e.target.value);
-      });
-
-      const btn = document.getElementById("playPauseBtn");
-      btn.addEventListener("click", () => {
-        if (isPaused) {
-          syncToLive();
-          isPaused = false;
-          btn.textContent = "Pause";
-        } else {
-          audio.pause();
-          isPaused = true;
-          btn.textContent = "Resume";
-        }
-      });
-    }
-      function syncToLive() {
+            function syncToLive() {
         const now = Date.now();
         const elapsed = Math.floor((now - startTime) / 1000);
         const rand = seededRandom(seed);
@@ -180,6 +158,28 @@
           syncToLive(); // refresh playlist
         }
       }
+      audio.addEventListener('ended', () => {
+        if (!isPaused) playNext();
+      });
+
+      document.getElementById("volumeSlider").addEventListener("input", (e) => {
+        audio.volume = parseFloat(e.target.value);
+      });
+
+      const btn = document.getElementById("playPauseBtn");
+      btn.addEventListener("click", () => {
+        if (isPaused) {
+          syncToLive();
+          isPaused = false;
+          btn.textContent = "Pause";
+        } else {
+          audio.pause();
+          isPaused = true;
+          btn.textContent = "Resume";
+        }
+      });
+    }
+
     initPlayer();
 // Dev console command to force play a song or time announcement
 window.forcePlay = async function(input) {
