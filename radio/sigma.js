@@ -217,3 +217,21 @@ window.forcePlay = async function(input) {
   currentOffset = 0;
   playCurrent();
 };
+  if (document.cookie === "SigmaRadioTG=true") {
+    const btn = document.createElement("button");
+    btn.textContent = "🔊 Force Time Announcement";
+    btn.style.marginTop = "10px";
+    btn.onclick = async () => {
+      const p = createTimeAnnouncement(new Date());
+      for (const a of p) {
+        await new Promise(r => {
+          const au = new Audio(a.file);
+          au.onended = r;
+          au.onerror = r;
+          au.play();
+        });
+      }
+      console.log("sigma test");
+    };
+    document.body.appendChild(btn);
+  }
