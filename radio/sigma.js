@@ -181,42 +181,6 @@
     }
 
     initPlayer();
-// Dev console command to force play a song or time announcement
-window.forcePlay = async function(input) {
-  if (!manifest.length) {
-    console.warn("Manifest not loaded yet.");
-    return;
-  }
-
-  isPaused = false;
-  document.getElementById("playPauseBtn").textContent = "Pause";
-
-  if (input === "time") {
-    const bundle = createTimeAnnouncement(new Date());
-    currentPlaylist = bundle;
-    currentTrackIndex = 0;
-    currentOffset = 0;
-    playCurrent();
-    return;
-  }
-
-  const fileName = input.endsWith(".mp3") ? input : input + ".mp3";
-  const match = manifest.find(m => m.file === fileName);
-
-  if (!match) {
-    console.warn("No matching file in manifest:", fileName);
-    return;
-  }
-
-  currentPlaylist = [{
-    file: base + "songs/" + match.file,
-    duration: match.duration,
-    isYap: false
-  }];
-  currentTrackIndex = 0;
-  currentOffset = 0;
-  playCurrent();
-};
   if (document.cookie === "SigmaRadioTG=true") {
     const btn = document.createElement("button");
     btn.textContent = "🔊 Force Time Announcement";
