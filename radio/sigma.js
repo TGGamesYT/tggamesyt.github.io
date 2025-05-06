@@ -118,7 +118,6 @@
 
 
     async function initPlayer() {
-        populateTrackSelect();
       manifest = await fetch(base + 'manifest.json').then(res => res.json());
 
       function syncToLive() {
@@ -182,56 +181,5 @@
         }
       });
     }
-function isSigmaRadioTGCookieSet() {
-  return document.cookie.split(';').some(cookie => cookie.trim().startsWith('SigmaRadioTG=true'));
-}
-function populateTrackSelect() {
-  const select = document.getElementById("trackSelect");
-
-  // Add time events
-  const timeEvent = createTimeAnnouncement(new Date());
-  timeEvent.forEach((event, index) => {
-    const option = document.createElement("option");
-    option.value = `timeEvent-${index}`;
-    option.textContent = `Time Event: ${event.file.split('/').pop()}`;
-    select.appendChild(option);
-  });
-
-  // Add songs from the manifest
-  manifest.forEach((song, index) => {
-    const option = document.createElement("option");
-    option.value = `song-${index}`;
-    option.textContent = `Song: ${song.title || song.file.split('/').pop()}`;
-    select.appendChild(option);
-  });
-}
-document.getElementById("forcePlayBtn").addEventListener("click", () => {
-  if (!isSigmaRadioTGCookieSet()) {
-    alert("You need to set the SigmaRadioTG cookie to use this feature.");
-    return;
-  }
-
-  const selectedValue = document.getElementById("trackSelect").value;
-
-  if (!selectedValue) {
-    alert("Please select a track or time event.");
-    return;
-  }
-
-  let selectedItem;
-
-  if (selectedValue.startsWith("timeEvent-")) {
-    const index = parseInt(selectedValue.replace("timeEvent-", ""));
-    selectedItem = createTimeAnnouncement(new Date())[index];
-  } else if (selectedValue.startsWith("song-")) {
-    const index = parseInt(selectedValue.replace("song-", ""));
-    selectedItem = manifest[index];
-  }
-
-  // Force play the selected item
-  audio.src = selectedItem.file;
-  audio.play();
-  updateTrackList(); // Update the track list display
-});
 
     initPlayer();
