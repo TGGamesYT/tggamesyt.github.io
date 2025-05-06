@@ -181,5 +181,23 @@
         }
       });
     }
+    function getCookie(name) {
+        let decodedCookies = decodeURIComponent(document.cookie);
+        let cookies = decodedCookies.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.indexOf(name + "=") == 0) {
+                return cookie.substring(name.length + 1, cookie.length);
+            }
+        }
+        return "";
+    }
+
+    // Check if the 'admin' cookie exists
+    let adminCookie = getCookie('admin');
+    if (adminCookie === 'true') {
+        // If the 'admin' cookie exists and its value is 'true', show the admin panel
+        document.getElementById('adminPanel').style.display = 'block';
+    }
 
     initPlayer();
