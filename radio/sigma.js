@@ -181,21 +181,37 @@
     }
 
     initPlayer();
-  if (document.cookie === "SigmaRadioTG=true") {
-    const btn = document.createElement("button");
-    btn.textContent = "🔊 Force Time Announcement";
-    btn.style.marginTop = "10px";
-    btn.onclick = async () => {
-      const p = createTimeAnnouncement(new Date());
-      for (const a of p) {
-        await new Promise(r => {
-          const au = new Audio(a.file);
-          au.onended = r;
-          au.onerror = r;
-          au.play();
-        });
-      }
-      console.log("sigma test");
-    };
-    document.body.appendChild(btn);
+function insertForceButton() {
+  // Prevent multiple buttons
+  if (document.getElementById("forceTimeAnnouncementBtn")) return;
+
+  const btn = document.createElement("button");
+  btn.id = "forceTimeAnnouncementBtn";
+  btn.textContent = "🔊 Force Time Announcement";
+  btn.style.marginTop = "10px";
+  btn.onclick = async () => {
+    const p = createTimeAnnouncement(new Date());
+    for (const a of p) {
+      await new Promise(r => {
+        const au = new Audio(a.file);
+        au.onended = r;
+        au.onerror = r;
+        au.play();
+      });
+    }
+    console.log("sigma");
+  };
+  document.body.appendChild(btn);
+}
+
+// Run immediately if the cookie is already set
+if (document.cookie.includes("SigmaRadioTG=true")) {
+  insertForceButton();
+}
+
+// Monitor for cookie changes every 500ms
+setInterval(() => {
+  if (document.cookie.includes("SigmaRadioTG=true")) {
+    insertForceButton();
   }
+}, 500);
