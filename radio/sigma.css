@@ -15,11 +15,10 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #ffffff;
   text-align: center;
-  padding: 40px 20px;
 }
 
 /* Logo styling */
-img#logo, .logo {
+img#logo, .logo, img {
   width: 50vw;
   max-width: 200px;
   height: auto;
