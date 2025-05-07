@@ -19,22 +19,22 @@ body {
 
 /* Logo styling */
 img#logo, .logo, img {
+  z-index: 100;
   width: 50vw;
   max-width: 200px;
   height: auto;
   margin-bottom: 20px;
   filter: drop-shadow(0 0 8px #00ffc8);
-  z-index: 100;
 }
 
 /* Audio (hidden), Buttons, Sliders */
 #canvas {
+  z-index: -1;
   position: fixed;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  z-index: 2;
   pointer-events: none;
 }
 
@@ -43,8 +43,8 @@ audio {
 }
 
 audio, button, input[type="range"] {
-  margin: 12px;
   z-index: 100;
+  margin: 12px;
 }
 
 button {
