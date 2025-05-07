@@ -219,67 +219,54 @@ setInterval(() => {
 
 
 //audio visuality
-/*window.onload = function() {
-  
-  var file = document.getElementById("thefile");
-  var audio = document.getElementById("audio");
-  
-  file.onchange = function() {
-    var files = this.files;
-    audio.src = URL.createObjectURL(files[0]);
-    audio.load();
-    audio.play();
-    var context = new AudioContext();
-    var src = context.createMediaElementSource(audio);
-    var analyser = context.createAnalyser();
+window.onload = function () {
+  const audio = document.getElementById("player");
+  const canvas = document.getElementById("canvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext("2d");
 
-    var canvas = document.getElementById("canvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    var ctx = canvas.getContext("2d");
+  const context = new (window.AudioContext || window.webkitAudioContext)();
+  const src = context.createMediaElementSource(audio);
+  const analyser = context.createAnalyser();
 
-    src.connect(analyser);
-    analyser.connect(context.destination);
+  src.connect(analyser);
+  analyser.connect(context.destination);
+  analyser.fftSize = 256;
 
-    analyser.fftSize = 256;
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
 
-    var bufferLength = analyser.frequencyBinCount;
-    console.log(bufferLength);
+  const WIDTH = canvas.width;
+  const HEIGHT = canvas.height;
+  const barWidth = (WIDTH / bufferLength) * 2.5;
 
-    var dataArray = new Uint8Array(bufferLength);
+  function renderFrame() {
+    requestAnimationFrame(renderFrame);
+    analyser.getByteFrequencyData(dataArray);
 
-    var WIDTH = canvas.width;
-    var HEIGHT = canvas.height;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    var barWidth = (WIDTH / bufferLength) * 2.5;
-    var barHeight;
-    var x = 0;
+    let x = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i];
+      const r = barHeight + 25 * (i / bufferLength);
+      const g = 250 * (i / bufferLength);
+      const b = 50;
 
-    function renderFrame() {
-      requestAnimationFrame(renderFrame);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
 
-      x = 0;
-
-      analyser.getByteFrequencyData(dataArray);
-
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-      for (var i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i];
-        
-        var r = barHeight + (25 * (i/bufferLength));
-        var g = 250 * (i/bufferLength);
-        var b = 50;
-
-        ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
-        ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
-
-        x += barWidth + 1;
-      }
+      x += barWidth + 1;
     }
+  }
 
-    audio.play();
+  // Ensure context is resumed when audio is played
+  audio.addEventListener("play", () => {
+    if (context.state === "suspended") {
+      context.resume();
+    }
     renderFrame();
-  };
-};*/
+  });
+};
