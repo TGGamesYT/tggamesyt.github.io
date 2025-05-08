@@ -24,6 +24,7 @@
     }
     
     function createTimeAnnouncement(date) {
+      /*setTitle(prefix, "Sigma Songs 24/7")*/
       const hour = date.getHours() % 12 || 12;
       const minute = date.getMinutes();
       const isAM = date.getHours() < 12;
@@ -43,15 +44,6 @@
         { file: timeDir + `${isAM ? "am" : "pm"}.mp3`, duration: 1, isYap: true },
         { file: timeDir + "outro.mp3", duration: 3, isYap: true }
       );
-
-      /*const totalDelay = (minute === 0 ? 8 : 9) * 1000;
-      setTimeout(() => {
-        const button = document.getElementById("playPauseBtn");
-        if (button) {
-          button.click();
-          setTimeout(() => button.click(), 10);
-        }
-      }, totalDelay);*/
         
       return announcement;
     }
