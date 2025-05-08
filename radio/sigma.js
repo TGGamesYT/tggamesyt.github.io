@@ -24,7 +24,6 @@
     }
     
     function createTimeAnnouncement(date) {
-      setTitle(prefix, "Sigma Songs 24/7")
       const hour = date.getHours() % 12 || 12;
       const minute = date.getMinutes();
       const isAM = date.getHours() < 12;
