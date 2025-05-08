@@ -45,7 +45,6 @@
         { file: timeDir + "outro.mp3", duration: 3, isYap: true }
       );
       setTitle(prefix, "Returning...")
-      updateTrackList()
       return announcement;
     }
 
