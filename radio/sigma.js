@@ -8,6 +8,7 @@
     let currentOffset = 0;
     let currentPlaylist = [];
     let isPaused = true;
+    let prefix = "Sigma Radio | ";
 
     function seededRandom(seed) {
       let h = 2166136261 >>> 0;
@@ -21,7 +22,7 @@
         return (h >>> 0) / 4294967296;
       };
     }
-
+    
     function createTimeAnnouncement(date) {
       const hour = date.getHours() % 12 || 12;
       const minute = date.getMinutes();
@@ -42,7 +43,7 @@
         { file: timeDir + `${isAM ? "am" : "pm"}.mp3`, duration: 1, isYap: true },
         { file: timeDir + "outro.mp3", duration: 3, isYap: true }
       );
-
+      setTitle(prefix, "Sigma Songs 24/7")
       return announcement;
     }
 
@@ -107,6 +108,9 @@
         const manifestItem = manifest.find(m => m.file === filename);
         const name = manifestItem ? manifestItem.title : filename.replace(".mp3", "");
         list.innerHTML += label + name + "<br>";
+        if (label === "▶️ ") {
+            setTitle(prefix, name)
+        }
         i++; // Move to the next track
         }
 
@@ -270,3 +274,6 @@ window.onload = function () {
     renderFrame();
   });
 };
+function setTitle(prefix, value) {
+      document.title = prefix + value;
+    }
