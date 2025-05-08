@@ -45,14 +45,14 @@
         { file: timeDir + "outro.mp3", duration: 3, isYap: true }
       );
 
-      const totalDelay = (minute === 0 ? 8 : 9) * 1000;
+      /*const totalDelay = (minute === 0 ? 8 : 9) * 1000;
       setTimeout(() => {
         const button = document.getElementById("playPauseBtn");
         if (button) {
           button.click();
           setTimeout(() => button.click(), 10);
         }
-      }, totalDelay);
+      }, totalDelay);*/
         
       return announcement;
     }
