@@ -3,8 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="MineBlox" />
+    <meta property="og:image" content="https://tggamesyt.github.io/assets/wake.png" />
+    <meta property="og:description" content="Sowwy" />
+    <meta name="theme-color" content="#0053FF">
+    <meta name="twitter:card" content="summary_large_image">
     <title>Mineblox - Dashboard</title>
-    <style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Token Input -->
+        <div class="header">
+            <h1>Mineblox</h1>
+            <div id="login-section">
+                <input type="text" id="auth-token" class="input" placeholder="Enter your auth token">
+                <button onclick="login()" class="button">Login</button>
+            </div>
+        </div>
+
+        <!-- Logged-in User Profile -->
+        <div id="user-profile" style="display: none;">
+            <div class="header">
+                <h1 id="username">Profile</h1>
+                <button onclick="logout()" class="button">Logout</button>
+            </div>
+
+            <!-- Friends Section -->
+            <div class="section-title">Friends</div>
+            <div class="friends-list" id="friends-list"></div>
+
+            <!-- Add Friend -->
+            <input type="text" id="friend-uuid" class="input" placeholder="Add a friend (UUID)">
+            <button onclick="addFriend()" class="button">Add Friend</button>
+
+            <!-- Servers Section -->
+            <div class="section-title">Your Servers</div>
+            <div class="server-list" id="own-servers-list"></div>
+            <input type="text" id="server-ip" class="input" placeholder="Server IP">
+            <input type="text" id="server-name" class="input" placeholder="Server Name">
+            <button onclick="addServer()" class="button">Add Server</button>
+
+            <div class="section-title">Mineblox Games</div>
+            <div class="server-list" id="mineblox-games-list">
+                <div class="server-item">
+                    <p>Roblox Style Servers Coming soon!</p>
+                    <button onclick="joinServer('play.aquamobs.com')">Wait</button>
+                </div>
+            </div>
+
+            <div class="section-title">Popular Servers</div>
+            <div class="server-list" id="popular-servers-list">
+                <div class="server-item">
+                    <p>Aquamobs</p>
+                    <button onclick="joinServer('play.aquamobs.com')">Join</button>
+                </div>
+                <div class="server-item">
+                    <p>Hypixel</p>
+                    <button onclick="joinServer('play.hypixel.net')">Join</button>
+                </div>
+                <div class="server-item">
+                    <p>The Crossplay Project</p>
+                    <button onclick="joinServer('crossplay.play-creative.com')">Join</button>
+                </div>
+            </div>
+        </div>
+    </div>
+        <style>
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #F3F4F6;
@@ -77,7 +142,6 @@
         .friend-item img, .server-item img {
             width: 50px;
             height: 50px;
-            border-radius: 50%;
             margin-bottom: 10px;
         }
 
@@ -86,52 +150,80 @@
             background-color: #FF9900;
         }
     </style>
-</head>
-<body>
-
-    <div class="container">
-        <!-- Token Input -->
-        <div class="header">
-            <h1>Mineblox</h1>
-            <div id="login-section">
-                <input type="text" id="auth-token" class="input" placeholder="Enter your auth token">
-                <button onclick="login()" class="button">Login</button>
-            </div>
-        </div>
-
-        <!-- Logged-in User Profile -->
-        <div id="user-profile" style="display: none;">
-            <div class="header">
-                <h1 id="username">Profile</h1>
-                <button onclick="logout()" class="button">Logout</button>
-            </div>
-
-            <!-- Friends Section -->
-            <div class="section-title">Friends</div>
-            <div class="friends-list" id="friends-list"></div>
-
-            <!-- Add Friend -->
-            <input type="text" id="friend-uuid" class="input" placeholder="Add a friend (UUID)">
-            <button onclick="addFriend()" class="button">Add Friend</button>
-
-            <!-- Servers Section -->
-            <div class="section-title">Your Servers</div>
-            <div class="server-list" id="own-servers-list"></div>
-            <input type="text" id="server-ip" class="input" placeholder="Server IP">
-            <input type="text" id="server-name" class="input" placeholder="Server Name">
-            <input type="text" id="server-icon" class="input" placeholder="Server Icon URL">
-            <button onclick="addServer()" class="button">Add Server</button>
-
-            <div class="section-title">Mineblox Games</div>
-            <div class="server-list" id="mineblox-games-list"></div>
-
-            <div class="section-title">Popular Servers</div>
-            <div class="server-list" id="popular-servers-list"></div>
-        </div>
-    </div>
-
     <script>
         const API_URL = "https://mineblox-auth-production.up.railway.app";
+document.addEventListener("DOMContentLoaded", async () => {
+    const buttons = document.querySelectorAll("button[onclick^='joinServer']");
+
+    for (const button of buttons) {
+        const match = button.getAttribute("onclick").match(/joinServer\('([^']+)'\)/);
+        if (!match) continue;
+
+        const ip = match[1];
+        const container = button.closest(".server-item");
+
+        if (!container) continue;
+
+        // Fetch server data
+        try {
+            const res = await fetch(`https://api.mcsrvstat.us/3/${ip}`);
+            const data = await res.json();
+
+            // Icon
+            const img = document.createElement("img");
+            img.src = data.icon || `https://api.mcsrvstat.us/icon/${ip}`;
+            img.alt = `Icon for ${ip}`;
+            img.style.width = "50px";
+            img.style.height = "50px";
+
+            // MOTD
+            const motd = document.createElement("p");
+            motd.innerHTML = (data.motd?.clean || ["No MOTD"]).join("<br>");
+
+            // Insert before the button
+            container.insertBefore(img, button);
+            container.insertBefore(motd, button);
+        } catch (err) {
+            console.error(`Failed to load data for ${ip}`, err);
+        }
+    }
+});
+
+
+        async function getImageFromIP(ip) {
+            try {
+                const response = await fetch(`https://api.mcsrvstat.us/3/${ip}`);
+                const data = await response.json();
+                return data.icon || ""; // Return empty string if no icon
+            } catch (err) {
+                console.error("Error getting server icon:", err);
+                return "";
+            }
+            }
+
+            // Set the MOTD in all elements with the given class name
+            async function setMotdByIP(className, ip) {
+                try {
+                const response = await fetch(`https://api.mcsrvstat.us/3/${ip}`);
+                const data = await response.json();
+                const motdLines = data.motd?.clean || ["No MOTD available"];
+                const motd = motdLines.join("<br>");
+
+                const elements = document.getElementsByClassName(className);
+                for (const el of elements) {
+                    el.innerHTML = motd; // Use innerHTML for <br> rendering
+                }
+
+                // Optional: Set image by IP
+                const icon = document.getElementById("hypixelicon");
+                if (icon) icon.src = getImageFromIP(ip);
+
+                } catch (err) {
+                console.error("Error getting MOTD:", err);
+                }
+            }
+
+
 
         function login() {
             const token = document.getElementById('auth-token').value;
@@ -150,6 +242,7 @@
                         return;
                     }
                     document.getElementById('username').innerText = data.username;
+                    console.log(data)
                     document.getElementById('login-section').style.display = 'none';
                     document.getElementById('user-profile').style.display = 'block';
                     loadFriendsList(token);
@@ -172,7 +265,7 @@
                         const friendItem = document.createElement('div');
                         friendItem.classList.add('friend-item');
                         friendItem.innerHTML = `
-                            <img src="${friend.avatar_url}" alt="Avatar">
+                            <img src="https://mc-heads.net/avatar/${friend.username}" alt="Avatar">
                             <p>${friend.username}</p>
                         `;
                         friendsList.appendChild(friendItem);
@@ -194,6 +287,23 @@
                             <button onclick="joinServer('${server.ip}')">Join</button>
                         `;
                         ownServersList.appendChild(serverItem);
+                        fetch(`https://api.mcsrvstat.us/3/${server.ip}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const img = document.createElement("img");
+                        img.src = data.icon || `https://api.mcsrvstat.us/icon/${server.ip}`;
+                        img.alt = `Icon for ${server.ip}`;
+                        img.style.width = "50px";
+                        img.style.height = "50px";
+
+                        const motd = document.createElement("p");
+                        motd.innerHTML = (data.motd?.clean || ["No MOTD"]).join("<br>");
+
+                        serverItem.insertBefore(img, serverItem.querySelector("button"));
+                        serverItem.insertBefore(motd, serverItem.querySelector("button"));
+                    })
+                    .catch(err => console.error(`Error loading server info for ${server.ip}:`, err));
+
                     });
                 });
         }
@@ -248,4 +358,3 @@
 
 </body>
 </html>
-
