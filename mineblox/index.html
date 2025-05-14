@@ -1,1 +1,251 @@
-<a href="joinmc://play.hypixel.net">Join server</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mineblox - Dashboard</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #F3F4F6;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #4F83CC;
+        }
+
+        .button {
+            background-color: #4F83CC;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #3866B8;
+        }
+
+        .input {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #E2E8F0;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .server-list, .friends-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .server-item, .friend-item {
+            background-color: #E5E7EB;
+            padding: 15px;
+            border-radius: 8px;
+            width: calc(33.33% - 10px);
+            text-align: center;
+        }
+
+        .friend-item img, .server-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .server-item button {
+            margin-top: 10px;
+            background-color: #FF9900;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Token Input -->
+        <div class="header">
+            <h1>Mineblox</h1>
+            <div id="login-section">
+                <input type="text" id="auth-token" class="input" placeholder="Enter your auth token">
+                <button onclick="login()" class="button">Login</button>
+            </div>
+        </div>
+
+        <!-- Logged-in User Profile -->
+        <div id="user-profile" style="display: none;">
+            <div class="header">
+                <h1 id="username">Profile</h1>
+                <button onclick="logout()" class="button">Logout</button>
+            </div>
+
+            <!-- Friends Section -->
+            <div class="section-title">Friends</div>
+            <div class="friends-list" id="friends-list"></div>
+
+            <!-- Add Friend -->
+            <input type="text" id="friend-uuid" class="input" placeholder="Add a friend (UUID)">
+            <button onclick="addFriend()" class="button">Add Friend</button>
+
+            <!-- Servers Section -->
+            <div class="section-title">Your Servers</div>
+            <div class="server-list" id="own-servers-list"></div>
+            <input type="text" id="server-ip" class="input" placeholder="Server IP">
+            <input type="text" id="server-name" class="input" placeholder="Server Name">
+            <input type="text" id="server-icon" class="input" placeholder="Server Icon URL">
+            <button onclick="addServer()" class="button">Add Server</button>
+
+            <div class="section-title">Mineblox Games</div>
+            <div class="server-list" id="mineblox-games-list"></div>
+
+            <div class="section-title">Popular Servers</div>
+            <div class="server-list" id="popular-servers-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://your.backend.url"; // Replace with your backend URL
+
+        function login() {
+            const token = document.getElementById('auth-token').value;
+            if (token) {
+                document.cookie = `auth_token=${token}; path=/`;
+                loadProfile(token);
+            }
+        }
+
+        function loadProfile(token) {
+            fetch(`${API_URL}/profile?auth_key=${token}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    document.getElementById('username').innerText = data.username;
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('user-profile').style.display = 'block';
+                    loadFriendsList(token);
+                    loadServersList(token);
+                });
+        }
+
+        function logout() {
+            document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+            location.reload();
+        }
+
+        function loadFriendsList(token) {
+            fetch(`${API_URL}/friends/list?auth_key=${token}`)
+                .then(response => response.json())
+                .then(friends => {
+                    const friendsList = document.getElementById('friends-list');
+                    friendsList.innerHTML = '';
+                    friends.forEach(friend => {
+                        const friendItem = document.createElement('div');
+                        friendItem.classList.add('friend-item');
+                        friendItem.innerHTML = `
+                            <img src="${friend.avatar_url}" alt="Avatar">
+                            <p>${friend.username}</p>
+                        `;
+                        friendsList.appendChild(friendItem);
+                    });
+                });
+        }
+
+        function loadServersList(token) {
+            fetch(`${API_URL}/servers/list?auth_key=${token}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ownServersList = document.getElementById('own-servers-list');
+                    ownServersList.innerHTML = '';
+                    data.own_servers.forEach(server => {
+                        const serverItem = document.createElement('div');
+                        serverItem.classList.add('server-item');
+                        serverItem.innerHTML = `
+                            <p>${server.name}</p>
+                            <button onclick="joinServer('${server.ip}')">Join</button>
+                        `;
+                        ownServersList.appendChild(serverItem);
+                    });
+                });
+        }
+
+        function addFriend() {
+            const token = getCookie("auth_token");
+            const friendUuid = document.getElementById('friend-uuid').value;
+            if (!friendUuid) return alert('Please provide a valid UUID.');
+            fetch(`${API_URL}/friends/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ auth_key: token, friend_uuid: friendUuid }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Friend added!');
+                    loadFriendsList(token);
+                }
+            });
+        }
+
+        function addServer() {
+            const token = getCookie("auth_token");
+            const ip = document.getElementById('server-ip').value;
+            const name = document.getElementById('server-name').value;
+            const icon = document.getElementById('server-icon').value;
+            fetch(`${API_URL}/servers/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ auth_key: token, ip, name, icon }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Server added!');
+                    loadServersList(token);
+                }
+            });
+        }
+
+        function joinServer(ip) {
+            window.location.href = `joinmc://${ip}`;
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    </script>
+
+</body>
+</html>
+
