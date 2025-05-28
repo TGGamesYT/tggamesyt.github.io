@@ -1,0 +1,105 @@
+{
+  "jukebox": {
+    "name": "Minecraft Jukebox",
+    "description": "Plays Minecraft Disks",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Open Jukebox",
+        "url": "https://tggamesyt.github.io/jukebox"
+      }
+    }
+  },
+  "browsercrasher": {
+    "name": "Browser Crasher",
+    "description": "Consistently opens new web pages",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Try it",
+        "url": "https://tggamesyt.github.io/lol"
+      }
+    }
+  },
+  "mccli": {
+    "name": "mccli",
+    "description": "A CLI Minecraft launcher",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Visit mccli",
+        "url": "https://tggamesyt.github.io/mccli"
+      }
+    }
+  },
+  "mcversionnotifier": {
+    "name": "Mcversion Notifier",
+    "description": "Sends a Windows toast if a new Minecraft version comes out",
+    "type": "Python/Node.js",
+    "links": {
+      "website": {
+        "text": "Learn More",
+        "url": "https://tggamesyt.github.io/mcversion"
+      },
+      "source": {
+        "text": "Source Code",
+        "url": "https://github.com/tggamesyt/mcversion"
+      }
+    }
+  },
+  "pytml": {
+    "name": "pytml",
+    "description": "Use Python instead of JavaScript for HTML",
+    "type": "JS",
+    "links": {
+      "website": {
+        "text": "Visit pytml",
+        "url": "https://tggamesyt.github.io/pytml"
+      }
+    }
+  },
+  "sigmaradio": {
+    "name": "Sigma Radio",
+    "description": "Play NCS songs 24/7",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Listen Live",
+        "url": "https://tggamesyt.github.io/radio"
+      }
+    }
+  },
+  "termuxmc": {
+    "name": "TermuxMC",
+    "description": "An easy Minecraft server setupper for Termux",
+    "type": "BASH",
+    "links": {
+      "website": {
+        "text": "Open TermuxMC",
+        "url": "https://tggamesyt.github.io/termuxmc"
+      }
+    }
+  },
+  "sgatranslator": {
+    "name": "SGA Translator",
+    "description": "Translate the Standard Galactic Alphabet (Minecraft enchanting table)",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Use Translator",
+        "url": "https://tggamesyt.github.io/sga_translator"
+      }
+    }
+  },
+  "website": {
+    "name": "The website",
+    "description": "TG's website",
+    "type": "HTML",
+    "links": {
+      "link": {
+        "text": "Visit",
+        "url": "https://tggamesyt.github.io"
+      }
+    }
+  }
+}
