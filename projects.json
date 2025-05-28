@@ -1,4 +1,19 @@
 {
+  "mcversionnotifier": {
+    "name": "Mcversion Notifier",
+    "description": "Sends a Windows toast if a new Minecraft version comes out",
+    "type": "Python / Node.js",
+    "links": {
+      "website": {
+        "text": "Learn More",
+        "url": "https://tggamesyt.github.io/mcversion"
+      },
+      "source": {
+        "text": "Source Code",
+        "url": "https://github.com/tggamesyt/mcversion"
+      }
+    }
+  },
   "jukebox": {
     "name": "Minecraft Jukebox",
     "description": "Plays Minecraft Disks",
@@ -32,29 +47,14 @@
       }
     }
   },
-  "mcversionnotifier": {
-    "name": "Mcversion Notifier",
-    "description": "Sends a Windows toast if a new Minecraft version comes out",
-    "type": "Python/Node.js",
-    "links": {
-      "website": {
-        "text": "Learn More",
-        "url": "https://tggamesyt.github.io/mcversion"
-      },
-      "source": {
-        "text": "Source Code",
-        "url": "https://github.com/tggamesyt/mcversion"
-      }
-    }
-  },
   "pytml": {
     "name": "pytml",
     "description": "Use Python instead of JavaScript for HTML",
-    "type": "JS",
+    "type": "JavaScript",
     "links": {
       "website": {
         "text": "Visit pytml",
-        "url": "https://tggamesyt.github.io/pytml"
+        "url": "https://github.com/TGGamesYT/pytml"
       }
     }
   },
@@ -72,7 +72,7 @@
   "termuxmc": {
     "name": "TermuxMC",
     "description": "An easy Minecraft server setupper for Termux",
-    "type": "BASH",
+    "type": "Bash",
     "links": {
       "website": {
         "text": "Open TermuxMC",
