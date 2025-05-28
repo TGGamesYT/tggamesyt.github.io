@@ -25,6 +25,17 @@
       }
     }
   },
+  "sigmaradio": {
+    "name": "Sigma Radio",
+    "description": "Play NCS songs 24/7",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Listen Live",
+        "url": "https://tggamesyt.github.io/radio"
+      }
+    }
+  },
   "browsercrasher": {
     "name": "Browser Crasher",
     "description": "Consistently opens new web pages",
@@ -55,17 +66,6 @@
       "website": {
         "text": "Visit pytml",
         "url": "https://github.com/TGGamesYT/pytml"
-      }
-    }
-  },
-  "sigmaradio": {
-    "name": "Sigma Radio",
-    "description": "Play NCS songs 24/7",
-    "type": "HTML",
-    "links": {
-      "website": {
-        "text": "Listen Live",
-        "url": "https://tggamesyt.github.io/radio"
       }
     }
   },
