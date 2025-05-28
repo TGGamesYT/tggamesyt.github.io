@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MCVersion - Minecraft Version Notifier</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+      color: #333;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    p {
+      line-height: 1.6;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      background-color: #0078d4;
+      color: white;
+      font-weight: bold;
+      text-decoration: none;
+      transition: background 0.3s ease;
+    }
+
+    .button:hover {
+      background-color: #005ea3;
+    }
+
+    .donate-button {
+      background-color: #ff5f5f;
+    }
+
+    .donate-button:hover {
+      background-color: #cc4a4a;
+    }
+
+    .source-button {
+      background-color: #333;
+    }
+
+    .source-button:hover {
+      background-color: #222;
+    }
+
+    .mobile-warning {
+      display: none;
+      text-align: center;
+      font-size: 1.1rem;
+      color: #c0392b;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .download-warning {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 15px 20px;
+      border-radius: 8px;
+      color: #856404;
+      margin: 25px 0 0 0;
+    }
+
+    @media only screen and (max-width: 768px) {
+      .download-button {
+        display: none;
+      }
+
+      .mobile-warning {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MCVersion</h1>
+    <p>
+      <strong>MCVersion</strong> is a simple tool that runs in the background on your Windows PC.
+      It watches for new <strong>Minecraft Java Edition</strong> releases and notifies you instantly with a toast popup when a new version comes out.
+    </p>
+    <p>
+      It works with a custom server and fetches version info regularly. When a new update is released, you’ll be notified and can click the popup to view the official article.
+    </p>
+    <p>
+      It runs on startup automatically and keeps your known versions up to date. Super lightweight and made for convenience!
+    </p>
+
+    <div class="download-warning">
+      ⚠️ <strong>Warning:</strong><br />
+      When downloading and running the installer, your browser or Windows might say the file is unrecognized or unsafe.
+      This is normal for unsigned software. The developer chose not to pay $70–$400 for a code signing certificate.<br /><br />
+      If you trust the source, click “More info” → “Run anyway” to proceed.
+    </div>
+
+    <div class="buttons">
+      <a href="https://github.com/TGGamesYT/mcversion/releases/download/installer/mcver_installer.exe" class="button download-button">Download for Windows</a>
+      <a href="https://github.com/TGGamesYT/mcversion/" class="button source-button" target="_blank">Source Code</a>
+      <a href="https://ko-fi.com/tggamesyt" class="button donate-button" target="_blank">Donate</a>
+    </div>
+
+    <div class="mobile-warning">
+      Please use a Windows PC to download and install MCVersion.
+    </div>
+  </div>
+</body>
+</html>
