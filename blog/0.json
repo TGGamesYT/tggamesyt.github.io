@@ -1,7 +1,7 @@
 {
   "title": "New Blog",
   "desc": "I got a new blog!",
-  "time": "2025/29/05",
+  "time": "2025/05/29",
   "tags": "blog/test",
-  "body": "<p>I got a new <b>blog</b> today</p>"
+  "body": "I got a new blog today.<br>This blog system is powered by a static html, and jsons for each blog \"post\"."
 }
