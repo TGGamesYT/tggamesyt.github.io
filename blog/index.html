@@ -5,13 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TG Blog</title>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; }
-    .blog-preview { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; cursor: pointer; }
+    :root {
+      --bg: #f5f5f5;
+      --fg: #000;
+      --card-bg: #fff;
+    }
+
+    body.dark {
+      --bg: #121212;
+      --fg: #eee;
+      --card-bg: #1e1e1e;
+    }
+
+    body {
+      font-family: sans-serif; margin: 0; padding: 1rem;
+      background: var(--bg); color: var(--fg);
+      transition: background 0.3s, color 0.3s;
+    }
+    .blog-preview {
+      background: var(--card-bg); color: var(--fg);
+      padding: 1rem; margin-bottom: 1rem;
+      border-radius: 8px; cursor: pointer;
+      transition: background 0.3s, color 0.3s;
+    }
     .blog-body { margin-top: 1rem; }
-    .full-view { position: fixed; inset: 0; background: white; padding: 2rem; overflow-y: auto; z-index: 999; }
-    .close-btn { position: absolute; top: 1rem; right: 1rem; font-size: 1.2rem; cursor: pointer; }
-    .filters { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .filters input, .filters select { padding: 0.5rem; }
+    .full-view {
+      position: fixed; inset: 0;
+      background: var(--bg); color: var(--fg);
+      padding: 2rem; overflow-y: auto; z-index: 999;
+    }
+    .close-btn {
+      position: absolute; top: 1rem; right: 1rem;
+      font-size: 1.2rem; cursor: pointer;
+    }
+    .filters {
+      margin-bottom: 1rem; display: flex;
+      flex-wrap: wrap; gap: 0.5rem;
+    }
+    .filters input, .filters select, .filters button {
+      padding: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -24,6 +57,7 @@
       <option value="oldest">Oldest First</option>
     </select>
     <button onclick="applyFilters()">Apply</button>
+    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
   </div>
   <div id="blogList"></div>
   <script>
@@ -104,6 +138,10 @@
       });
 
       renderBlogs(filtered);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
     }
 
     fetchBlogs();
