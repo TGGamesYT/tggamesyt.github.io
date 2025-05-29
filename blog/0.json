@@ -3,5 +3,5 @@
   "desc": "I got a new blog!",
   "time": "2025/05/29",
   "tags": "blog/test",
-  "body": "I got a new blog today.<br>This blog system is powered by a static html, and jsons for each blog \"post\"."
+  "body": "I got a new blog today.<br>This blog system is powered by a static html, and jsons for each blog \"post\".<br>current look:<br><img src=\"https://tggamesyt.github.io/assets/blog/newblog.jpg\" alt=\"blog\">"
 }
