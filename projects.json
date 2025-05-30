@@ -1,4 +1,26 @@
 {
+  "blog": {
+    "name": "TG's blog",
+    "description": "I know I know noone cares",
+    "type": "HTML / JS",
+    "links": {
+      "website": {
+        "text": "Read",
+        "url": "https://tg.is-a.dev/blog"
+      }
+    }
+  },
+  "projects": {
+    "name": "Project List",
+    "description": "This page.",
+    "type": "HTML",
+    "links": {
+      "website": {
+        "text": "Secret",
+        "url": "https://tg.is-a.dev/vid"
+      }
+    }
+  },
   "mcversionnotifier": {
     "name": "Mcversion Notifier",
     "description": "Sends a Windows toast if a new Minecraft version comes out",
