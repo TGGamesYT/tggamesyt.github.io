@@ -11,7 +11,7 @@
   <style>
     @font-face {
         font-family: 'MC';
-        src: url('https://tggamesyt.github.io/assets/Minecraft-Seven_v2.ttf');
+        src: url('https://tg.is-a.dev/assets/Minecraft-Seven_v2.ttf');
     }
     body {
       background: #111;
@@ -107,7 +107,7 @@
     <p>🎵 Drag & drop a music disc image onto the jukebox</p>
     <p><small>From <a href="https://minecraft.wiki/w/Music_Disc" target="_blank">Minecraft Wiki</a></small></p>
     <p>if you are using a browser that doesnt support image dragging, add ?disc=whateverdiscyouwant to play that disc.</p>
-    <p>example: <a href="https://tggamesyt.github.io/jukebox?disc=pigstep">https://tggamesyt.github.io/jukebox?disc=pigstep</a></p>
+    <p>example: <a href="https://tg.is-a.dev/jukebox?disc=pigstep">https://tg.is-a.dev/jukebox?disc=pigstep</a></p>
   <div id="inventory">
     <div class="inventory-slot"><img id="slot-1" src="https://minecraft.wiki/images/Invicon_Music_Disc_Pigstep.png" alt="Music Disc" title="Inventory Music Disc"></div>
     <div class="inventory-slot"><img id="slot-2" src="https://minecraft.wiki/images/Invicon_Music_Disc_Otherside.png" alt="Music Disc" title="Inventory Music Disc"></div>
@@ -136,7 +136,7 @@
     }
 
     function buildOggUrl(discName) {
-      return `https://tggamesyt.github.io/jukebox/${discName}.ogg`;
+      return `https://tg.is-a.dev/jukebox/${discName}.ogg`;
     }
 
     function spawnNote() {
@@ -146,7 +146,7 @@
       note.className = "note";
       note.title = "Note"
       const noteNumber = Math.floor(Math.random() * 24) + 1;
-      note.src = `https://tggamesyt.github.io/jukebox/note_${noteNumber}.png`;
+      note.src = `https://tg.is-a.dev/jukebox/note_${noteNumber}.png`;
       note.style.width = "80px";
 
       jukebox.appendChild(note);
@@ -261,7 +261,7 @@
         .join('_');
       document.getElementById('disc-image').src = `https://minecraft.wiki/images/Invicon_Music_Disc_${formattedName}.png`;
     const audio = document.getElementById('audio-player');
-    audio.src = `https://tggamesyt.github.io/jukebox/${disc}.ogg`;
+    audio.src = `https://tg.is-a.dev/jukebox/${disc}.ogg`;
     };
         const minecraftColors = [
       '#55FF55',
