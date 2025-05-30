@@ -1,0 +1,72 @@
+body.menu-active {
+    overflow: hidden;
+}
+.menu-btn {
+    position: fixed;
+    top: 5%;
+    right: 5%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+}
+.white {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: black;
+    margin: 6px 0;
+    transition: 0.4s;
+}
+.black {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: white;
+    margin: 6px 0;
+    transition: 0.4s;
+}
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%; 
+    height: 100%;
+    background: #0053FF;
+    padding-top: 60px;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 15px 20px;
+    font-size: 18px;
+    transition: 0.3s;
+}
+.sidebar a:hover {
+    background: #005399;
+}
+.sidebar.active {
+    right: 0;
+}
+.sidebar .a {
+margin-bottom: 15%;
+}
+#silly {
+    display: none;
+}
