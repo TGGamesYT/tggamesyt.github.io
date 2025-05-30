@@ -96,7 +96,7 @@
       let i = 0;
       while (true) {
         try {
-          const res = await fetch(`https://tggamesyt.github.io/blog/${i}.json`);
+          const res = await fetch(`https://tg.is-a.dev/blog/${i}.json`);
           if (!res.ok) break;
           const data = await res.json();
           blogs.push({ id: i, ...data });
