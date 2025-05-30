@@ -84,18 +84,6 @@ margin-bottom: 15%;
     width: 50%;
     margin: auto;
 }
-.lang-select {    
-    position: fixed;    
-    z-index: 4;    
-    left: 5%; /* Behozva balra */
-    top: 5%; /* Behozva felülről */
-    width: 10%;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
 #silly {
     display: none;
 }
