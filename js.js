@@ -14,7 +14,7 @@ function toggleMenu() {
     document.getElementById("sidebar").classList.toggle("active");
 }
 // outside html fetcher
-fetch('https://tggamesyt.github.io/outside.html')
+fetch('https://tg.is-a.dev/outside.html')
 .then(response => response.text())
 .then(data => {
     let temp = document.createElement('div');
@@ -24,7 +24,7 @@ fetch('https://tggamesyt.github.io/outside.html')
         document.getElementById('navbar').innerHTML = navContent.innerHTML;
     }
 });
-fetch('https://tggamesyt.github.io/outside.html')
+fetch('https://tg.is-a.dev/outside.html')
 .then(response => response.text())
 .then(data => {
     let temp = document.createElement('div');
