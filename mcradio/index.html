@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="radiohtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sigma Radio</title>
+  <meta property="og:title" content="Sigma Radio" />
+  <meta property="og:image" content="https://tggamesyt.github.io/assets/radio/sigma.png" />
+  <meta property="og:description" content="Sigma Songs 24/7" />
+  <meta name="theme-color" content="#0053FF">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="https://tggamesyt.github.io/assets/radio/sigma.png" type="image/png">
+  <link rel="stylesheet" href="sigma.css">
+  <script src="sigma.js" defer></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <link rel="stylesheet" href="https://tg.is-a.dev/sidebar.css">
+  <script src="https://tg.is-a.dev/js.js"></script>
+  <div class="sidebar" id="sidebar">
+      <div id="navbar"></div>
+      <div id="silly"></div>
+      <p>‎</p>
+  </div>
+  <button class="menu-btn" onclick="dotwo()">
+      <span class="white"></span>
+      <span class="white"></span>
+      <span class="white"></span>
+  </button>
+  <canvas id="canvas"></canvas>
+  <h1><img src="https://tggamesyt.github.io/assets/radio/icon.png" alt="Sigma Radio" class="logo"></h1>
+  <audio id="player"></audio>
+  <div>
+    <button id="playPauseBtn">Start</button>
+    <label>Volume: <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1"></label>
+  </div>
+  <div id="trackList"></div>
+  <p>For the nerds out there, this radio has no backend. I got some ncs mp3s from youtube and the html is generating those with a seed, so it's always the same.</p>
+</body>
+</html>
