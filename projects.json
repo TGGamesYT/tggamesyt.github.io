@@ -1,4 +1,15 @@
 {
+  "mcradio": {
+    "name": "MC Radio",
+    "description": "Minecraft songs Radio",
+    "type": "HTML / JS",
+    "links": {
+      "website": {
+        "text": "Listen Live",
+        "url": "https://tg.is-a.dev/mcradio"
+      }
+    }
+  },
   "blog": {
     "name": "TG's blog",
     "description": "I know I know noone cares",
