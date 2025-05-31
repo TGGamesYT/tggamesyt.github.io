@@ -8,7 +8,7 @@ const base = "https://tg.is-a.dev/assets/mcradio/";
     let currentOffset = 0;
     let currentPlaylist = [];
     let isPaused = true;
-    let prefix = "Sigma Radio | ";
+    let prefix = "MC Radio | ";
 
     function seededRandom(seed) {
       let h = 2166136261 >>> 0;
