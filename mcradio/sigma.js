@@ -217,3 +217,11 @@ window.onload = function () {
 function setTitle(prefix, value) {
       document.title = prefix + value;
     }
+document.getElementById('playlistSelector').addEventListener('change', function () {
+    const selected = this.value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('play', selected);
+    window.location.href = url.toString();
+  });
+  const currentPlay = new URLSearchParams(window.location.search).get('play') || 'manifest';
+  document.getElementById('playlistSelector').value = currentPlay;
