@@ -95,7 +95,10 @@ const base = "https://tg.is-a.dev/assets/mcradio/";
 
 
     async function initPlayer() {
-      manifest = await fetch(base + 'manifest.json').then(res => res.json());
+        const urlParams = new URLSearchParams(window.location.search);
+        const playParam = urlParams.get('play');
+        const manifestFile = playParam ? `${playParam}.json` : 'manifest.json';
+        manifest = await fetch(base + manifestFile).then(res => res.json());
             function syncToLive() {
         const now = Date.now();
         const elapsed = Math.floor((now - startTime) / 1000);
