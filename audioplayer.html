@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Embed Player</title>
+</head>
+<body>
+  <h2>YouTube Embed Test</h2>
+  <input type="text" id="youtubeLink" placeholder="Paste YouTube link..." size="60">
+  <button onclick="loadVideo()">Load Video</button>
+
+  <br><br>
+  <iframe id="player" width="560" height="315"
+    src=""
+    title="YouTube video player"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+  <script>
+    function extractVideoId(url) {
+      const regex = /(?:youtube\.com.*[?&]v=|youtu\.be\/)([^&\n?#]+)/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
+
+    function loadVideo() {
+      const input = document.getElementById("youtubeLink").value;
+      const videoId = extractVideoId(input);
+      if (videoId) {
+        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        document.getElementById("player").src = embedUrl;
+      } else {
+        alert("Invalid YouTube URL!");
+      }
+    }
+  </script>
+</body>
+</html>
