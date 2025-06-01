@@ -1,5 +1,5 @@
 const seed = "SigmaRadioSeed";
-const startTime = new Date("2025-01-01T00:00:00Z").getTime();
+const startTime = new Date("2025-06-01T00:00:00Z").getTime();
 let manifest = [];
 let currentPlaylist = [];
 let currentTrackIndex = -1;
@@ -30,18 +30,40 @@ function generatePlaylist(elapsedSec, rand) {
   const playlist = [];
   let t = 0;
   let last = null;
-  while (t < elapsedSec + 60) {
+  let safetyCounter = 0;
+  const maxIterations = 1000; // safety limit to avoid infinite loops
+
+  while (t < elapsedSec + 60 && safetyCounter < maxIterations) {
     let candidate;
+    let tries = 0;
     do {
       candidate = manifest[Math.floor(rand() * manifest.length)];
+      tries++;
+      if (tries > 50) {
+        console.warn("Too many retries picking a new candidate, breaking loop");
+        break;
+      }
     } while (last && candidate.link === last.link);
+
+    if (!candidate) {
+      console.error("No candidate found in manifest. Manifest empty?");
+      break;
+    }
+
     playlist.push({ ...candidate, isYap: false });
     t += candidate.duration;
     last = candidate;
+    safetyCounter++;
   }
-  console.log("Generated playlist:", playlist);
+
+  if (safetyCounter >= maxIterations) {
+    console.warn("Safety counter reached in generatePlaylist — breaking infinite loop");
+  }
+
+  console.log("Generated playlist length:", playlist.length, "Total duration:", t);
   return playlist;
 }
+
 
 function updateTrackList() {
   const list = document.getElementById("trackList");
