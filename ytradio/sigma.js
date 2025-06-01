@@ -134,7 +134,7 @@ async function initPlayer() {
     const playParam = urlParams.get("play");
     const manifestFile = playParam ? `${playParam}.json` : "manifest.json";
     console.log("Loading manifest:", manifestFile);
-    const res = await fetch("https://tg.is-a.dev/assets/mcradio/" + manifestFile);
+    const res = await fetch("https://tg.is-a.dev/ytradio/" + manifestFile);
     manifest = await res.json();
     console.log("Loaded manifest with", manifest.length, "entries");
 
