@@ -111,7 +111,7 @@ async function initPlayer() {
   const urlParams = new URLSearchParams(window.location.search);
   const playParam = urlParams.get("play");
   const manifestFile = playParam ? `${playParam}.json` : "manifest.json";
-  const res = await fetch("https://tg.is-a.dev/ytradio" + manifestFile);
+  const res = await fetch("https://tg.is-a.dev/ytradio/" + manifestFile);
   manifest = await res.json();
 
   document.getElementById("playPauseBtn").addEventListener("click", () => {
