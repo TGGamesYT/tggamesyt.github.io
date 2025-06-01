@@ -104,7 +104,7 @@ function playCurrent() {
       }
       const startTimeSec = Math.floor(currentOffset);
       console.log("Playing video:", vid, "Start at:", startTimeSec, "seconds");
-      const src = `https://www.youtube.com/embed/${vid}?start=${startTimeSec}&enablejsapi=1&rel=0&playsinline=1`;
+      const src = `https://www.youtube.com/embed/${vid}?start=${startTimeSec}&enablejsapi=1&rel=0&playsinline=1&autoplay=1`;
       iframe.src = src;
       playerContainer.style.display = "block";
       updateTrackList();
