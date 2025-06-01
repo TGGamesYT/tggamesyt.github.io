@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="radiohtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MC Radio</title>
+  <meta property="og:title" content="MC Radio" />
+  <meta property="og:image" content="https://tg.is-a.dev/assets/mcradio/mcradio.png" />
+  <meta property="og:description" content="Minecraft Songs 24/7" />
+  <meta name="theme-color" content="#0053FF">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="https://tg.is-a.dev/assets/mcradio/mcradio.png" type="image/png">
+  <link rel="stylesheet" href="sigma.css">
+  <script src="sigma.js" defer></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <link rel="stylesheet" href="https://tg.is-a.dev/sidebar.css">
+  <script src="https://tg.is-a.dev/js.js"></script>
+  <div class="sidebar" id="sidebar">
+      <div id="navbar"></div>
+      <div id="silly"></div>
+      <p>‎</p>
+  </div>
+  <button class="menu-btn" onclick="dotwo()">
+      <span class="white"></span>
+      <span class="white"></span>
+      <span class="white"></span>
+  </button>
+<div id="playerContainer" style="display: none;">
+  <iframe id="ytPlayer" width="560" height="315" loading="lazy" allow="autoplay" allowfullscreen></iframe>
+</div>
+<button id="playPauseBtn">Play</button>
+<input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="1">
+<select id="playlistSelector">
+  <option value="manifest">Default Playlist</option>
+  <!-- Add more playlists if available -->
+</select>
+<div id="trackList"></div>
+</body>
+</html>
