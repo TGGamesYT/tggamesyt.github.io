@@ -103,9 +103,11 @@ function playCurrent() {
         return;
       }
       const startTimeSec = Math.floor(currentOffset);
+      const remainingDuration = track.duration - startTimeSec;
       console.log("Playing video:", vid, "Start at:", startTimeSec, "seconds");
       const src = `https://www.youtube.com/embed/${vid}?start=${startTimeSec}&enablejsapi=1&rel=0&playsinline=1&autoplay=1`;
       iframe.src = src;
+      startVideoTimer(remainingDuration);
       playerContainer.style.display = "block";
       updateTrackList();
     } else {
@@ -114,6 +116,15 @@ function playCurrent() {
   } catch (err) {
     console.error("Error during playCurrent:", err);
   }
+}
+
+function startVideoTimer(duration) {
+  if (videoEndTimeout) clearTimeout(videoEndTimeout);
+  console.log("Starting video timer for", duration, "seconds");
+  videoEndTimeout = setTimeout(() => {
+    console.log("Video timer ended. Moving to next track...");
+    playNext();
+  }, duration * 1000);
 }
 
 function playNext() {
