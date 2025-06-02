@@ -142,7 +142,10 @@ function syncToLive() {
       currentTrackIndex = i;
       currentOffset = elapsed - t;
       console.log("Selected track index:", i, "Offset:", currentOffset);
-      playCurrent();
+      iframe.src = ""; //
+      setTimeout(() => {
+        playCurrent();
+      }, 10);
       return;
     }
     t += item.duration;
@@ -175,7 +178,11 @@ async function initPlayer() {
     });
 
     document.getElementById("volumeSlider").addEventListener("input", (e) => {
-      console.log("Volume slider moved to", e.target.value);
+      const vol = parseInt(e.target.value);
+      console.log("Volume slider moved to", vol);
+      if (playerReady && player && player.setVolume) {
+        player.setVolume(vol);
+      }
     });
 
     document.getElementById("playlistSelector").addEventListener("change", function () {
