@@ -5,7 +5,7 @@ let currentPlaylist = [];
 let currentTrackIndex = -1;
 let currentOffset = 0;
 let isPaused = true;
-const prefix = "MC Radio | ";
+const prefix = "Yt Radio | ";
 
 const iframe = document.getElementById("ytPlayer");
 const playerContainer = document.getElementById("playerContainer");
