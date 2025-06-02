@@ -194,9 +194,6 @@ async function initPlayer() {
     document.getElementById("volumeSlider").addEventListener("input", (e) => {
       const vol = parseInt(e.target.value);
       console.log("Volume slider moved to", vol);
-      if (playerReady && player && player.setVolume) {
-        player.setVolume(vol);
-      }
     });
 
     document.getElementById("playlistSelector").addEventListener("change", function () {
