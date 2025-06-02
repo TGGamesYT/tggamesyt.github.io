@@ -92,6 +92,21 @@ function extractVideoID(link) {
   return id;
 }
 
+function checkVideoEnd() {
+  if (isPaused || expectedEndTimestamp === null) return;
+
+  const now = Date.now();
+  if (now >= expectedEndTimestamp) {
+    console.log("Detected video end via timestamp check, playing next...");
+    expectedEndTimestamp = null;
+    playNext();
+  } else {
+    setTimeout(checkVideoEnd, 1000);
+  }
+}
+
+let expectedEndTimestamp = null;
+
 function playCurrent() {
   try {
     console.log("Attempting to play current track...");
@@ -107,7 +122,9 @@ function playCurrent() {
       console.log("Playing video:", vid, "Start at:", startTimeSec, "seconds");
       const src = `https://www.youtube.com/embed/${vid}?start=${startTimeSec}&enablejsapi=1&rel=0&playsinline=1&autoplay=1`;
       iframe.src = src;
+      expectedEndTimestamp = Date.now() + (remainingDuration * 1000);
       startVideoTimer(remainingDuration);
+      checkVideoEnd();
       playerContainer.style.display = "block";
       updateTrackList();
     } else {
