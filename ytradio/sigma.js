@@ -118,9 +118,10 @@ function playCurrent() {
   }
 }
 
-let videoEndTimeout;
+let videoEndTimeout = 0;
 
 function startVideoTimer(duration) {
+  console.log("video timer: "+duration*1000)
   if (videoEndTimeout) clearTimeout(videoEndTimeout);
   console.log("Starting video timer for", duration, "seconds");
   videoEndTimeout = setTimeout(() => {
