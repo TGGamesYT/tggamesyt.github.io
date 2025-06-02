@@ -133,3 +133,6 @@ p {
     font-size: 0.95rem;
   }
 }
+.menu-btn {
+  z-index: 100000;
+}
