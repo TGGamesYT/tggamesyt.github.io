@@ -1,12 +1,14 @@
-[
-"info": [
-   "name": "My Test World Repo",
-   "description": "Testing The mod",
-   "author": "TGGamesYT"
-],
-"worlds": [
-  "world1": [
-    "name": "My test world",
-    "description": "Testing!",
-    "location": "test_world.zip"
-]]]
+{
+  "info": {
+    "name": "My Test World Repo",
+    "description": "Testing The mod",
+    "author": "TGGamesYT"
+  },
+  "worlds": [
+    {
+      "name": "My test world",
+      "description": "Testing!",
+      "location": "test_world.zip"
+    }
+  ]
+}
