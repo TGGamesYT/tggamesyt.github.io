@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minecraft World Repos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f4f4f4;
+      color: #333;
+    }
+    header {
+      background: #444;
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    main {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #222;
+    }
+    a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    code {
+      background: #eee;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>World Repo Manager</h1>
+    <p>Share and download Minecraft worlds through custom repositories</p>
+  </header>
+  <main>
+    <div class="section">
+      <h2>What is it?</h2>
+      <p>
+        <strong>World Repo Manager</strong> is a Minecraft mod that lets players browse and download Minecraft worlds directly from simple online repositories.
+        Map creators can easily host their own worlds, and players can access them right from the game.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>How does it work?</h2>
+      <p>
+        Create a <code>MinecraftWorldRepo.json</code> file and place it on your website, along with the zipped world files. Here’s a simple example:
+      </p>
+      <pre><code>{
+  "info": {
+    "name": "My Test World Repo",
+    "description": "Testing The mod",
+    "author": "TGGamesYT"
+  },
+  "worlds": [
+    {
+      "name": "My test world",
+      "description": "Testing!",
+      "location": "test_world.zip"
+    }
+  ]
+}</code></pre>
+      <p>
+        If your JSON is hosted at <code>https://my.site/repo/MinecraftWorldRepo.json</code>, the world zips must be placed at <code>https://my.site/repo/test_world.zip</code>.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>How to use it?</h2>
+      <p>
+        Open Minecraft with the mod installed. From the main menu, click <strong>World Repo Manager</strong>, then click <strong>Add New Repo</strong> and paste the URL to your repo (e.g., <code>https://my.site/repo</code>).
+        After that, you can browse and download any worlds listed in that repository.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Public Repositories</h2>
+      <p>
+        Want your repo listed in the public repo list shown in-game? Just open an issue on GitHub with your repo link and details:
+        <a href="https://github.com/TGGamesYT/world-repos/issues" target="_blank">Submit Your Repo</a>.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Links</h2>
+      <ul>
+        <li><a href="https://github.com/TGGamesYT/world-repos" target="_blank">🔗 Source Code (GitHub)</a></li>
+        <li><a href="https://modrinth.com/mod/world-repos" target="_blank">📦 Modrinth Page (under review)</a></li>
+        <li><a href="https://github.com/TGGamesYT/world-repos/issues" target="_blank">📝 Issues & Public Repo Requests</a></li>
+        <li><a href="https://ko-fi.com/tggamesyt" target="_blank">💖 Donate on Ko-fi</a></li>
+      </ul>
+    </div>
+  </main>
+  <footer>
+    &copy; 2025 TGGamesYT — Made with ❤️ for the Minecraft community.
+  </footer>
+</body>
+                                                                                                       </html>
