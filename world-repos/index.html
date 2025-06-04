@@ -64,6 +64,16 @@
       font-size: 0.9rem;
       color: #888;
     }
+    .faq-section summary {
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0.5rem 0;
+    }
+    .faq-section details {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -81,12 +91,16 @@
       </p>
     </div>
 
-    <div class="section">
-      <h2>How does it work?</h2>
-      <p>
-        Simply create a <code>MinecraftWorldRepo.json</code> file and upload it to your website along with zipped world files. Here's a basic example:
-      </p>
-      <pre><code>{
+
+    <section class="section faq-section">
+      <h2>FAQ</h2>
+
+      <details>
+        <summary>📁 How to make my own repository?</summary>
+        <p>
+          Create a <code>MinecraftWorldRepo.json</code> file with the following format:
+        </p>
+        <pre><code>{
   "info": {
     "name": "My Test World Repo",
     "description": "Testing The mod",
@@ -100,26 +114,25 @@
     }
   ]
 }</code></pre>
-      <p>
-        If your JSON is at <code>https://my.site/repo/MinecraftWorldRepo.json</code>, your world zip should be at <code>https://my.site/repo/test_world.zip</code>.
-      </p>
-    </div>
+        <p>
+          Host it at a public URL (e.g. <code>https://my.site/repo/MinecraftWorldRepo.json</code>) and place your world zips in the same directory, relative to the JSON.
+        </p>
+      </details>
 
-    <div class="section">
-      <h2>Using the Mod</h2>
-      <p>
-        Launch Minecraft with the mod installed. Click the <strong>World Repo Manager</strong> button, then <strong>Add New Repo</strong> and paste the link to your repo (e.g., <code>https://my.site/repo</code>).  
-        You’ll now see and can download any worlds listed in that repo.
-      </p>
-    </div>
+      <details>
+        <summary>🌐 How to add my repo to the public list?</summary>
+        <p>
+          Just create an issue at <a href="https://github.com/TGGamesYT/world-repos/issues" target="_blank">the GitHub issues page</a> and tell us about your repo. If it fits, it’ll likely be added!
+        </p>
+      </details>
 
-    <div class="section">
-      <h2>Public Repo List</h2>
-      <p>
-        Want your repo to show up in the in-game public list? Open a GitHub issue with your repo link:
-        <a href="https://github.com/TGGamesYT/world-repos/issues" target="_blank">Submit your repository here</a>.
-      </p>
-    </div>
+      <details>
+        <summary>🎮 How to use a repository?</summary>
+        <p>
+          Launch Minecraft with the mod installed, open the mod's menu, click <strong>“Add New Repo”</strong>, paste the link to the JSON file, and you’re good to go! You can now browse and download worlds directly from that repository.
+        </p>
+      </details>
+    </section>
 
     <div class="section">
       <h2>Links</h2>
