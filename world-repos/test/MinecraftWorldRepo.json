@@ -9,6 +9,11 @@
       "name": "My test world",
       "description": "Testing!",
       "location": "test_world.zip"
+    },
+    {
+      "name": "My updated test world",
+      "description": "Testing!",
+      "location": "test_world_1.zip"
     }
   ]
 }
