@@ -1,4 +1,41 @@
 {
+  "amongcraft": {
+    "name": "AmongCraft",
+    "description": "a Minecraft mod that adds the popular game Among Us into minecraft",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "website": {
+        "text": "SOON",
+        "url": "#"
+      }
+    }
+  },
+  "worldrepos": {
+    "name": "World Repos",
+    "description": "a Minecraft mod for downloading worlds from online repositories",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "website": {
+        "text": "Website",
+        "url": "https://tg.is-a.dev/world-repos"
+      },
+      "modrinth": {
+        "text": "Modrinth (under review)",
+        "url": "https://modrinth.com/mod/world-repos"
+      }
+    }
+  },
+  "ytradio": {
+    "name": "YT Radio",
+    "description": "Sigma Radio, but with youtube links replacing mp3-s (WORK IN PROGRESS)",
+    "type": "HTML / JS",
+    "links": {
+      "website": {
+        "text": "Listen Live",
+        "url": "https://tg.is-a.dev/ytradio"
+      }
+    }
+  },
   "mcradio": {
     "name": "MC Radio",
     "description": "Minecraft songs Radio",
