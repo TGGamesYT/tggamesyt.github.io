@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AmongCraft Wire Task</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #111;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .container {
+      display: flex;
+      position: relative;
+      z-index: 0;
+      background: linear-gradient(135deg, #222 25%, #333 75%);
+      border: 4px solid #0f9d58;
+      border-radius: 16px;
+      box-shadow: 0 0 15px #0f9d58;
+      padding: 40px 100px;
+      gap: 100px;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 50px;
+    }
+    .dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow:
+        inset 0 0 8px rgba(255,255,255,0.4),
+        0 0 8px rgba(255,255,255,0.2);
+      transition: transform 0.15s ease;
+    }
+    .dot:hover:not(.used) {
+      transform: scale(1.2);
+      box-shadow:
+        0 0 12px 3px currentColor,
+        inset 0 0 10px rgba(255,255,255,0.7);
+    }
+    .dot.used {
+      opacity: 0.3;
+      pointer-events: none;
+      box-shadow: none;
+      transform: none !important;
+    }
+    #taskDoneText {
+      position: fixed;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 3rem;
+      font-weight: bold;
+      color: #0f9d58;
+      text-shadow: 0 0 8px black;
+      opacity: 0;
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      animation-fill-mode: forwards;
+    }
+    @keyframes flyDown {
+      0% {
+        top: -50px;
+        opacity: 0;
+      }
+      50% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="lines"></canvas>
+  <div class="container">
+    <div id="left" class="column"></div>
+    <div id="right" class="column"></div>
+  </div>
+  <div id="taskDoneText">Task Done</div>
+
+  <script>
+    const COLORS = ['red', 'blue', 'yellow', 'green', 'purple', 'orange'];
+    const NUM_WIRES = 3;
+    const leftCol = document.getElementById('left');
+    const rightCol = document.getElementById('right');
+    const canvas = document.getElementById('lines');
+    const ctx = canvas.getContext('2d');
+    const taskDoneText = document.getElementById('taskDoneText');
+    let leftDots = [], rightDots = [];
+    let connections = [];
+    let selected = null;
+    let mouse = { x: 0, y: 0 };
+    let taskCompleted = false;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function drawLines() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      connections.forEach(([dot1, dot2]) => {
+        const r1 = dot1.getBoundingClientRect();
+        const r2 = dot2.getBoundingClientRect();
+        const x1 = r1.left + r1.width / 2;
+        const y1 = r1.top + r1.height / 2;
+        const x2 = r2.left + r2.width / 2;
+        const y2 = r2.top + r2.height / 2;
+
+        ctx.strokeStyle = dot1.dataset.color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      });
+
+      if (selected && !taskCompleted) {
+        const r = selected.getBoundingClientRect();
+        const x1 = r.left + r.width / 2;
+        const y1 = r.top + r.height / 2;
+        const x2 = mouse.x;
+        const y2 = mouse.y;
+
+        ctx.strokeStyle = selected.dataset.color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
+
+    function showTaskDone() {
+      taskCompleted = true;
+      taskDoneText.style.animation = 'flyDown 1.5s ease forwards';
+
+      setTimeout(() => {
+        window.location.href = 'amongcraft://taskdone/task1';
+      }, 1600);
+    }
+
+    function setup() {
+      resizeCanvas();
+      const chosenColors = COLORS.slice(0);
+      shuffle(chosenColors);
+      const usedColors = chosenColors.slice(0, NUM_WIRES);
+
+      const leftColors = [...usedColors];
+      const rightColors = [...usedColors];
+      shuffle(leftColors);
+      shuffle(rightColors);
+
+      leftColors.forEach(color => {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.backgroundColor = color;
+        dot.dataset.color = color;
+        dot.dataset.side = 'left';
+        leftCol.appendChild(dot);
+        leftDots.push(dot);
+      });
+
+      rightColors.forEach(color => {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.backgroundColor = color;
+        dot.dataset.color = color;
+        dot.dataset.side = 'right';
+        rightCol.appendChild(dot);
+        rightDots.push(dot);
+      });
+
+      [...leftDots, ...rightDots].forEach(dot => {
+        dot.addEventListener('click', () => {
+          if (dot.classList.contains('used') || taskCompleted) return;
+
+          if (!selected) {
+            selected = dot;
+          } else if (selected.dataset.side !== dot.dataset.side) {
+            if (selected.dataset.color === dot.dataset.color) {
+              connections.push([selected, dot]);
+              selected.classList.add('used');
+              dot.classList.add('used');
+              selected = null;
+
+              if (connections.length === NUM_WIRES) {
+                showTaskDone();
+              }
+            }
+            selected = null;
+          } else {
+            selected = dot;
+          }
+
+          drawLines();
+        });
+      });
+
+      drawLines();
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      if (!taskCompleted) drawLines();
+    });
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      drawLines();
+    });
+
+    setup();
+  </script>
+</body>
+</html>
