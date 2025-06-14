@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prime Shields</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    #taskContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hexRow {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .hex {
+      width: 80px;
+      height: 69px;
+      background-color: red;
+      clip-path: polygon(
+        50% 0%, 93% 25%, 93% 75%,
+        50% 100%, 7% 75%, 7% 25%
+      );
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    }
+
+    .hex.blue {
+      background-color: #00aaff;
+    }
+
+    #taskDoneText {
+      position: fixed;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 3rem;
+      font-weight: bold;
+      color: #00aaff;
+      text-shadow: 0 0 8px black;
+      opacity: 0;
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes flyDown {
+      0% {
+        top: -60px;
+        opacity: 0;
+      }
+      50% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="taskContainer">
+    <div class="hexRow" id="row1"></div>
+    <div class="hexRow" id="row2"></div>
+    <div class="hexRow" id="row3"></div>
+  </div>
+  <div id="taskDoneText">Task Done</div>
+
+  <script>
+    const rows = [
+      { id: "row1", count: 2 },
+      { id: "row2", count: 3 },
+      { id: "row3", count: 2 }
+    ];
+
+    const allHexes = [];
+    const taskDoneText = document.getElementById("taskDoneText");
+
+    function createHex(rowId) {
+      const hex = document.createElement("div");
+      hex.classList.add("hex");
+      if (Math.random() < 0.5) {
+        hex.classList.add("blue");
+      }
+      hex.addEventListener("click", () => {
+        hex.classList.toggle("blue");
+        checkIfDone();
+      });
+      document.getElementById(rowId).appendChild(hex);
+      allHexes.push(hex);
+    }
+
+    function checkIfDone() {
+      if (allHexes.every(hex => hex.classList.contains("blue"))) {
+        taskDoneText.style.animation = 'flyDown 1.5s ease forwards';
+        setTimeout(() => {
+          window.location.href = "amongcraft://taskdone/shields";
+        }, 1600);
+      }
+    }
+
+    // Initialize layout
+    rows.forEach(({ id, count }) => {
+      for (let i = 0; i < count; i++) {
+        createHex(id);
+      }
+    });
+  </script>
+</body>
+</html>
