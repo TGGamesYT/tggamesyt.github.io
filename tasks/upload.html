@@ -44,7 +44,7 @@
 
     #taskDoneText {
       position: fixed;
-      top: -50px;
+      top: -60px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 3rem;
@@ -88,6 +88,8 @@
     const progressFill = document.getElementById('progressFill');
     const taskDoneText = document.getElementById('taskDoneText');
 
+    const prefix = "Uploading";
+
     const fakeTimes = [
       "1 year", "6 months", "5 days", "12 hours",
       "1 hour", "30 minutes", "5 minutes", "1 minute",
@@ -102,13 +104,13 @@
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Update fill
+      // Update progress bar
       progressFill.style.width = (progress * 100).toFixed(1) + "%";
 
-      // Update fake time
-      const index = Math.floor((1 - progress) * fakeTimes.length);
-      const displayTime = fakeTimes[Math.min(index, fakeTimes.length - 1)];
-      statusText.textContent = `Uploading... ${displayTime} remaining`;
+      // Update remaining time (count down)
+      const index = Math.floor(progress * fakeTimes.length);
+      const remaining = fakeTimes[Math.min(index, fakeTimes.length - 1)];
+      statusText.textContent = `${prefix}... ${remaining} remaining`;
 
       if (progress < 1) {
         requestAnimationFrame(updateProgress);
@@ -120,7 +122,7 @@
     function finishTask() {
       taskDoneText.style.animation = 'flyDown 1.5s ease forwards';
       setTimeout(() => {
-        window.location.href = "amongcraft://taskdone/upload";
+        window.location.href = "amongcraft://taskdone/default";
       }, 1600);
     }
 
