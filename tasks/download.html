@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Download Data - AmongCraft</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    #taskContainer {
+      text-align: center;
+      padding: 40px 80px;
+      border: 4px solid #0f9d58;
+      border-radius: 16px;
+      box-shadow: 0 0 15px #0f9d58;
+      background: linear-gradient(135deg, #222 25%, #333 75%);
+      color: white;
+      font-size: 1.8rem;
+    }
+
+    #progressBar {
+      width: 100%;
+      height: 20px;
+      margin-top: 30px;
+      background: #444;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: #0f9d58;
+      transition: width 0.1s;
+    }
+
+    #taskDoneText {
+      position: fixed;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 3rem;
+      font-weight: bold;
+      color: #0f9d58;
+      text-shadow: 0 0 8px black;
+      opacity: 0;
+      pointer-events: none;
+      user-select: none;
+      z-index: 10;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes flyDown {
+      0% {
+        top: -60px;
+        opacity: 0;
+      }
+      50% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="taskContainer">
+    <div id="statusText">Downloading... 1 year remaining</div>
+    <div id="progressBar"><div id="progressFill"></div></div>
+  </div>
+  <div id="taskDoneText">Task Done</div>
+
+  <script>
+    const statusText = document.getElementById('statusText');
+    const progressFill = document.getElementById('progressFill');
+    const taskDoneText = document.getElementById('taskDoneText');
+
+    const fakeTimes = [
+      "1 year", "6 months", "5 days", "12 hours",
+      "1 hour", "30 minutes", "5 minutes", "1 minute",
+      "30 seconds", "10 seconds", "5 seconds", "1 second"
+    ];
+
+    let duration = 10000; // 10 seconds
+    let startTime = null;
+
+    function updateProgress(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Update fill
+      progressFill.style.width = (progress * 100).toFixed(1) + "%";
+
+      // Update fake time
+      const index = Math.floor((1 - progress) * fakeTimes.length);
+      const displayTime = fakeTimes[Math.min(index, fakeTimes.length - 1)];
+      statusText.textContent = `Downloading... ${displayTime} remaining`;
+
+      if (progress < 1) {
+        requestAnimationFrame(updateProgress);
+      } else {
+        finishTask();
+      }
+    }
+
+    function finishTask() {
+      taskDoneText.style.animation = 'flyDown 1.5s ease forwards';
+      setTimeout(() => {
+        window.location.href = "amongcraft://taskdone/download";
+      }, 1600);
+    }
+
+    requestAnimationFrame(updateProgress);
+  </script>
+</body>
+</html>
