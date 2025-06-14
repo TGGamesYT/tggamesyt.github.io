@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Submit Scan</title>
   <style>
     html, body {
@@ -11,27 +11,32 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
+      background: none;
     }
+
     #container {
       display: flex;
       gap: 40px;
+      background: #111;
       border: 4px solid #00ff88;
       border-radius: 16px;
       padding: 30px;
-      position: relative;
-      background-color: gray;
     }
+
     #skinWrapper {
       position: relative;
       width: 200px;
       height: 400px;
       overflow: hidden;
+      background: #000;
+      border: 2px solid #444;
     }
+
     #skinImg {
       width: 100%;
       height: auto;
     }
+
     #scanLine {
       position: absolute;
       width: 100%;
@@ -39,29 +44,49 @@
       background: rgba(0, 255, 88, 0.7);
       animation: scan 2s linear infinite alternate;
     }
+
     @keyframes scan {
       from { top: 0; }
       to { top: 100%; }
     }
+
     #info {
       color: white;
       font-size: 1.2rem;
       line-height: 1.6;
     }
+
+    .hidden {
+      visibility: hidden;
+    }
+
+    #favcolor-box {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      margin-left: 10px;
+      border: 2px solid #fff;
+    }
+
     #taskDoneText {
       position: fixed;
-      top: -60px; left: 50%;
-      transform: translateX(-50%);
-      font-size: 3rem; font-weight: bold;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3rem;
+      font-weight: bold;
       color: #00ff88;
       text-shadow: 0 0 8px black;
       opacity: 0;
       pointer-events: none;
-      animation-fill-mode: forwards;
+      animation: flyDown 1.5s ease forwards;
+      animation-delay: 20s;
     }
+
     @keyframes flyDown {
-      0%,50% { top: -60px; opacity: 0; }
-      100% { top: 50%; opacity: 1; transform: translate(-50%, -50%); }
+      0% { opacity: 0; transform: translate(-50%, -60%); }
+      100% { opacity: 1; transform: translate(-50%, -50%); }
     }
   </style>
 </head>
@@ -72,71 +97,68 @@
       <div id="scanLine"></div>
     </div>
     <div id="info">
-      <div><strong>Username:</strong> <span id="username">...</span></div>
-      <div><strong>UUID:</strong> <span id="uuid">...</span></div>
-      <div><strong>Fav Color:</strong> <span id="favcolor" style="display:inline-block;width:20px;height:20px;border:2px solid #fff;"></span></div>
-      <div><strong>Status:</strong> Scanning...</div>
+      <div id="step-username" class="hidden"><strong>Username:</strong> <span id="username">...</span></div>
+      <div id="step-uuid" class="hidden"><strong>UUID:</strong> <span id="uuid">...</span></div>
+      <div id="step-favcolor" class="hidden"><strong>Fav Color:</strong> <div id="favcolor-box"></div></div>
+      <div><strong>Status:</strong> <span id="status">Scanning...</span></div>
     </div>
   </div>
-
   <div id="taskDoneText">Task Done</div>
 
   <script>
     const params = new URLSearchParams(location.search);
-    const player = (params.get('player') || 'notch').toLowerCase();
+    const player = (params.get("player") || "notch").toLowerCase();
 
-    const skinImg = document.getElementById('skinImg');
-    const usernameEl = document.getElementById('username');
-    const uuidEl = document.getElementById('uuid');
-    const favEl = document.getElementById('favcolor');
-    const taskDoneText = document.getElementById('taskDoneText');
+    const skinImg = document.getElementById("skinImg");
+    const usernameEl = document.getElementById("username");
+    const uuidEl = document.getElementById("uuid");
+    const favEl = document.getElementById("favcolor-box");
+    const taskDoneText = document.getElementById("taskDoneText");
+
+    skinImg.src = `https://starlightskins.lunareclipse.studio/render/profile/${player}/full`;
 
     async function fetchUUID() {
-      const res = await fetch(`https://api.minetools.eu/uuid/${player}`);
-      const data = await res.json();
-      uuidEl.textContent = data.id;
-      usernameEl.textContent = data.name;
-    }
-
-    function loadSkin() {
-      skinImg.src = `https://starlightskins.lunareclipse.studio/render/profile/${player}/full`;
-      skinImg.onload = analyzeColor;
-    }
-
-    function analyzeColor() {
-      const canvas = document.createElement('canvas');
-      canvas.width = skinImg.naturalWidth;
-      canvas.height = skinImg.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(skinImg, 0, 0);
-      const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      const colorCounts = {};
-      for (let i = 0; i < img.length; i += 4) {
-        const [r, g, b] = [img[i], img[i+1], img[i+2]];
-        const key = `${r},${g},${b}`;
-        colorCounts[key] = (colorCounts[key] || 0) + 1;
+      try {
+        const res = await fetch(`https://api.minetools.eu/uuid/${player}`);
+        const data = await res.json();
+        if (data.id) uuidEl.textContent = data.id;
+        else uuidEl.textContent = "Unavailable";
+      } catch {
+        uuidEl.textContent = "Unavailable";
       }
-      const [fav] = Object.entries(colorCounts).sort((a,b) => b[1]-a[1])[0];
-      const [r,g,b] = fav.split(',').map(Number);
-      favEl.style.background = `rgb(${r},${g},${b})`;
+    }
+
+    function randomColor() {
+      const r = Math.floor(Math.random() * 200 + 30);
+      const g = Math.floor(Math.random() * 200 + 30);
+      const b = Math.floor(Math.random() * 200 + 30);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function reveal(id) {
+      document.getElementById(id).classList.remove("hidden");
     }
 
     function startScan() {
-      setTimeout(() => finishTask(), 20000); // 20 sec scan
-    }
+      usernameEl.textContent = player;
 
-    function finishTask() {
-      taskDoneText.style.animation = 'flyDown 1.5s ease forwards';
+      setTimeout(() => reveal("step-username"), 5000);
+      setTimeout(() => { fetchUUID(); reveal("step-uuid"); }, 10000);
       setTimeout(() => {
-        window.location.href = `amongcraft://taskdone/scan`;
-      }, 1600);
+        const color = randomColor();
+        favEl.style.background = color;
+        reveal("step-favcolor");
+      }, 15000);
+      setTimeout(() => {
+        document.getElementById("status").textContent = "Scan complete";
+        taskDoneText.style.opacity = "1";
+      }, 20000);
+      setTimeout(() => {
+        location.href = "amongcraft://taskdone/scan";
+      }, 22000);
     }
 
-    // initialize
-    usernameEl.textContent = player;
-    fetchUUID();
-    loadSkin();
     startScan();
   </script>
 </body>
-  </html>
+    </html>
