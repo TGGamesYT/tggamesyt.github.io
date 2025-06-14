@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Calibrate Distributor</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    user-select: none;
+  }
+  #container {
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+  }
+  .circle-container {
+    position: relative;
+    width: 180px;
+    height: 180px;
+  }
+  .circle {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border: 6px solid #333;
+    border-radius: 50%;
+    box-sizing: border-box;
+  }
+  .inner-mark, .outer-mark {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+  .inner-mark {
+    /* placed on circle perimeter */
+    top: 50%;
+    left: 50%;
+    margin-top: -12px;
+    margin-left: 70px; /* radius ~ 90 - half mark */
+    transform-origin: 12px 12px;
+    border: 3px solid;
+    background: transparent;
+  }
+  .outer-mark {
+    /* placed outside the circle, to right */
+    top: 50%;
+    left: 100%;
+    margin-top: -12px;
+    margin-left: 20px;
+    border: 3px solid;
+    background: transparent;
+    cursor: pointer;
+  }
+  #message {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 8px black;
+    opacity: 0;
+    pointer-events: none;
+    animation-fill-mode: forwards;
+  }
+  @keyframes flyDown {
+    0% { top: 10%; opacity: 0; }
+    50% { top: 50%; opacity: 1; transform: translate(-50%, -50%); }
+    100% { top: 50%; opacity: 1; transform: translate(-50%, -50%); }
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div class="circle-container" id="circle1">
+    <div class="circle"></div>
+    <div class="inner-mark"></div>
+    <div class="outer-mark"></div>
+  </div>
+  <div class="circle-container" id="circle2">
+    <div class="circle"></div>
+    <div class="inner-mark"></div>
+    <div class="outer-mark"></div>
+  </div>
+  <div class="circle-container" id="circle3">
+    <div class="circle"></div>
+    <div class="inner-mark"></div>
+    <div class="outer-mark"></div>
+  </div>
+</div>
+
+<div id="message">Task Done</div>
+
+<script>
+  const circleContainers = [
+    document.getElementById('circle1'),
+    document.getElementById('circle2'),
+    document.getElementById('circle3')
+  ];
+
+  const colors = ['#ff4444', '#4488ff', '#44cc44']; // Red, Blue, Green
+
+  // Setup marks color and initial rotation
+  circleContainers.forEach((container, i) => {
+    const innerMark = container.querySelector('.inner-mark');
+    const outerMark = container.querySelector('.outer-mark');
+    innerMark.style.borderColor = colors[i];
+    outerMark.style.borderColor = colors[i];
+
+    // Initialize random rotation for circle and inner mark
+    const circle = container.querySelector('.circle');
+    const startRotation = Math.random() * 360;
+    circle.style.transform = `rotate(${startRotation}deg)`;
+    innerMark.style.transform = `rotate(${startRotation}deg) translateX(70px) rotate(${-startRotation}deg)`;
+    // outerMark does NOT rotate - stays static on right
+  });
+
+  let currentCircleIndex = 0;
+  let spinning = false;
+  let rotationDegrees = 0; // current rotation (in degrees)
+  let spinSpeed = 3; // degrees per frame
+  let spinRequest = null;
+
+  const message = document.getElementById('message');
+
+  function startSpin(index) {
+    if (index >= circleContainers.length) {
+      showDone();
+      return;
+    }
+
+    currentCircleIndex = index;
+    spinning = true;
+    rotationDegrees = Math.random() * 360;
+
+    const container = circleContainers[index];
+    const circle = container.querySelector('.circle');
+    const innerMark = container.querySelector('.inner-mark');
+
+    // Set initial rotation
+    circle.style.transform = `rotate(${rotationDegrees}deg)`;
+    innerMark.style.transform = `rotate(${rotationDegrees}deg) translateX(70px) rotate(${-rotationDegrees}deg)`;
+
+    // Set click handler on outer mark
+    const outerMark = container.querySelector('.outer-mark');
+    outerMark.onclick = () => {
+      if (!spinning) return;
+      if (isAligned(rotationDegrees)) {
+        // Correct click
+        spinning = false;
+        cancelAnimationFrame(spinRequest);
+        outerMark.onclick = null;
+        startSpin(index + 1);
+      } else {
+        // Wrong click - restart from top
+        spinning = false;
+        cancelAnimationFrame(spinRequest);
+        outerMark.onclick = null;
+        startSpin(0);
+      }
+    };
+
+    function spin() {
+      rotationDegrees = (rotationDegrees + spinSpeed) % 360;
+      circle.style.transform = `rotate(${rotationDegrees}deg)`;
+      innerMark.style.transform = `rotate(${rotationDegrees}deg) translateX(70px) rotate(${-rotationDegrees}deg)`;
+      spinRequest = requestAnimationFrame(spin);
+    }
+    spin();
+  }
+
+  // Alignment check: inner mark and outer mark align if rotationDegrees is close to 0 or 360
+  // We can allow +/- 10 degrees tolerance
+  function isAligned(degrees) {
+    let d = degrees % 360;
+    if (d > 180) d = 360 - d; // Normalize to 0-180
+    return d <= 10; // within 10 degrees
+  }
+
+  function showDone() {
+    message.style.animation = "flyDown 1.5s ease forwards";
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/calibrate";
+    }, 1600);
+  }
+
+  // Start the first spin on page load
+  startSpin(0);
+</script>
+</body>
+</html>
