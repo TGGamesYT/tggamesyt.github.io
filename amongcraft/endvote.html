@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Voting Results</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: black; overflow: hidden; }
+    body { font-family: sans-serif; color: white; }
+
+    #loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: black; color: white; font-size: 2em;
+      z-index: 10;
+    }
+
+    #voteStage {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+    }
+
+    .voteRow {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .playerInfo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 300px;
+    }
+
+    .player-face {
+      width: 64px;
+      height: 64px;
+      image-rendering: pixelated;
+      border-radius: 8px;
+    }
+
+    .voters {
+      display: flex;
+      gap: 6px;
+      min-width: 300px;
+    }
+
+    #stars { display: none; position: absolute; width: 100%; height: 100%; }
+    .star {
+      position: absolute; width:2px; height:2px;
+      background: white; border-radius:50%;
+    }
+
+    #elimImage {
+      position: absolute; top:50%;
+      transform: translateY(-50%);
+      width:128px; display:none;
+    }
+
+    #elimRoleText {
+      position: absolute;
+      bottom:15%;
+      width:100%;
+      text-align:center;
+      font-size:2em;
+      color:white;
+      display:none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Loading...</div>
+<div id="voteStage"></div>
+<div id="stars"></div>
+<img id="elimImage" />
+<div id="elimRoleText"></div>
+
+<script>
+  function parseParams() {
+    const u = new URLSearchParams(location.search);
+    return {
+      votes: JSON.parse(decodeURIComponent(u.get("votes"))),
+      elim: u.get("elim"),
+      elimRole: parseInt(u.get("elimrole"))
+    };
+  }
+
+  async function fetchUsername(uuid){
+    try {
+      let r = await fetch(`https://playerdb.co/api/player/minecraft/${uuid}`);
+      let j = await r.json();
+      return j.success ? j.data.player.username : uuid;
+    } catch {
+      return uuid;
+    }
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+  function makeStars(){
+    const s = document.getElementById("stars");
+    s.innerHTML = "";
+    for(let i=0;i<150;i++){
+      const st = document.createElement("div");
+      st.className = "star";
+      st.style.left = `${Math.random()*100}%`;
+      st.style.top = `${Math.random()*100}%`;
+      st.style.opacity = Math.random();
+      s.append(st);
+    }
+  }
+
+  async function preloadImages(votes) {
+    const urls = [];
+    for (const [target, voters] of Object.entries(votes)) {
+      urls.push(`https://starlightskins.lunareclipse.studio/render/pixel/${target}/face`);
+      for (const v of voters) {
+        urls.push(`https://starlightskins.lunareclipse.studio/render/pixel/${v}/face`);
+      }
+    }
+
+    const promises = urls.map(url => new Promise((res) => {
+      const img = new Image();
+      img.onload = img.onerror = res;
+      img.src = url;
+    }));
+    await Promise.all(promises);
+  }
+
+  async function showVotes(votes){
+    const container = document.getElementById("voteStage");
+    container.innerHTML = "";
+
+    const rows = [];
+
+    // Prepare each row first (without voter icons)
+    for (const [target, voters] of Object.entries(votes)) {
+      const targetName = await fetchUsername(target);
+
+      const voteRow = document.createElement("div");
+      voteRow.className = "voteRow";
+
+      const left = document.createElement("div");
+      left.className = "playerInfo";
+      const img = document.createElement("img");
+      img.src = `https://starlightskins.lunareclipse.studio/render/pixel/${target}/face`;
+      img.className = "player-face";
+      const nameEl = document.createElement("div");
+      nameEl.textContent = targetName;
+      left.append(img, nameEl);
+
+      const right = document.createElement("div");
+      right.className = "voters";
+
+      voteRow.append(left, right);
+      container.append(voteRow);
+      rows.push({ row: voteRow, voters, right });
+    }
+
+    container.style.opacity = 1;
+
+    // Now animate in the votes one by one
+    for (const {voters, right} of rows) {
+      for (const v of voters) {
+        const vn = await fetchUsername(v);
+        const vi = document.createElement("img");
+        vi.src = `https://starlightskins.lunareclipse.studio/render/pixel/${v}/face`;
+        vi.className = "player-face";
+        vi.title = vn;
+        right.append(vi);
+        await sleep(500);
+      }
+    }
+  }
+
+  async function showElim(elim, role) {
+  // Hide the vote display
+  document.getElementById("voteStage").style.display = "none";
+
+  // Show background stars
+  document.getElementById("stars").style.display = "block";
+  makeStars();
+
+  // Setup elim image
+  const img = document.getElementById("elimImage");
+  img.src = `https://starlightskins.lunareclipse.studio/render/dungeons/${elim}/full`;
+  img.style.left = "-200px";
+  img.style.display = "block";
+
+  let x = -200;
+  let ang = 0;
+  return new Promise(resolve => {
+    const interval = setInterval(() => {
+      x += 3;       // Slower movement
+      ang += 4;     // Slower rotation
+      img.style.left = x + "px";
+      img.style.transform = `translateY(-50%) rotate(${ang}deg)`;
+      if (x > window.innerWidth) {
+        clearInterval(interval);
+        setTimeout(async () => {
+          const txt = document.getElementById("elimRoleText");
+          const isImpostor = role === 1;
+          const resultText = `${await fetchUsername(elim)} was ${isImpostor ? 'an impostor' : 'not an impostor'}...`;
+
+          // Type out result letter by letter
+          txt.textContent = "";
+          txt.style.display = "block";
+          for (let i = 0; i < resultText.length; i++) {
+            txt.textContent += resultText[i];
+            await sleep(50);
+          }
+
+          setTimeout(resolve, 2500);
+        }, 500);
+      }
+    }, 16);
+  });
+}
+
+
+
+  (async () => {
+    const {votes, elim, elimRole} = parseParams();
+
+    // Preload images and show loading
+    await preloadImages(votes);
+    document.getElementById("loading").style.display = "none";
+
+    await showVotes(votes);
+    await sleep(1000);
+    await showElim(elim, elimRole);
+
+    location.href = "amongcraft://endmeeting";
+  })();
+</script>
+
+</body>
+</html>
