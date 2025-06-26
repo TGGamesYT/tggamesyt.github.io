@@ -4,11 +4,18 @@
     "description": "a Minecraft mod that adds the popular game Among Us into minecraft",
     "type": "JAVA / Minecraft Mod",
     "links": {
-      "website": {
-        "text": "SOON",
-        "url": "#"
+      "playlist": {
+        "text": "Youtube Playlist",
+        "url": "https://youtube.com/playlist?list=PLR0dV5b5FiH6IwUnP_8QfT5C9llYoujHf"
+      },
+      "source": {
+        "text": "Source (soon)",
+        "url": "https://github.com/tggamesyt/amongcraft"
+      },
+      "modrinth": {
+        "text": "Modrinth (Soon)",
+        "url": "https://modrinth.com/mod/amongcraft"
       }
-    }
   },
   "worldrepos": {
     "name": "World Repos",
