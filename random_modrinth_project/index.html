@@ -6,52 +6,56 @@
   <script>
     const projectTypes = ['mod', 'plugin', 'shader', 'resourcepack', 'modpack', 'datapack'];
 
-    async function getQueryParam(key) {
+    function getQueryParam(key) {
       const params = new URLSearchParams(window.location.search);
       return params.get(key);
     }
 
     async function fetchTotalHits(type) {
       const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
-      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1000`;
+      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1`;
       const res = await fetch(url);
       const data = await res.json();
       return data.total_hits || 0;
     }
 
     async function redirectToRandomProject() {
-      let type = await getQueryParam("type");
+      let type = getQueryParam("type");
       if (!projectTypes.includes(type)) {
         type = projectTypes[Math.floor(Math.random() * projectTypes.length)];
       }
 
       const totalHits = await fetchTotalHits(type);
+      const display = document.getElementById("info");
+
       if (totalHits === 0) {
-        document.body.innerText = `No projects found for type "${type}".`;
+        display.innerText = `No projects found for type "${type}".`;
         return;
       }
 
-      const limit = 100;
-      const maxOffset = Math.max(totalHits - limit, 0);
-      const offset = Math.floor(Math.random() * (maxOffset + 1));
+      // Show total project count before redirecting
+      display.innerText = `Found ${totalHits} ${type} projects. Picking a random one...`;
+
+      const randomIndex = Math.floor(Math.random() * totalHits);
       const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
-      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=${limit}&offset=${offset}`;
+      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1&offset=${randomIndex}`;
 
       try {
         const res = await fetch(url);
         const data = await res.json();
-        const results = data.hits;
-
-        if (results.length === 0) {
-          document.body.innerText = `Failed to find any ${type} projects. Try again.`;
+        const project = data.hits[0];
+        if (!project) {
+          display.innerText = `Could not fetch project at offset ${randomIndex}. Try again.`;
           return;
         }
 
-        const project = results[Math.floor(Math.random() * results.length)];
-        window.location.href = `https://modrinth.com/${type}/${project.slug}`;
+        // Delay redirect by 1.5 seconds to show the message
+        setTimeout(() => {
+          window.location.href = `https://modrinth.com/${type}/${project.slug}`;
+        }, 1500);
       } catch (err) {
         console.error(err);
-        document.body.innerText = "Failed to load project data.";
+        display.innerText = "Failed to load project data.";
       }
     }
 
@@ -59,6 +63,6 @@
   </script>
 </head>
 <body>
-  <p>Redirecting to a random Modrinth project...</p>
+  <p id="info">Redirecting to a random Modrinth project...</p>
 </body>
 </html>
