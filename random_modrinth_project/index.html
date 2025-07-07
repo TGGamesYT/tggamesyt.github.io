@@ -4,15 +4,39 @@
   <meta charset="UTF-8">
   <title>Random Modrinth Project Redirect</title>
   <script>
-    const projectTypes = ['mod', 'plugin', 'shader', 'resourcepack', 'modpack', 'datapack'];
+    const allProjectTypes = ['mod', 'plugin', 'shader', 'resourcepack', 'modpack', 'datapack'];
 
-    function getQueryParam(key) {
+    function parseQueryParam(key) {
       const params = new URLSearchParams(window.location.search);
-      return params.get(key);
+      const value = params.get(key);
+      if (!value) return null;
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return [value];
+      }
     }
 
-    async function fetchTotalHits(type) {
-      const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
+    function buildFacets(types, versions, loaders) {
+      const facets = [];
+
+      if (types && types.length > 0) {
+        facets.push(types.map(t => `project_type:${t}`));
+      }
+
+      if (versions && versions.length > 0) {
+        facets.push(versions.map(v => `versions:${v}`));
+      }
+
+      if (loaders && loaders.length > 0) {
+        facets.push(loaders.map(l => `categories:${l}`));
+      }
+
+      return encodeURIComponent(JSON.stringify(facets));
+    }
+
+    async function fetchTotalHits(facets) {
       const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1`;
       const res = await fetch(url);
       const data = await res.json();
@@ -20,35 +44,46 @@
     }
 
     async function redirectToRandomProject() {
-      let type = getQueryParam("type");
-      if (!projectTypes.includes(type)) {
-        type = projectTypes[Math.floor(Math.random() * projectTypes.length)];
-      }
-
-      const totalHits = await fetchTotalHits(type);
       const display = document.getElementById("info");
 
+      let types = parseQueryParam("type");
+      let versions = parseQueryParam("version");
+      let loaders = parseQueryParam("loader");
+
+      // Default to all types if none provided
+      if (!types || types.length === 0) {
+        types = [allProjectTypes[Math.floor(Math.random() * allProjectTypes.length)]];
+      }
+
+      // Pick one random type if multiple specified
+      const chosenType = types[Math.floor(Math.random() * types.length)];
+
+      const facets = buildFacets([chosenType], versions, loaders);
+
+      const totalHits = await fetchTotalHits(facets);
+
       if (totalHits === 0) {
-        display.innerText = `No projects found for type "${type}".`;
+        display.innerText = `No projects found for type "${chosenType}" with those filters.`;
         return;
       }
 
-      // Show total project count before redirecting
-      display.innerText = `Found ${totalHits} ${type} projects. Picking a random one...`;
+      display.innerText = `Found ${totalHits} ${chosenType} projects matching filters. Picking a random one...`;
 
       const randomIndex = Math.floor(Math.random() * totalHits);
-      const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
-      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1&offset=${randomIndex}`;
+      const searchUrl = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1&offset=${randomIndex}`;
 
       try {
-        const res = await fetch(url);
+        const res = await fetch(searchUrl);
         const data = await res.json();
         const project = data.hits[0];
         if (!project) {
           display.innerText = `Could not fetch project at offset ${randomIndex}. Try again.`;
           return;
         }
-        window.location.href = `https://modrinth.com/${type}/${project.slug}`;
+
+        setTimeout(() => {
+          window.location.href = `https://modrinth.com/${chosenType}/${project.slug}`;
+        }, 1500);
       } catch (err) {
         console.error(err);
         display.innerText = "Failed to load project data.";
