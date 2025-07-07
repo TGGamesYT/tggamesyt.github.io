@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Random Modrinth Project Redirect</title>
+  <script>
+    const projectTypes = ['mod', 'plugin', 'shader', 'resourcepack'];
+
+    async function getQueryParam(key) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(key);
+    }
+
+    async function fetchTotalHits(type) {
+      const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
+      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.total_hits || 0;
+    }
+
+    async function redirectToRandomProject() {
+      let type = await getQueryParam("type");
+      if (!projectTypes.includes(type)) {
+        type = projectTypes[Math.floor(Math.random() * projectTypes.length)];
+      }
+
+      const totalHits = await fetchTotalHits(type);
+      if (totalHits === 0) {
+        document.body.innerText = `No projects found for type "${type}".`;
+        return;
+      }
+
+      const limit = 100;
+      const maxOffset = Math.max(totalHits - limit, 0);
+      const offset = Math.floor(Math.random() * (maxOffset + 1));
+      const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
+      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=${limit}&offset=${offset}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const results = data.hits;
+
+        if (results.length === 0) {
+          document.body.innerText = `Failed to find any ${type} projects. Try again.`;
+          return;
+        }
+
+        const project = results[Math.floor(Math.random() * results.length)];
+        window.location.href = `https://modrinth.com/${type}/${project.slug}`;
+      } catch (err) {
+        console.error(err);
+        document.body.innerText = "Failed to load project data.";
+      }
+    }
+
+    window.onload = redirectToRandomProject;
+  </script>
+</head>
+<body>
+  <p>Redirecting to a random Modrinth project...</p>
+</body>
+</html>
