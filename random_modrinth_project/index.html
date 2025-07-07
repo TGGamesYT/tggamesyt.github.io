@@ -13,7 +13,7 @@
 
     async function fetchTotalHits(type) {
       const facets = encodeURIComponent(JSON.stringify([[`project_type:${type}`]]));
-      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1`;
+      const url = `https://api.modrinth.com/v2/search?facets=${facets}&limit=1000`;
       const res = await fetch(url);
       const data = await res.json();
       return data.total_hits || 0;
