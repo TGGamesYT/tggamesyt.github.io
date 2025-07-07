@@ -48,11 +48,7 @@
           display.innerText = `Could not fetch project at offset ${randomIndex}. Try again.`;
           return;
         }
-
-        // Delay redirect by 1.5 seconds to show the message
-        setTimeout(() => {
-          window.location.href = `https://modrinth.com/${type}/${project.slug}`;
-        }, 1500);
+        window.location.href = `https://modrinth.com/${type}/${project.slug}`;
       } catch (err) {
         console.error(err);
         display.innerText = "Failed to load project data.";
