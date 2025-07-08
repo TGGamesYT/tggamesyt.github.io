@@ -18,6 +18,28 @@
       }
     }
   },
+  "versionnotifier-app": {
+    "name": "Version Notifier (Mobile App)",
+    "description: "A Mobile app that notifies you whenever a new version of Minecraft comes out",
+    "type": "JAVA / Mobile App",
+    "links": {
+      "modrinth": {
+        "text": "Google Play Store (SOON)",
+        "url": "#"
+      }
+    }
+  },
+  "versionnotifier-mod": {
+    "name": "Version Notifier (Mod)",
+    "description: "A Minecraft Mod that notifies you whenever a new version of the game comes out",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "modrinth": {
+        "text": "Modrinth",
+        "url": "https://modrinth.com/mod/versionnotifier"
+      }
+    }
+  },
   "worldrepos": {
     "name": "World Repos",
     "description": "a Minecraft mod for downloading worlds from online repositories",
