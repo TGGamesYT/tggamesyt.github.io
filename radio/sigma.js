@@ -1,4 +1,4 @@
-    const base = "https://tg.is-a.dev/assets/radio/";
+    const base = "https://tggamesyt.dev/assets/radio/";
     const seed = "SigmaRadioSeed";
     const startTime = new Date("2025-01-01T00:00:00Z").getTime();
 
