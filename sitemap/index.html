@@ -56,68 +56,76 @@
     const sitemapUrl = `https://${site}/sitemap.xml`;
 
     async function fetchSitemap(url) {
-      const res = await fetch(url);
-      const text = await res.text();
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      const text = (await res.json()).contents;
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "application/xml");
       return Array.from(xml.getElementsByTagName("loc")).map(loc => loc.textContent);
     }
 
-    async function fetchMetadata(url) {
+    async function fetchPageMeta(url) {
       try {
-        const res = await fetch(url);
-        const html = await res.text();
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl);
+        const html = (await res.json()).contents;
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        const title = doc.querySelector("title")?.innerText || url;
-        const iconLink = doc.querySelector("link[rel~='icon']")?.href;
-        const favicon = iconLink || new URL("/favicon.ico", url).href;
 
-        // Grab all visible text, remove HTML tags, and trim to 1 line
+        const title = doc.querySelector("title")?.innerText || url;
+        const iconEl = doc.querySelector("link[rel~='icon']");
+
+        let iconUrl = iconEl?.getAttribute("href") || "/favicon.ico";
+        // Resolve relative URLs
+        if (!iconUrl.startsWith("http")) {
+          const base = new URL(url);
+          iconUrl = new URL(iconUrl, base.origin).href;
+        }
+
         const bodyText = doc.body?.innerText?.replace(/\s+/g, " ").trim() || "";
         const desc = bodyText.length > 200 ? bodyText.slice(0, 200) + "..." : bodyText;
 
-        return { title, favicon, desc };
+        return { title, icon: iconUrl, desc };
       } catch (e) {
-        console.warn("Failed to fetch metadata for", url, e);
-        return { title: url, favicon: new URL("/favicon.ico", url).href, desc: "" };
+        console.warn("Failed to parse:", url, e);
+        return { title: url, icon: new URL("/favicon.ico", url).href, desc: "" };
       }
     }
 
     async function render() {
       const container = document.getElementById("entries");
-      container.innerHTML = "Loading sitemap...";
+      container.innerHTML = "Loading sitemap from " + sitemapUrl;
 
       try {
         const urls = await fetchSitemap(sitemapUrl);
         container.innerHTML = "";
 
         for (const url of urls) {
-          const { title, favicon, desc } = await fetchMetadata(url);
+          const { title, icon, desc } = await fetchPageMeta(url);
 
           const entry = document.createElement("div");
           entry.className = "entry";
           entry.onclick = () => window.open(url, "_blank");
 
-          const icon = document.createElement("img");
-          icon.className = "favicon";
-          icon.src = favicon;
-          icon.onerror = () => icon.style.display = "none";
+          const img = document.createElement("img");
+          img.className = "favicon";
+          img.src = icon;
+          img.onerror = () => img.style.display = "none";
 
           const text = document.createElement("div");
           text.className = "text";
           text.innerHTML = `<div class="title">${title}</div><div class="desc">${desc}</div>`;
 
-          entry.appendChild(icon);
+          entry.appendChild(img);
           entry.appendChild(text);
           container.appendChild(entry);
         }
       } catch (e) {
-        container.innerHTML = `<p style="color: red;">Failed to load sitemap from ${sitemapUrl}: ${e.message}</p>`;
+        container.innerHTML = `<p style="color:red">Failed to load sitemap or pages: ${e.message}</p>`;
       }
     }
 
     render();
   </script>
 </body>
-    </html>
+</html>
