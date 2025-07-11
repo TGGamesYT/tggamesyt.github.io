@@ -45,6 +45,10 @@
       font-size: 0.9em;
     }
   </style>
+</head>
+<body>
+  <h1>Sitemap Viewer</h1>
+  <div id="entries">Allows anyone to see any sitemap better</div>
   <script>
     const params = new URLSearchParams(location.search);
     const site = params.get("site") || "tggamesyt.dev";
@@ -122,9 +126,5 @@
 
     render();
           </script>
-</head>
-<body>
-  <h1>Sitemap Viewer</h1>
-  <div id="entries">Allows anyone to see any sitemap better</div>
 </body>
 </html>
