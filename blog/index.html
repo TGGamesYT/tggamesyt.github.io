@@ -52,33 +52,6 @@
       max-width: 90%;
     }
   </style>
-</head>
-<body>
-  <!-- Sidebar -->
-  <link rel="stylesheet" href="https://tggamesyt.dev/sidebar.css">
-  <script src="https://tggamesyt.dev/js.js"></script>
-  <div class="sidebar" id="sidebar">
-      <div id="navbar"></div>
-      <div id="silly"></div>
-      <p>‎</p>
-  </div>
-  <button class="menu-btn" onclick="dotwo()">
-      <span class="white"></span>
-      <span class="white"></span>
-      <span class="white"></span>
-  </button>
-  <h1>TG Blog</h1>
-  <div class="filters">
-    <input type="text" id="tagFilter" placeholder="Filter by tag (blog/awesome)" />
-    <input type="text" id="timeFilter" placeholder="Time (yyyy/mm/dd or range yyyy/mm/dd-yyyy/mm/dd)" />
-    <select id="sortOrder">
-      <option value="latest">Latest First</option>
-      <option value="oldest">Oldest First</option>
-    </select>
-    <button onclick="applyFilters()">Apply</button>
-    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
-  </div>
-  <div id="blogList"></div>
   <script>
     let blogs = [];
 
@@ -184,6 +157,33 @@
 
     applyDarkModeFromCookie();
     fetchBlogs();
-  </script>
+        </script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <link rel="stylesheet" href="https://tggamesyt.dev/sidebar.css">
+  <script src="https://tggamesyt.dev/js.js"></script>
+  <div class="sidebar" id="sidebar">
+      <div id="navbar"></div>
+      <div id="silly"></div>
+      <p>‎</p>
+  </div>
+  <button class="menu-btn" onclick="dotwo()">
+      <span class="white"></span>
+      <span class="white"></span>
+      <span class="white"></span>
+  </button>
+  <h1>TG Blog</h1>
+  <div class="filters">
+    <input type="text" id="tagFilter" placeholder="Filter by tag (blog/awesome)" />
+    <input type="text" id="timeFilter" placeholder="Time (yyyy/mm/dd or range yyyy/mm/dd-yyyy/mm/dd)" />
+    <select id="sortOrder">
+      <option value="latest">Latest First</option>
+      <option value="oldest">Oldest First</option>
+    </select>
+    <button onclick="applyFilters()">Apply</button>
+    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </div>
+  <div id="blogList"></div>
 </body>
 </html>
