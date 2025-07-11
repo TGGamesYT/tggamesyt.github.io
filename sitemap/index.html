@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sitemap Viewer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+    }
+    .entry {
+      display: flex;
+      align-items: flex-start;
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 10px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .entry:hover {
+      background: #f0f0f0;
+    }
+    .favicon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .text {
+      flex: 1;
+    }
+    .title {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .desc {
+      color: #444;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sitemap Viewer</h1>
+  <div id="entries">Loading...</div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const site = params.get("site") || "tggamesyt.dev";
+    const sitemapUrl = `https://${site}/sitemap.xml`;
+
+    async function fetchSitemap(url) {
+      const res = await fetch(url);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "application/xml");
+      return Array.from(xml.getElementsByTagName("loc")).map(loc => loc.textContent);
+    }
+
+    async function fetchMetadata(url) {
+      try {
+        const res = await fetch(url);
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const title = doc.querySelector("title")?.innerText || url;
+        const iconLink = doc.querySelector("link[rel~='icon']")?.href;
+        const favicon = iconLink || new URL("/favicon.ico", url).href;
+
+        // Grab all visible text, remove HTML tags, and trim to 1 line
+        const bodyText = doc.body?.innerText?.replace(/\s+/g, " ").trim() || "";
+        const desc = bodyText.length > 200 ? bodyText.slice(0, 200) + "..." : bodyText;
+
+        return { title, favicon, desc };
+      } catch (e) {
+        console.warn("Failed to fetch metadata for", url, e);
+        return { title: url, favicon: new URL("/favicon.ico", url).href, desc: "" };
+      }
+    }
+
+    async function render() {
+      const container = document.getElementById("entries");
+      container.innerHTML = "Loading sitemap...";
+
+      try {
+        const urls = await fetchSitemap(sitemapUrl);
+        container.innerHTML = "";
+
+        for (const url of urls) {
+          const { title, favicon, desc } = await fetchMetadata(url);
+
+          const entry = document.createElement("div");
+          entry.className = "entry";
+          entry.onclick = () => window.open(url, "_blank");
+
+          const icon = document.createElement("img");
+          icon.className = "favicon";
+          icon.src = favicon;
+          icon.onerror = () => icon.style.display = "none";
+
+          const text = document.createElement("div");
+          text.className = "text";
+          text.innerHTML = `<div class="title">${title}</div><div class="desc">${desc}</div>`;
+
+          entry.appendChild(icon);
+          entry.appendChild(text);
+          container.appendChild(entry);
+        }
+      } catch (e) {
+        container.innerHTML = `<p style="color: red;">Failed to load sitemap from ${sitemapUrl}: ${e.message}</p>`;
+      }
+    }
+
+    render();
+  </script>
+</body>
+    </html>
