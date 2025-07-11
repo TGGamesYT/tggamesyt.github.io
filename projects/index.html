@@ -56,25 +56,7 @@
       background-color: #4f46e5;
     }
   </style>
-</head>
-<body>
-  <!-- Sidebar -->
-  <link rel="stylesheet" href="https://tggamesyt.dev/sidebar.css">
-  <script src="https://tggamesyt.dev/js.js"></script>
-  <div class="sidebar" id="sidebar">
-      <div id="navbar"></div>
-      <div id="silly"></div>
-      <p>‎</p>
-  </div>
-  <button class="menu-btn" onclick="dotwo()">
-      <span class="black"></span>
-      <span class="black"></span>
-      <span class="black"></span>
-  </button>
-  <h1>My Projects</h1>
-  <div id="projects"></div>
-
-  <script>
+  <script>  
     fetch('https://tggamesyt.dev/projects.json')
       .then(response => response.json())
       .then(data => {
@@ -106,6 +88,23 @@
         console.error('Error loading projects:', err);
         document.getElementById('projects').innerText = 'Failed to load projects.';
       });
-  </script>
+            </script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <link rel="stylesheet" href="https://tggamesyt.dev/sidebar.css">
+  <script src="https://tggamesyt.dev/js.js"></script>
+  <div class="sidebar" id="sidebar">
+      <div id="navbar"></div>
+      <div id="silly"></div>
+      <p>‎</p>
+  </div>
+  <button class="menu-btn" onclick="dotwo()">
+      <span class="black"></span>
+      <span class="black"></span>
+      <span class="black"></span>
+  </button>
+  <h1>My Projects</h1>
+  <div id="projects"></div>
 </body>
 </html>
