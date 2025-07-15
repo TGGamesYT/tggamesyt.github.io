@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OverlayWardrobe</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #items { display: flex; flex-wrap: wrap; gap: 10px; }
+    .item { width: 100px; border: 1px solid #ccc; padding: 5px; cursor: pointer; text-align: center; }
+    .item img { width: 64px; height: 64px; image-rendering: pixelated; }
+    #applied .applied-item { margin: 5px 0; display: flex; align-items: center; gap: 5px; }
+    canvas { margin-top: 1rem; border: 1px solid #000; display: block; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>OverlayWardrobe</h1>
+  <input type="text" id="search" placeholder="Search name or type" style="width: 100%; padding: 8px;" />
+
+  <div id="items"></div>
+
+  <h2>Applied Overlays</h2>
+  <div id="applied"></div>
+
+  <button id="apply">Apply Skin</button>
+  <canvas id="canvas" width="64" height="64"></canvas>
+
+  <script>
+    const defaultSteveBase64 = 'REPLACE_WITH_YOUR_STEVE_BASE64'; // <- insert your base64 string here
+    const skinParam = new URLSearchParams(location.search).get('baseskin');
+    const baseSkin = skinParam || defaultSteveBase64;
+
+    const cookieKey = "overlaywardrobe_applied";
+
+    const getCookie = () => {
+      const m = document.cookie.match(new RegExp('(?:^|; )' + cookieKey + '=([^;]*)'));
+      return m ? JSON.parse(decodeURIComponent(m[1])) : [];
+    };
+    const setCookie = (list) => {
+      document.cookie = `${cookieKey}=${encodeURIComponent(JSON.stringify(list))}; path=/; max-age=${60*60*24*365}`;
+    };
+
+    const applied = getCookie();
+    const appliedDiv = document.getElementById("applied");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let allItems = [];
+
+    async function loadImage(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.src = src;
+      });
+    }
+
+    function renderApplied() {
+      appliedDiv.innerHTML = '';
+      applied.forEach((name, index) => {
+        const it = allItems.find(i => i.name === name);
+        if (!it) return;
+        const div = document.createElement('div');
+        div.className = 'applied-item';
+        div.innerHTML = `
+          <span>${it.name} (${it.type})</span>
+          <button onclick="moveUp(${index})">↑</button>
+          <button onclick="moveDown(${index})">↓</button>
+          <button onclick="removeOverlay(${index})">✕</button>
+        `;
+        appliedDiv.appendChild(div);
+      });
+      drawSkin();
+    }
+
+    function moveUp(index) {
+      if (index <= 0) return;
+      [applied[index - 1], applied[index]] = [applied[index], applied[index - 1]];
+      setCookie(applied);
+      renderApplied();
+    }
+
+    function moveDown(index) {
+      if (index >= applied.length - 1) return;
+      [applied[index + 1], applied[index]] = [applied[index], applied[index + 1]];
+      setCookie(applied);
+      renderApplied();
+    }
+
+    function removeOverlay(index) {
+      applied.splice(index, 1);
+      setCookie(applied);
+      renderApplied();
+    }
+
+    async function drawSkin() {
+      const baseImg = await loadImage(`data:image/png;base64,${baseSkin}`);
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.drawImage(baseImg, 0, 0);
+      for (const name of applied) {
+        const it = allItems.find(i => i.name === name);
+        if (it) {
+          const img = await loadImage(`https://tggamesyt.dev/overlaywardrobe/${it.loc}`);
+          ctx.drawImage(img, 0, 0);
+        }
+      }
+    }
+
+    async function loadItems() {
+      const res = await fetch('https://tggamesyt.dev/overlaywardrobe/list.json');
+      const data = await res.json();
+      allItems = Object.entries(data).map(([name, val]) => ({ name, ...val }));
+      renderItems(allItems);
+    }
+
+    function renderItems(list) {
+      const itemsDiv = document.getElementById("items");
+      itemsDiv.innerHTML = '';
+      list.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `
+          <img src="https://tggamesyt.dev/overlaywardrobe/${it.loc}" alt="${it.name}" />
+          <div>${it.name}</div>
+          <small>${it.type}</small>
+        `;
+        el.onclick = () => {
+          if (!applied.includes(it.name)) {
+            applied.push(it.name);
+            setCookie(applied);
+            renderApplied();
+          }
+        };
+        itemsDiv.appendChild(el);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = allItems.filter(it =>
+        it.name.toLowerCase().includes(query) || it.type.toLowerCase().includes(query)
+      );
+      renderItems(filtered);
+    });
+
+    document.getElementById("apply").addEventListener("click", () => {
+      const skinBase64 = canvas.toDataURL().split(',')[1];
+      location.href = `http://localhost:30055/setskin?base64=${encodeURIComponent(skinBase64)}`;
+    });
+
+    loadItems().then(renderApplied);
+  </script>
+</body>
+  </html>
