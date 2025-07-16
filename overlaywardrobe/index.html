@@ -15,8 +15,11 @@
 </head>
 <body>
   <h1>OverlayWardrobe</h1>
-  <input type="text" id="search" placeholder="Search name or type" style="width: 100%; padding: 8px;" />
 
+  <input type="file" id="uploadSkin" accept="image/png" />
+  <br/><br/>
+
+  <input type="text" id="search" placeholder="Search name or type" style="width: 100%; padding: 8px;" />
   <div id="items"></div>
 
   <h2>Applied Overlays</h2>
@@ -26,9 +29,10 @@
   <canvas id="canvas" width="64" height="64"></canvas>
 
   <script>
-    const defaultSteveBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAdVBMVEUAAAD///+qclmbY0mQWT+PXj6BUzl2SzM/KhUzJBErHg0kGAgmGgo6MYlBNZtGOqUFiIgElZUApKQAr68KvLw3Nzc/Pz9KSkpVVVUAzMyUYD5qQDB3QjVJJRBCHQooKCgAf38AaGg0JRIDenqzeV63g2tSPYnw8BGEAAAAAXRSTlMAQObYZgAAAo5JREFUSA3t1oWOM1cAQ+HPNymlzMx9/ycqV/Qz0eJ1GTKFya642iOy6MjXgwHYaVTOACcOYwugTRsEdSgDQMNgBjIvLkiqKcAlBDStQrnoBpVQYw7MXGKD0qSjKrlwg6CJ9B1cqwPJTiVVRUJaoZE2j1eP0CTaIaSdlaSYxLQmaKuzevL+hx8cn76bzppKlKwfIa1Rx/3M1+QZmZJWGvpk9QiTHB+nHV/ni/bnzGRExRrbInUUX77ry+RIUxrSyOoGIzk9Gpu3s3k/+WCzeXszjk6TAbFOnp465sgbN99peq3NHDMGT+Nk9bEOvIhn7XwHePdaon37IeAB4HV6r8x/uhN3HgOQEP9IJf8oeGxnlRSt1QYVrSVFut8gL2nCTEPMLUbvRl/JxKiSoMSLeIBbgK0CEIaKvHzPy6Ei0kAJoioAg0AA+vrrrbz6UvTnPFGmSnSCqOUGoPI6r99OJPpzvkORFwH5Ld/+q6AVaSaFNlBAgx9I04AurkJISyq3XneLBn7OCaFFtUnVQiAQCW6RqIZbIFSqyHKDIfYIKY0mBBRQEC2AbQUlBYQZUVJBtaSg9tjuPFawAyeBtkkJ1bQKNHRPMLMjRZvoeVPifDP0XIxUzweQghTAVhtUKUVEx2SKdHYzh7RRSdMQV/yfiAN5A2iRcNMVV6zcSC/iNY/dALwW7pBzLNmy5J8/96OtgwXLz710wuUbtKPNQRu8pInSCH0ND5QAt+wz/AOVUIgEoWg5TIAAMCtRlcM2yH6VvLyQJwC6FNAwBSb9AZqmIGfrDRqRIpVKSxV0fYMgARkjEJRILjCigIAC7fqIFRoUUCCFdcHOY1rswCMU6EGC5f8CSAHpqsDyfyENoqJiwY8icHkmoi9YwQAAAABJRU5ErkJggg=='; // <- insert your base64 string here
+    const defaultSteveBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAdVBMVEUAAAD///+qclmbY0mQWT+PXj6BUzl2SzM/KhUzJBErHg0kGAgmGgo6MYlBNZtGOqUFiIgElZUApKQAr68KvLw3Nzc/Pz9KSkpVVVUAzMyUYD5qQDB3QjVJJRBCHQooKCgAf38AaGg0JRIDenqzeV63g2tSPYnw8BGEAAAAAXRSTlMAQObYZgAAAo5JREFUSA3t1oWOM1cAQ+HPNymlzMx9/ycqV/Qz0eJ1GTKFya642iOy6MjXgwHYaVTOACcOYwugTRsEdSgDQMNgBjIvLkiqKcAlBDStQrnoBpVQYw7MXGKD0qSjKrlwg6CJ9B1cqwPJTiVVRUJaoZE2j1eP0CTaIaSdlaSYxLQmaKuzevL+hx8cn76bzppKlKwfIa1Rx/3M1+QZmZJWGvpk9QiTHB+nHV/ni/bnzGRExRrbInUUX77ry+RIUxrSyOoGIzk9Gpu3s3k/+WCzeXszjk6TAbFOnp465sgbN99peq3NHDMGT+Nk9bEOvIhn7XwHePdaon37IeAB4HV6r8x/uhN3HgOQEP9IJf8oeGxnlRSt1QYVrSVFut8gL2nCTEPMLUbvRl/JxKiSoMSLeIBbgK0CEIaKvHzPy6Ei0kAJoioAg0AA+vrrrbz6UvTnPFGmSnSCqOUGoPI6r99OJPpzvkORFwH5Ld/+q6AVaSaFNlBAgx9I04AurkJISyq3XneLBn7OCaFFtUnVQiAQCW6RqIZbIFSqyHKDIfYIKY0mBBRQEC2AbQUlBYQZUVJBtaSg9tjuPFawAyeBtkkJ1bQKNHRPMLMjRZvoeVPifDP0XIxUzweQghTAVhtUKUVEx2SKdHYzh7RRSdMQV/yfiAN5A2iRcNMVV6zcSC/iNY/dALwW7pBzLNmy5J8/96OtgwXLz710wuUbtKPNQRu8pInSCH0ND5QAt+wz/AOVUIgEoWg5TIAAMCtRlcM2yH6VvLyQJwC6FNAwBSb9AZqmIGfrDRqRIpVKSxV0fYMgARkjEJRILjCigIAC7fqIFRoUUCCFdcHOY1rswCMU6EGC5f8CSAHpqsDyfyENoqJiwY8icHkmoi9YwQAAAABJRU5ErkJggg==';
+
     const skinParam = new URLSearchParams(location.search).get('baseskin');
-    const baseSkin = skinParam || defaultSteveBase64;
+    let baseSkin = skinParam ? decodeURIComponent(skinParam) : defaultSteveBase64;
 
     const cookieKey = "overlaywardrobe_applied";
 
@@ -145,10 +149,24 @@
 
     document.getElementById("apply").addEventListener("click", () => {
       const skinBase64 = canvas.toDataURL().split(',')[1];
-      location.href = `http://localhost:30055/setskin?base64=${encodeURIComponent(skinBase64)}`;
+      const encoded = encodeURIComponent(skinBase64);
+      location.href = `http://localhost:30055/setskin?base64=${encoded}`;
+    });
+
+    document.getElementById("uploadSkin").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result.split(',')[1];
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('baseskin', encodeURIComponent(base64));
+        window.location.href = newUrl.toString(); // reload with new skin param
+      };
+      reader.readAsDataURL(file);
     });
 
     loadItems().then(renderApplied);
   </script>
 </body>
-  </html>
+</html>
