@@ -1,0 +1,145 @@
+/* Minecraft Wardrobe UI — wardrobe.css */
+
+body {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'MinecraftSeven', sans-serif;
+  margin: 0;
+  padding: 20px;
+  image-rendering: pixelated;
+}
+
+h1, h2 {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 16px;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+
+#search {
+  display: block;
+  margin: 0 auto 24px;
+  padding: 8px;
+  width: 300px;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  color: #fff;
+  font-size: 14px;
+  font-family: 'MinecraftSeven', sans-serif;
+}
+
+/* Items grid */
+#items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Item slot */
+.item {
+  background: #2a2a2a;
+  border: 2px solid #555;
+  width: 72px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  cursor: pointer;
+  transition: border 0.2s, transform 0.1s;
+}
+
+.item:hover {
+  border-color: #aaa;
+  transform: scale(1.05);
+}
+
+.item img {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  image-rendering: pixelated;
+}
+
+.item div {
+  font-size: 10px;
+  text-align: center;
+  color: #ccc;
+}
+
+/* Applied overlays */
+#applied {
+  max-width: 400px;
+  margin: 32px auto;
+  padding: 10px;
+  background: #202020;
+  border: 2px solid #444;
+}
+
+.applied-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #2b2b2b;
+  border: 1px solid #444;
+  color: #ddd;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.applied-item button {
+  background: #3a3a3a;
+  border: none;
+  padding: 4px 6px;
+  color: #fff;
+  cursor: pointer;
+  font-family: 'MinecraftSeven', sans-serif;
+  font-size: 11px;
+  transition: background 0.2s;
+}
+
+.applied-item button:hover {
+  background: #555;
+}
+
+/* Canvas styling */
+canvas {
+  display: block;
+  margin: 40px auto 20px;
+  border: 4px solid #000;
+  background-color: #111;
+  image-rendering: pixelated;
+}
+
+/* Upload input */
+#upload {
+  display: block;
+  margin: 0 auto 16px;
+  background: #2d2d2d;
+  color: #ccc;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 2px solid #555;
+  font-family: 'MinecraftSeven', sans-serif;
+}
+
+/* Apply button */
+#apply {
+  display: block;
+  margin: 20px auto;
+  background-color: #3e7e3e;
+  color: #fff;
+  padding: 10px 20px;
+  font-size: 14px;
+  border: 2px solid #000;
+  font-family: 'MinecraftSeven', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#apply:hover {
+  background-color: #2d6c2d;
+  }
