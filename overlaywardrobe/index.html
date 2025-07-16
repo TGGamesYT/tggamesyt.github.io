@@ -157,9 +157,8 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result.split(',')[1];
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('baseskin', encodeURIComponent(base64));
-        window.location.href = newUrl.toString(); // reload with new skin param
+        baseSkin = base64; // override for this session only
+        drawSkin(); // re-render with new skin
       };
       reader.readAsDataURL(file);
     });
