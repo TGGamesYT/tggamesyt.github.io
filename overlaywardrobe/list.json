@@ -1,10 +1,14 @@
 {    
-"Santa Hat": {    
-"type": "HAT",    
-"loc": "HAT/santa.png"    
+"Santa": {    
+    "type": "HAT",    
+    "loc": "HAT/santa.png"    
 },    
-"Squid Game Suit": {    
-"type": "SUIT",    
-"loc": "SUIT/squid_game.png"    
+"Squid Game": {    
+    "type": "SUIT",    
+    "loc": "SUIT/squid-game.png"    
+},
+"Frog": {
+    "type": "HAT",
+    "loc": "HAT/frog.png"
 }
 }
