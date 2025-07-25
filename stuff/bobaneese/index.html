@@ -7,24 +7,24 @@ sitemap: false
   <title>Typo Translator</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    input, textarea { width: 100%; padding: 8px; margin: 10px 0; }
+    input, textarea, button { width: 100%; padding: 8px; margin: 10px 0; font-size: 1rem; }
     label { font-weight: bold; display: block; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h1>Typo Translator (Seeded)</h1>
+  <h1>Boba bubble tea neese translator</h1>
 
   <label for="seed">Seed:</label>
   <input type="number" id="seed" value="123">
 
   <label for="input">Original Text:</label>
-  <textarea id="input" rows="2">TEST</textarea>
+  <textarea id="input" rows="3">TEST GOOD SWEET</textarea>
 
   <button onclick="encode()">Translate</button>
   <button onclick="decode()">Reverse</button>
 
   <label for="output">Result:</label>
-  <textarea id="output" rows="2"></textarea>
+  <textarea id="output" rows="3"></textarea>
 
   <script>
     const VOWELS = 'AEIOUYaeiouy';
@@ -69,50 +69,40 @@ sitemap: false
       if (chars.length < 2) return group;
 
       if (method === 0) {
-        // Shuffle
         for (let i = chars.length - 1; i > 0; i--) {
           const j = Math.floor(rand() * (i + 1));
           [chars[i], chars[j]] = [chars[j], chars[i]];
         }
         return chars.join('');
       } else if (method === 1) {
-        // Trim 1 letter
         let index = Math.floor(rand() * chars.length);
         chars.splice(index, 1);
         return chars.join('');
       }
-      return group; // unchanged
+      return group;
+    }
+
+    function encodeWord(word, rand) {
+      const groups = groupSameType(word);
+      return groups.map(g => shuffleOrTrim(g, rand)).join('');
     }
 
     function encode() {
       const seed = parseInt(document.getElementById("seed").value);
       const input = document.getElementById("input").value;
+
+      const words = input.split(/\s+/);
       const rand = seededRandom(seed);
 
-      const groups = groupSameType(input);
-      const simplified = groups.map(g => shuffleOrTrim(g, rand)).join('');
-      document.getElementById("output").value = simplified;
+      const result = words.map(word => encodeWord(word, rand)).join(' ');
+      document.getElementById("output").value = result;
     }
 
     function decode() {
-      const seed = parseInt(document.getElementById("seed").value);
+      // For actual reverse you'd need to store the transformation log.
       const output = document.getElementById("output").value;
-
-      // NOTE: This decode is **theoretical**, actual full restoration needs:
-      // - Remember original length of groups
-      // - Store more metadata per transformation
-
-      // For now, this shows the original structure and approximates:
-      const rand = seededRandom(seed);
-      const approxGroups = groupSameType(output);
-
-      let reconstructed = approxGroups.map(g => {
-        if (g.length === 1) return g;
-        // Try padding with '_' or return as-is
-        return g + '_'; // can't truly reverse without more info
-      }).join('');
-
-      document.getElementById("input").value = reconstructed;
+      const approx = output.split(/\s+/).map(w => w + '_').join(' ');
+      document.getElementById("input").value = approx;
     }
   </script>
 </body>
