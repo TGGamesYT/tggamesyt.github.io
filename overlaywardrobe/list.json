@@ -5,10 +5,12 @@
 },    
 "Squid Game": {    
     "type": "SUIT",    
-    "loc": "SUIT/squid-game.png"    
+    "loc": "SUIT/squid-game.png",
+    "erase": "SUIT/squid-game-erase.png"
 },
 "Frog": {
     "type": "HAT",
-    "loc": "HAT/frog.png"
+    "loc": "HAT/frog.png",
+    "erase": "HAT/frog-erase.png"
 }
 }
