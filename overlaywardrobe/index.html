@@ -96,17 +96,43 @@
     }
 
     async function drawSkin() {
-      const baseImg = await loadImage(`data:image/png;base64,${baseSkin}`);
-      ctx.clearRect(0, 0, 64, 64);
-      ctx.drawImage(baseImg, 0, 0);
-      for (const name of applied) {
-        const it = allItems.find(i => i.name === name);
-        if (it) {
-          const img = await loadImage(`https://tggamesyt.dev/overlaywardrobe/${it.loc}`);
-          ctx.drawImage(img, 0, 0);
+  const baseImg = await loadImage(`data:image/png;base64,${baseSkin}`);
+  ctx.clearRect(0, 0, 64, 64);
+  ctx.drawImage(baseImg, 0, 0);
+
+  for (const name of applied) {
+    const it = allItems.find(i => i.name === name);
+    if (!it) continue;
+
+    // Apply eraser if available
+    if (it.erase) {
+      const eraseImg = await loadImage(`https://tggamesyt.dev/overlaywardrobe/${it.erase}`);
+      const eraseCanvas = document.createElement('canvas');
+      eraseCanvas.width = 64;
+      eraseCanvas.height = 64;
+      const eraseCtx = eraseCanvas.getContext('2d');
+      eraseCtx.drawImage(eraseImg, 0, 0);
+      const eraseData = eraseCtx.getImageData(0, 0, 64, 64);
+      const baseData = ctx.getImageData(0, 0, 64, 64);
+
+      for (let i = 0; i < eraseData.data.length; i += 4) {
+        const r = eraseData.data[i];
+        const g = eraseData.data[i + 1];
+        const b = eraseData.data[i + 2];
+
+        if (r === 0 && g === 0 && b === 0) {
+          baseData.data[i + 3] = 0; // fully transparent
         }
       }
+      ctx.putImageData(baseData, 0, 0);
     }
+
+    // Then apply overlay
+    const overlayImg = await loadImage(`https://tggamesyt.dev/overlaywardrobe/${it.loc}`);
+    ctx.drawImage(overlayImg, 0, 0);
+  }
+}
+
 
     async function loadItems() {
       const res = await fetch('https://tggamesyt.dev/overlaywardrobe/list.json');
