@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Discord Timestamp Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #2c2f33;
+      color: #fff;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 2rem;
+    }
+    label, select, input {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+    }
+    input, select {
+      padding: 0.5rem;
+      background: #23272a;
+      color: white;
+      border: 1px solid #7289da;
+      border-radius: 5px;
+    }
+    #output {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #23272a;
+      border: 1px solid #99aab5;
+      border-radius: 5px;
+      font-family: monospace;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h1>Discord Timestamp Generator</h1>
+
+  <label for="datetime">Select Date & Time:</label>
+  <input type="datetime-local" id="datetime" />
+
+  <label for="format">Select Format:</label>
+  <select id="format">
+    <option value="t">Short Time (e.g. 9:41 PM)</option>
+    <option value="T">Long Time (e.g. 9:41:30 PM)</option>
+    <option value="d">Short Date (e.g. 30/06/2025)</option>
+    <option value="D">Long Date (e.g. 30 June 2025)</option>
+    <option value="f">Short Date/Time (e.g. 30 June 2025 9:41 PM)</option>
+    <option value="F">Long Date/Time (e.g. Monday, 30 June 2025 9:41 PM)</option>
+    <option value="R">Relative Time (e.g. in 2 months)</option>
+  </select>
+
+  <div id="output">&lt;t:TIMESTAMP:FORMAT&gt;</div>
+
+  <script>
+    const datetimeInput = document.getElementById('datetime');
+    const formatSelect = document.getElementById('format');
+    const output = document.getElementById('output');
+
+    function updateOutput() {
+      const date = new Date(datetimeInput.value);
+      if (isNaN(date.getTime())) {
+        output.textContent = "Please enter a valid date/time.";
+        return;
+      }
+      const timestamp = Math.floor(date.getTime() / 1000);
+      const format = formatSelect.value;
+      output.textContent = `<t:${timestamp}:${format}>`;
+    }
+
+    datetimeInput.addEventListener('input', updateOutput);
+    formatSelect.addEventListener('change', updateOutput);
+  </script>
+</body>
+</html> 
