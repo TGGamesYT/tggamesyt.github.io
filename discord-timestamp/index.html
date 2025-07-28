@@ -16,7 +16,7 @@
     body.light {
       --bg-color: #f5f5f5;
       --text-color: #222;
-      --input-bg: #fff;
+      --input-bg: #ffffff;
       --border-color: #4a90e2;
       --secondary-color: #555;
     }
@@ -49,7 +49,7 @@
       border-radius: 5px;
     }
 
-    #output {
+    #output, #rendered {
       margin-top: 1.5rem;
       padding: 1rem;
       background: var(--input-bg);
@@ -102,11 +102,12 @@
     <option value="d">Short Date (e.g. 30/06/2025)</option>
     <option value="D">Long Date (e.g. 30 June 2025)</option>
     <option value="f">Short Date/Time (e.g. 30 June 2025 9:41 PM)</option>
-    <option value="F">Long Date/Time (e.g. Monday, 30 June 2025 9:41 PM)</option>
+    <option value="F" selected>Long Date/Time (e.g. Monday, 30 June 2025 9:41 PM)</option>
     <option value="R">Relative Time (e.g. in 2 months)</option>
   </select>
 
   <div id="output">&lt;t:TIMESTAMP:FORMAT&gt;</div>
+  <div id="rendered">Rendered: *(preview will appear here)*</div>
 
   <div class="controls">
     <button onclick="copyToClipboard()">Copy to Clipboard</button>
@@ -117,16 +118,70 @@
     const datetimeInput = document.getElementById('datetime');
     const formatSelect = document.getElementById('format');
     const output = document.getElementById('output');
+    const rendered = document.getElementById('rendered');
+
+    const MAX_TIMESTAMP = 8640000000000;
+    const MIN_TIMESTAMP = -8640000000000;
+
+    const FORMAT_MAP = {
+      t: { timeStyle: 'short' },
+      T: { timeStyle: 'medium' },
+      d: { dateStyle: 'short' },
+      D: { dateStyle: 'long' },
+      f: { dateStyle: 'long', timeStyle: 'short' },
+      F: { dateStyle: 'full', timeStyle: 'short' },
+      R: 'relative'
+    };
 
     function updateOutput() {
       const date = new Date(datetimeInput.value);
       if (isNaN(date.getTime())) {
         output.textContent = "Please enter a valid date/time.";
+        rendered.textContent = "Rendered: *(invalid date)*";
         return;
       }
+
       const timestamp = Math.floor(date.getTime() / 1000);
+
+      if (timestamp < MIN_TIMESTAMP || timestamp > MAX_TIMESTAMP) {
+        output.textContent = `<t:${timestamp}:?> (outside supported range)`;
+        rendered.textContent = "Rendered: *(too old or too far in future)*";
+        return;
+      }
+
       const format = formatSelect.value;
-      output.textContent = `<t:${timestamp}:${format}>`;
+      const tag = `<t:${timestamp}:${format}>`;
+      output.textContent = tag;
+
+      if (format === 'R') {
+        const diff = timestamp - Math.floor(Date.now() / 1000);
+        rendered.textContent = "Rendered: " + formatRelativeTime(diff);
+      } else {
+        rendered.textContent = "Rendered: " + new Intl.DateTimeFormat(undefined, FORMAT_MAP[format]).format(date);
+      }
+    }
+
+    function formatRelativeTime(seconds) {
+      const abs = Math.abs(seconds);
+      const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+      const units = [
+        { unit: "year", seconds: 31536000 },
+        { unit: "month", seconds: 2628000 },
+        { unit: "week", seconds: 604800 },
+        { unit: "day", seconds: 86400 },
+        { unit: "hour", seconds: 3600 },
+        { unit: "minute", seconds: 60 },
+        { unit: "second", seconds: 1 }
+      ];
+
+      for (const { unit, seconds: unitSeconds } of units) {
+        if (abs >= unitSeconds) {
+          const value = Math.round(seconds / unitSeconds);
+          return rtf.format(value, unit);
+        }
+      }
+      return "now";
     }
 
     function copyToClipboard() {
