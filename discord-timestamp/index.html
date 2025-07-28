@@ -177,7 +177,7 @@
 
       for (const { unit, seconds: unitSeconds } of units) {
         if (abs >= unitSeconds) {
-          const value = Math.round(seconds / unitSeconds);
+          const value = Math.floor(seconds / unitSeconds);
           return rtf.format(value, unit);
         }
       }
