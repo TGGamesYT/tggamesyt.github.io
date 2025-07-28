@@ -1,0 +1,128 @@
+---
+sitemap: false
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clean Vent</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+
+    .task-container {
+      background: #2c2c2c;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    .vent {
+      width: 300px;
+      height: 150px;
+      border-radius: 20px;
+      background: #444;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .debris {
+      position: absolute;
+      cursor: pointer;
+    }
+
+    .circle {
+      border-radius: 50%;
+    }
+
+    .rectangle {
+      border-radius: 4px;
+    }
+
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 30px solid red;
+      background: none !important;
+    }
+
+    #taskDone {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      padding: 10px 20px;
+      border-radius: 10px;
+      animation: slideDown 2s forwards;
+      z-index: 9999;
+      display: none;
+    }
+
+    @keyframes slideDown {
+      0% { top: -100px; opacity: 0; }
+      50% { top: 40px; opacity: 1; }
+      100% { top: 40px; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="task-container">
+  <div class="vent" id="vent"></div>
+</div>
+<div id="taskDone">Task Done</div>
+
+<script>
+  const vent = document.getElementById('vent');
+  const debrisShapes = ['circle', 'rectangle', 'triangle'];
+  const colors = ['red', 'yellow', 'lime', 'cyan', 'magenta', 'white'];
+  const totalDebris = 6;
+
+  for (let i = 0; i < totalDebris; i++) {
+    const shape = document.createElement('div');
+    const shapeType = debrisShapes[Math.floor(Math.random() * debrisShapes.length)];
+    shape.classList.add('debris', shapeType);
+
+    if (shapeType !== 'triangle') {
+      shape.style.width = '30px';
+      shape.style.height = '30px';
+      shape.style.background = colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    shape.style.left = Math.floor(Math.random() * 260) + 'px';
+    shape.style.top = Math.floor(Math.random() * 110) + 'px';
+
+    shape.addEventListener('click', () => {
+      shape.remove();
+      checkDone();
+    });
+
+    vent.appendChild(shape);
+  }
+
+  function checkDone() {
+    if (document.querySelectorAll('.debris').length === 0) {
+      const done = document.getElementById('taskDone');
+      done.style.display = 'block';
+      setTimeout(() => {
+        window.location.href = "amongcraft://taskdone/clean_vent";
+      }, 2000);
+    }
+  }
+</script>
+
+</body>
+</html>
