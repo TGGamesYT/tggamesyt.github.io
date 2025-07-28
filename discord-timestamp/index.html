@@ -107,7 +107,7 @@
   </select>
 
   <div id="output">&lt;t:TIMESTAMP:FORMAT&gt;</div>
-  <div id="rendered">Rendered: *(preview will appear here)*</div>
+  <div id="rendered">*(preview will appear here)*</div>
 
   <div class="controls">
     <button onclick="copyToClipboard()">Copy to Clipboard</button>
@@ -137,7 +137,7 @@
       const date = new Date(datetimeInput.value);
       if (isNaN(date.getTime())) {
         output.textContent = "Please enter a valid date/time.";
-        rendered.textContent = "Rendered: *(invalid date)*";
+        rendered.textContent = "*(invalid date)*";
         return;
       }
 
@@ -145,7 +145,7 @@
 
       if (timestamp < MIN_TIMESTAMP || timestamp > MAX_TIMESTAMP) {
         output.textContent = `<t:${timestamp}:?> (outside supported range)`;
-        rendered.textContent = "Rendered: *(too old or too far in future)*";
+        rendered.textContent = "*(too old or too far in future)*";
         return;
       }
 
@@ -155,9 +155,9 @@
 
       if (format === 'R') {
         const diff = timestamp - Math.floor(Date.now() / 1000);
-        rendered.textContent = "Rendered: " + formatRelativeTime(diff);
+        rendered.textContent = formatRelativeTime(diff);
       } else {
-        rendered.textContent = "Rendered: " + new Intl.DateTimeFormat(undefined, FORMAT_MAP[format]).format(date);
+        rendered.textContent = new Intl.DateTimeFormat(undefined, FORMAT_MAP[format]).format(date);
       }
     }
 
