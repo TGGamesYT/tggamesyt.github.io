@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Unlock Manifolds</title>
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    user-select: none;
+  }
+  #taskContainer {
+    background: #00497a;
+    border-radius: 15px;
+    padding: 30px;
+    width: 500px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    text-align: center;
+    color: #e0f0ff;
+  }
+  h2 {
+    margin-bottom: 10px;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 60px);
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .box {
+    background: #005a99;
+    border-radius: 10px;
+    color: #cce6ff;
+    font-weight: bold;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s, color 0.3s;
+    border: 2px solid transparent;
+  }
+  .box:hover {
+    background: #007acc;
+  }
+  .box.correct {
+    background: #00cc66;
+    color: white;
+    border-color: #00ff88;
+    cursor: default;
+  }
+  #taskDone {
+    position: fixed;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: #00ff66;
+    user-select: none;
+    z-index: 1000;
+    pointer-events: none;
+    transition: top 1.5s ease, transform 1.5s ease;
+  }
+</style>
+</head>
+<body>
+  <div id="taskContainer">
+    <h2>Unlock Manifolds</h2>
+    <p>Click the boxes in order from 1 to 10</p>
+    <div id="grid"></div>
+  </div>
+  <div id="taskDone">Task Done!</div>
+
+<script>
+  const grid = document.getElementById('grid');
+  const taskDoneEl = document.getElementById('taskDone');
+  let nextNumber = 1;
+
+  // Fisher-Yates shuffle
+  function shuffle(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+  }
+
+  function createBoxes() {
+    grid.innerHTML = ''; // Clear old boxes
+
+    const numbers = shuffle([...Array(10).keys()].map(i => i + 1)); // [1..10] shuffled
+
+    for (let i = 0; i < 10; i++) {
+      const box = document.createElement('div');
+      box.classList.add('box');
+      box.textContent = numbers[i];
+      box.dataset.number = numbers[i];
+      grid.appendChild(box);
+    }
+  }
+
+  function resetTask() {
+    nextNumber = 1;
+    taskDoneEl.style.transition = 'none';
+    taskDoneEl.style.top = '-100px';
+    taskDoneEl.style.transform = 'translateX(-50%)';
+    taskDoneEl.style.opacity = '1';
+    taskDoneEl.style.display = 'none';
+    grid.style.pointerEvents = 'auto';
+    createBoxes();
+  }
+
+  grid.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!target.classList.contains('box')) return;
+
+    const num = parseInt(target.dataset.number, 10);
+
+    if (num === nextNumber) {
+      // Correct box clicked
+      target.classList.add('correct');
+      nextNumber++;
+
+      if (nextNumber > 10) {
+        markTaskDone();
+      }
+    } else {
+      // Wrong box clicked -> reset
+      resetTask();
+    }
+  });
+
+  function markTaskDone() {
+    taskDoneEl.style.display = 'block';
+
+    // Trigger layout so transition applies
+    void taskDoneEl.offsetWidth;
+
+    taskDoneEl.style.transition = 'top 1.5s ease, transform 1.5s ease';
+    taskDoneEl.style.top = '50%';
+    taskDoneEl.style.transform = 'translate(-50%, -50%)';
+
+    grid.style.pointerEvents = 'none';
+
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/unlock_manifolds";
+    }, 2200);
+  }
+
+  // Initial setup
+  resetTask();
+</script>
+</body>
+</html>

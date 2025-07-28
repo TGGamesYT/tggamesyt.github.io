@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chart Course</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      color: black;
+      user-select: none;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #taskContainer {
+      padding: 20px;
+      text-align: center;
+      width: 400px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    canvas {
+      border: 2px solid #555;
+      border-radius: 10px;
+      display: block;
+      margin: 15px auto;
+      background: white;
+    }
+    #taskDone {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      opacity: 1;
+      transition: top 2s ease, left 2s ease, transform 2s ease, opacity 2s ease;
+      z-index: 1000;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="taskContainer">
+    <h2>Chart Course</h2>
+    <p>Drag the ship through all the points in order</p>
+    <canvas id="chartCanvas" width="400" height="400"></canvas>
+  </div>
+  <div id="taskDone">Task Done</div>
+
+  <script>
+    const canvas = document.getElementById("chartCanvas");
+    const ctx = canvas.getContext("2d");
+    const taskDoneEl = document.getElementById("taskDone");
+
+    const POINT_RADIUS = 10;
+    const SHIP_RADIUS = 12;
+    const POINT_COUNT = 5;
+    const POINT_HIT_DISTANCE = 18;
+
+    let points = [];
+    let visited = new Array(POINT_COUNT).fill(false);
+    let currentPointIndex = 0;
+
+    // Ship state
+    let ship = {
+      x: 0,
+      y: 0,
+      dragging: false,
+      offsetX: 0,
+      offsetY: 0,
+    };
+
+    // Generate evenly spaced but slightly randomized points
+    function generatePoints() {
+      points = [];
+      const margin = 50;
+      const horizontalStep = (canvas.width - 2 * margin) / (POINT_COUNT - 1);
+      for (let i = 0; i < POINT_COUNT; i++) {
+        // x evenly spaced, y randomized but within safe vertical margins
+        const x = margin + i * horizontalStep;
+        const y = margin + Math.random() * (canvas.height - 2 * margin);
+        points.push({ x, y });
+      }
+      visited.fill(false);
+      currentPointIndex = 0;
+
+      // Place ship exactly on first point
+      ship.x = points[0].x;
+      ship.y = points[0].y;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw dashed lines connecting points
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 10]);
+      ctx.beginPath();
+      for (let i = 0; i < points.length - 1; i++) {
+        ctx.moveTo(points[i].x, points[i].y);
+        ctx.lineTo(points[i + 1].x, points[i + 1].y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw points
+      for (let i = 0; i < points.length; i++) {
+        ctx.beginPath();
+        ctx.arc(points[i].x, points[i].y, POINT_RADIUS, 0, Math.PI * 2);
+        if (visited[i]) {
+          ctx.fillStyle = "limegreen";
+        } else if (i === currentPointIndex) {
+          ctx.fillStyle = "yellow";
+        } else {
+          ctx.fillStyle = "gray";
+        }
+        ctx.fill();
+      }
+
+      // Draw the ship
+      ctx.beginPath();
+      ctx.fillStyle = "deepskyblue";
+      ctx.arc(ship.x, ship.y, SHIP_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw small white triangle pointer on ship (pointing up)
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.moveTo(ship.x, ship.y - SHIP_RADIUS + 4);
+      ctx.lineTo(ship.x - 6, ship.y + 4);
+      ctx.lineTo(ship.x + 6, ship.y + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Calculate closest point on segment AB to point P
+    function closestPointOnSegment(A, B, P) {
+      const ABx = B.x - A.x;
+      const ABy = B.y - A.y;
+      const APx = P.x - A.x;
+      const APy = P.y - A.y;
+      const ab2 = ABx*ABx + ABy*ABy;
+      const ap_ab = APx*ABx + APy*ABy;
+      let t = ap_ab / ab2;
+      t = Math.max(0, Math.min(1, t)); // Clamp to segment
+      return { x: A.x + ABx * t, y: A.y + ABy * t, t: t };
+    }
+
+    // Check if ship is close enough to current point
+    function checkPointReached() {
+      if (currentPointIndex >= points.length) return;
+      const p = points[currentPointIndex];
+      const dx = ship.x - p.x;
+      const dy = ship.y - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= POINT_HIT_DISTANCE) {
+        visited[currentPointIndex] = true;
+        currentPointIndex++;
+        if (currentPointIndex === points.length) {
+          onTaskDone();
+        }
+      }
+    }
+
+    function onTaskDone() {
+      taskDoneEl.style.display = "block";
+      taskDoneEl.style.top = "10px";
+      taskDoneEl.style.left = "50%";
+      taskDoneEl.style.transform = "translateX(-50%)";
+      taskDoneEl.style.opacity = "1";
+
+      setTimeout(() => {
+        taskDoneEl.style.top = "50%";
+        taskDoneEl.style.transform = "translate(-50%, -50%)";
+      }, 50);
+
+      setTimeout(() => {
+        window.location.href = "amongcraft://taskdone/chart_course";
+      }, 2250);
+    }
+
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const dx = mx - ship.x;
+      const dy = my - ship.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= SHIP_RADIUS) {
+        ship.dragging = true;
+        ship.offsetX = dx;
+        ship.offsetY = dy;
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!ship.dragging) return;
+      const rect = canvas.getBoundingClientRect();
+      let mx = e.clientX - rect.left;
+      let my = e.clientY - rect.top;
+
+      let desiredPos = { x: mx - ship.offsetX, y: my - ship.offsetY };
+
+      if (currentPointIndex === 0) {
+        const A = points[0];
+        const B = points[1];
+        const closest = closestPointOnSegment(A, B, desiredPos);
+        ship.x = closest.x;
+        ship.y = closest.y;
+      } else if (currentPointIndex >= points.length) {
+        ship.x = points[points.length -1].x;
+        ship.y = points[points.length -1].y;
+      } else {
+        const A = points[currentPointIndex - 1];
+        const B = points[currentPointIndex];
+        const closest = closestPointOnSegment(A, B, desiredPos);
+        ship.x = closest.x;
+        ship.y = closest.y;
+      }
+
+      checkPointReached();
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      ship.dragging = false;
+    });
+
+    canvas.addEventListener("mouseleave", (e) => {
+      ship.dragging = false;
+    });
+
+    generatePoints();
+    draw();
+
+    function gameLoop() {
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>

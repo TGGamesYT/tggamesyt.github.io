@@ -1,0 +1,150 @@
+<!-- chute.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Empty Chute</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .task-container {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2b2b2b;
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      width: 400px; text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    canvas {
+      background: black;
+      margin: 10px auto;
+      border: 2px solid #555;
+      border-radius: 10px;
+      display: block;
+    }
+    .task-done {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      animation: slideDown 2s forwards;
+      z-index: 9999;
+    }
+    @keyframes slideDown {
+      0% { top: -100px; opacity: 0; }
+      50% { top: 40%; opacity: 1; }
+      100% { top: 40%; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="task-container">
+  <h2>Empty Chute</h2>
+  <p>Pull the lever down</p>
+  <canvas id="chuteCanvas" width="300" height="300"></canvas>
+</div>
+
+<div id="taskDone" class="task-done" style="display:none;">
+  Task Done
+</div>
+
+<script>
+  const canvas = document.getElementById("chuteCanvas");
+  const ctx = canvas.getContext("2d");
+
+  let lever = {
+    x: 260, y: 60,
+    width: 30, height: 100,
+    dragY: 60,
+    dragging: false, offsetY: 0
+  };
+
+  let trash = [];
+  let chuteOpened = false;
+
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (mx > lever.x && mx < lever.x + lever.width &&
+        my > lever.dragY && my < lever.dragY + 20) {
+      lever.dragging = true;
+      lever.offsetY = my - lever.dragY;
+    }
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (lever.dragging) {
+      const rect = canvas.getBoundingClientRect();
+      let newY = e.clientY - rect.top - lever.offsetY;
+      lever.dragY = Math.min(lever.y + lever.height - 20, Math.max(lever.y, newY));
+    }
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    lever.dragging = false;
+    if (lever.dragY >= lever.y + lever.height - 20 && !chuteOpened) {
+      chuteOpened = true;
+      releaseTrash();
+    }
+  });
+
+  function releaseTrash() {
+    for (let i = 0; i < 10; i++) {
+      trash.push({
+        x: 50 + Math.random() * 200,
+        y: -Math.random() * 300,
+        size: 10 + Math.random() * 10
+      });
+    }
+
+    setTimeout(() => {
+      document.getElementById("taskDone").style.display = "block";
+      setTimeout(() => {
+        window.location.href = "amongcraft://taskdone/empty_garbage_chute";
+      }, 2000);
+    }, 1500);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw lever box
+    ctx.fillStyle = "#666";
+    ctx.fillRect(lever.x, lever.y, lever.width, lever.height);
+
+    // Draw handle (horizontal line)
+    ctx.strokeStyle = "#ddd";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(lever.x, lever.dragY + 10);
+    ctx.lineTo(lever.x + lever.width, lever.dragY + 10);
+    ctx.stroke();
+
+    // Draw falling trash
+    if (chuteOpened) {
+      for (let t of trash) {
+        ctx.fillStyle = "brown";
+        ctx.fillRect(t.x, t.y, t.size, t.size);
+        t.y += 3;
+      }
+    }
+  }
+
+  function gameLoop() {
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+</script>
+
+</body>
+</html>

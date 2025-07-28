@@ -1,0 +1,281 @@
+<!-- empty_garbage.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Empty Garbage</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .task-container {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2b2b2b;
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      width: 400px; text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    canvas {
+      background: black;
+      margin: 10px auto;
+      border: 2px solid #555;
+      border-radius: 10px;
+      display: block;
+    }
+    .task-done {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      animation: slideDown 2s forwards;
+      z-index: 9999;
+    }
+    @keyframes slideDown {
+      0% { top: -100px; opacity: 0; }
+      50% { top: 40%; opacity: 1; }
+      100% { top: 40%; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="task-container">
+  <h2>Collect Garbage</h2>
+  <p>Drag and flick the leaves into the bin</p>
+  <canvas id="garbageCanvas" width="300" height="300"></canvas>
+</div>
+
+<div id="taskDone" class="task-done" style="display:none;">
+  Task Done
+</div>
+
+<script>
+  const canvas = document.getElementById("garbageCanvas");
+  const ctx = canvas.getContext("2d");
+  let lastLogTime = 0;
+
+  const bin = { x: 0, y: 80, width: 60, height: 140 };
+
+  let leaves = [];
+  for (let i = 0; i < 6; i++) {
+    leaves.push({
+      x: 100 + Math.random() * 150,
+      y: Math.random() * 250,
+      vx: 0,
+      vy: 0,
+      r: 15,
+      dragging: false,
+      lastMousePos: null,
+      lastMoveTime: 0,
+      mouseSpeed: 0,
+      lastLoggedSpeed: null,
+      momentumAllowed: false,
+    });
+  }
+
+  let dragStart = null;
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#555";
+    ctx.fillRect(bin.x, bin.y, 5, bin.height); // left wall
+    ctx.fillRect(bin.x, bin.y, bin.width, 5); // top wall
+    ctx.fillRect(bin.x, bin.y + bin.height - 5, bin.width, 5); // bottom wall
+
+    ctx.fillStyle = "rgba(80,80,80,0.3)";
+    ctx.fillRect(bin.x, bin.y, bin.width, bin.height);
+
+    for (let l of leaves) {
+      ctx.beginPath();
+      ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2);
+      ctx.fillStyle = "green";
+      ctx.fill();
+    }
+  }
+
+  function update() {
+    for (let l of leaves) {
+      if (!l.dragging) {
+        l.x += l.vx;
+        l.y += l.vy;
+
+        l.vx *= 0.96;
+        l.vy *= 0.96;
+
+        if (Math.abs(l.vx) < 0.02) l.vx = 0;
+        if (Math.abs(l.vy) < 0.02) l.vy = 0;
+
+        // Horizontal bounce
+        if (l.x - l.r < 0) {
+          l.x = l.r;
+          l.vx *= -0.5;
+        }
+        if (l.x + l.r > canvas.width) {
+          l.x = canvas.width - l.r;
+          l.vx *= -0.5;
+        }
+
+        // Vertical bounce inside bin or canvas edges
+        if (l.x > bin.x && l.x < bin.x + bin.width) {
+          if (l.y - l.r < bin.y + 5) {
+            l.y = bin.y + 5 + l.r;
+            l.vy *= -0.5;
+          }
+          if (l.y + l.r > bin.y + bin.height - 5) {
+            l.y = bin.y + bin.height - 5 - l.r;
+            l.vy *= -0.5;
+          }
+        } else {
+          if (l.y - l.r < 0) {
+            l.y = l.r;
+            l.vy *= -0.5;
+          }
+          if (l.y + l.r > canvas.height) {
+            l.y = canvas.height - l.r;
+            l.vy *= -0.5;
+          }
+        }
+      } else {
+        // If dragging and velocity very low, zero it so no lingering momentum
+        if (Math.abs(l.vx) < 0.02) l.vx = 0;
+        if (Math.abs(l.vy) < 0.02) l.vy = 0;
+      }
+    }
+  }
+
+  function checkCompletion() {
+    if (leaves.every(l => 
+      l.x > bin.x && 
+      l.x < bin.x + bin.width &&
+      l.y > bin.y &&
+      l.y < bin.y + bin.height
+    )) {
+      document.getElementById("taskDone").style.display = "block";
+      setTimeout(() => {
+        window.location.href = "amongcraft://taskdone/empty_garbage";
+      }, 2000);
+    }
+  }
+
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    dragStart = { x: mx, y: my };
+
+    for (let l of leaves) {
+      const dx = l.x - mx;
+      const dy = l.y - my;
+      if (Math.sqrt(dx * dx + dy * dy) < l.r) {
+        l.dragging = true;
+        l.vx = 0;
+        l.vy = 0;
+        l.lastMousePos = { x: mx, y: my };
+        l.lastMoveTime = performance.now();
+        l.mouseSpeed = 0;
+        l.momentumAllowed = false;
+        l.lastLoggedSpeed = null;
+      }
+    }
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    let mx = e.clientX - rect.left;
+    let my = e.clientY - rect.top;
+    const now = performance.now();
+
+    for (let l of leaves) {
+      if (l.dragging) {
+        if (l.lastMousePos) {
+          const dx = mx - l.lastMousePos.x;
+          const dy = my - l.lastMousePos.y;
+          const dt = (now - l.lastMoveTime) / 1000;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const speed = dt > 0 ? dist / dt : 0;
+          l.mouseSpeed = speed;
+
+          // Momentum allowed only if speed above threshold
+          l.momentumAllowed = speed > 20;
+
+          l.lastMousePos = { x: mx, y: my };
+          l.lastMoveTime = now;
+        }
+
+        // Clamp vertical inside bin when inside horizontally
+        if (mx > bin.x && mx < bin.x + bin.width) {
+          const minY = bin.y + 5 + l.r;
+          const maxY = bin.y + bin.height - 5 - l.r;
+          if (my < minY) my = minY;
+          if (my > maxY) my = maxY;
+        }
+
+        if (mx < l.r) mx = l.r;
+        if (mx > canvas.width - l.r) mx = canvas.width - l.r;
+
+        l.x = mx;
+        l.y = my;
+
+        l.vx = 0;
+        l.vy = 0;
+      }
+    }
+  });
+
+  canvas.addEventListener("mouseup", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  for (let l of leaves) {
+    if (l.dragging) {
+      l.dragging = false;
+
+      // Check if mouseSpeed is above threshold right now to allow momentum
+      if (l.momentumAllowed && l.mouseSpeed > 5) { // use small threshold like 5 to be sure
+        l.vx = (mx - dragStart.x) * 0.12;
+        l.vy = (my - dragStart.y) * 0.12;
+      } else {
+        l.vx = 0;
+        l.vy = 0;
+      }
+    }
+  }
+  dragStart = null;
+  checkCompletion();
+});
+
+
+  function gameLoop() {
+    update();
+    draw();
+
+    const now = performance.now();
+    if (now - lastLogTime > 500) {
+      leaves.forEach((l, i) => {
+        if (l.dragging) {
+          // Reset speed to 0 if it's exactly the same as last logged speed
+          if (l.lastLoggedSpeed !== null && l.mouseSpeed === l.lastLoggedSpeed) {
+            l.mouseSpeed = 0;
+          }
+          console.log(`Leaf ${i} mouse speed: ${l.mouseSpeed.toFixed(2)}`);
+          l.lastLoggedSpeed = l.mouseSpeed;
+        }
+      });
+      lastLogTime = now;
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+</script>
+
+</body>
+</html>

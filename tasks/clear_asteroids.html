@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clear Asteroids</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    .task-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2b2b2b;
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      width: 400px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    canvas {
+      background: black;
+      display: block;
+      margin: 10px auto;
+      border: 2px solid #555;
+      border-radius: 10px;
+    }
+
+    .task-done {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      animation: slideDown 2s forwards;
+      z-index: 9999;
+    }
+
+    @keyframes slideDown {
+      0% { top: -100px; opacity: 0; }
+      50% { top: 40%; opacity: 1; }
+      100% { top: 40%; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="task-container">
+  <h2>Clear Asteroids</h2>
+  <p>Click the asteroids to destroy them!</p>
+  <canvas id="asteroidCanvas" width="300" height="300"></canvas>
+</div>
+
+<div id="taskDone" class="task-done" style="display: none;">
+  Task Done
+</div>
+
+<script>
+  const canvas = document.getElementById("asteroidCanvas");
+  const ctx = canvas.getContext("2d");
+
+  let asteroids = [];
+  let destroyed = 0;
+  const totalToDestroy = 20;
+  const maxAsteroids = 5;
+  const spawnInterval = 800; // milliseconds
+  let totalSpawned = 0;
+
+  function spawnAsteroid() {
+    if (totalSpawned >= 40) return; // Limit spawns
+    const r = 10 + Math.random() * 10;
+    asteroids.push({
+      x: -r,
+      y: Math.random() * (canvas.height - r * 2) + r,
+      r: r,
+      speed: 1 + Math.random() * 1.5
+    });
+    totalSpawned++;
+  }
+
+  function drawAsteroids() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+      const a = asteroids[i];
+      a.x += a.speed;
+
+      if (a.x - a.r > canvas.width) {
+        asteroids.splice(i, 1); // Remove off-screen
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+      ctx.fillStyle = "gray";
+      ctx.fill();
+      ctx.strokeStyle = "#888";
+      ctx.stroke();
+    }
+  }
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    for (let i = 0; i < asteroids.length; i++) {
+      const a = asteroids[i];
+      const dx = a.x - clickX;
+      const dy = a.y - clickY;
+      if (Math.sqrt(dx * dx + dy * dy) < a.r) {
+        asteroids.splice(i, 1);
+        destroyed++;
+        break;
+      }
+    }
+
+    if (destroyed >= totalToDestroy) {
+      completeTask();
+    }
+  });
+
+  function completeTask() {
+    const done = document.getElementById("taskDone");
+    done.style.display = "block";
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/clear_asteroids";
+    }, 2500);
+  }
+
+  function gameLoop() {
+    drawAsteroids();
+    requestAnimationFrame(gameLoop);
+  }
+
+  setInterval(spawnAsteroid, spawnInterval);
+  gameLoop();
+</script>
+
+</body>
+</html>

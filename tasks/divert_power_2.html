@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Divert Power 2</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+    }
+    #container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 30px;
+      background: #2b2b2b;
+      border-radius: 20px;
+      gap: 40px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    }
+    .wires {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .wire {
+      width: 50px;
+      height: 8px;
+      background: grey;
+      border-radius: 4px;
+    }
+    .yellow {
+      background: yellow !important;
+    }
+    #switch {
+      width: 60px;
+      height: 32px;
+      background: #444;
+      border-radius: 16px;
+      position: relative;
+      cursor: pointer;
+    }
+    #slider {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: left 0.3s;
+    }
+    #switch.active #slider {
+      left: 30px;
+    }
+    #taskDone {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      color: limegreen;
+      font-weight: bold;
+      display: none;
+      animation: dropFade 2s forwards;
+    }
+    @keyframes dropFade {
+      0% {
+        transform: translate(-50%, -150%);
+        opacity: 0;
+      }
+      50% {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="container">
+  <div class="wires" id="left"></div>
+  <div id="switch"><div id="slider"></div></div>
+  <div class="wires" id="right"></div>
+</div>
+<div id="taskDone">Task Done</div>
+
+<script>
+  const left = document.getElementById("left");
+  const right = document.getElementById("right");
+  const switchEl = document.getElementById("switch");
+  const taskDone = document.getElementById("taskDone");
+
+  for (let i = 0; i < 5; i++) {
+    const wireL = document.createElement("div");
+    wireL.className = "wire yellow";
+    left.appendChild(wireL);
+
+    const wireR = document.createElement("div");
+    wireR.className = "wire";
+    right.appendChild(wireR);
+  }
+
+  switchEl.addEventListener("click", () => {
+    if (switchEl.classList.contains("active")) return;
+
+    switchEl.classList.add("active");
+    document.querySelectorAll("#right .wire").forEach(w => w.classList.add("yellow"));
+
+    taskDone.style.display = "block";
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/divert_power_2";
+    }, 2000);
+  });
+</script>
+
+</body>
+</html>

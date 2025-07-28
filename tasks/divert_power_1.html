@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Divert Power 1</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      color: white;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    #divertPower1 {
+      display: flex;
+      gap: 10px;
+      background: #2b2b2b;
+      padding: 40px 30px 60px 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.7);
+    }
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 60px;
+      height: 200px;
+      justify-content: center;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 140px;
+      height: 25px;
+      transform: rotate(270deg);
+      background: #444;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 25px;
+      background: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .active-slider input[type=range]::-webkit-slider-thumb {
+      background: limegreen;
+    }
+    #taskDone {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      padding: 10px 20px;
+      z-index: 9999;
+      display: none;
+      animation: slideToCenter 2s forwards;
+    }
+    @keyframes slideToCenter {
+      0% {
+        top: -100px;
+        opacity: 0;
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="divertPower1"></div>
+<div id="taskDone">Task Done</div>
+
+<script>
+  const divertPower1 = document.getElementById("divertPower1");
+  const numSliders = 8;
+  const activeIndex = Math.floor(Math.random() * numSliders);
+
+  for (let i = 0; i < numSliders; i++) {
+    const container = document.createElement("div");
+    container.className = "slider-container";
+    if (i === activeIndex) container.classList.add("active-slider");
+
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = 0;
+    slider.max = 100;
+    slider.value = 50;
+    slider.dataset.index = i;
+    slider.disabled = i !== activeIndex;
+
+    container.appendChild(slider);
+    divertPower1.appendChild(container);
+  }
+
+  function showTaskDone() {
+    const done = document.getElementById("taskDone");
+    done.style.display = "block";
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/divert_power_1";
+    }, 2000);
+  }
+
+  divertPower1.addEventListener("input", (e) => {
+    const slider = e.target;
+    if (parseInt(slider.value) === 100 && parseInt(slider.dataset.index) === activeIndex) {
+      showTaskDone();
+      slider.disabled = true;
+      divertPower1.style.pointerEvents = "none";
+    }
+  });
+</script>
+
+</body>
+</html>

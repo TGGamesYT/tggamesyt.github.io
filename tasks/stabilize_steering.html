@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Stabilize Steering</title>
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    user-select: none;
+  }
+  #taskContainer {
+    background: #cce6ff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.15);
+    text-align: center;
+    width: 450px;
+  }
+  canvas {
+    display: block;
+    margin: 20px auto;
+    background: transparent;
+  }
+  #taskDone {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    font-weight: bold;
+    color: limegreen;
+    opacity: 1;
+    transition: top 2s ease, left 2s ease, transform 2s ease, opacity 2s ease;
+    z-index: 1000;
+    pointer-events: none;
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div id="taskContainer">
+    <h2>Stabilize Steering</h2>
+    <p>Drag the point onto the crosshair center</p>
+    <canvas id="steeringCanvas" width="400" height="400"></canvas>
+  </div>
+  <div id="taskDone">Task Done</div>
+
+<script>
+  const canvas = document.getElementById("steeringCanvas");
+  const ctx = canvas.getContext("2d");
+  const taskDoneEl = document.getElementById("taskDone");
+
+  const center = { x: canvas.width/2, y: canvas.height/2 };
+  const outerRadius = 180;
+  const innerRadius = outerRadius - 6;
+
+  // Draggable point state
+  let point = {
+    x: center.x + 100,
+    y: center.y - 50,
+    radius: 12,
+    dragging: false,
+    offsetX: 0,
+    offsetY: 0,
+    locked: false
+  };
+
+  // Check if the point is close enough to center crosshair
+  const TARGET_RADIUS = 15;
+  let doneTimeout = null;
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // --- Draw double circle ---
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#005f99';
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, outerRadius, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#007acc';
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, innerRadius, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // --- Fill circle background ---
+    const gradient = ctx.createRadialGradient(center.x, center.y, innerRadius * 0.1, center.x, center.y, outerRadius);
+    gradient.addColorStop(0, '#b3d9ff');
+    gradient.addColorStop(1, '#80bfff');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, innerRadius, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // --- Draw grid lines inside circle ---
+    ctx.strokeStyle = '#4da6ff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 6]);
+
+    const gridCount = 8;
+    for (let i = -gridCount; i <= gridCount; i++) {
+      let y = center.y + (i * (innerRadius / gridCount));
+      ctx.beginPath();
+      ctx.moveTo(center.x - Math.sqrt(innerRadius*innerRadius - (y - center.y)*(y - center.y)), y);
+      ctx.lineTo(center.x + Math.sqrt(innerRadius*innerRadius - (y - center.y)*(y - center.y)), y);
+      ctx.stroke();
+    }
+    for (let i = -gridCount; i <= gridCount; i++) {
+      let x = center.x + (i * (innerRadius / gridCount));
+      let maxY = Math.sqrt(innerRadius*innerRadius - (x - center.x)*(x - center.x));
+      ctx.beginPath();
+      ctx.moveTo(x, center.y - maxY);
+      ctx.lineTo(x, center.y + maxY);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // --- Draw horizontal and vertical bold lines inside circle ---
+    ctx.strokeStyle = '#007acc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(center.x - innerRadius, center.y);
+    ctx.lineTo(center.x + innerRadius, center.y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y - innerRadius);
+    ctx.lineTo(center.x, center.y + innerRadius);
+    ctx.stroke();
+
+    // --- Draw crosshair at center ---
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 3;
+    const crosshairSize = 20;
+    ctx.beginPath();
+    ctx.moveTo(center.x - crosshairSize, center.y);
+    ctx.lineTo(center.x + crosshairSize, center.y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y - crosshairSize);
+    ctx.lineTo(center.x, center.y + crosshairSize);
+    ctx.stroke();
+
+    // --- Draw lines from point (extend to inner circle border) ---
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+
+    // Horizontal line from point to left and right border of inner circle
+    const horizontalLength = Math.sqrt(innerRadius*innerRadius - (point.y - center.y)*(point.y - center.y));
+    ctx.beginPath();
+    ctx.moveTo(center.x - horizontalLength, point.y);
+    ctx.lineTo(center.x + horizontalLength, point.y);
+    ctx.stroke();
+
+    // Vertical line from point to top and bottom border of inner circle
+    const verticalLength = Math.sqrt(innerRadius*innerRadius - (point.x - center.x)*(point.x - center.x));
+    ctx.beginPath();
+    ctx.moveTo(point.x, center.y - verticalLength);
+    ctx.lineTo(point.x, center.y + verticalLength);
+    ctx.stroke();
+
+    // --- Draw draggable point ---
+    ctx.fillStyle = '#004080';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, point.radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function distance(a, b) {
+    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (point.locked) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    if (distance({x: mx, y: my}, point) <= point.radius) {
+      point.dragging = true;
+      point.offsetX = mx - point.x;
+      point.offsetY = my - point.y;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!point.dragging || point.locked) return;
+    const rect = canvas.getBoundingClientRect();
+    let mx = e.clientX - rect.left - point.offsetX;
+    let my = e.clientY - rect.top - point.offsetY;
+
+    // Constrain point inside circle (innerRadius - point radius)
+    const dx = mx - center.x;
+    const dy = my - center.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const maxDist = innerRadius - point.radius;
+
+    if (dist > maxDist) {
+      const angle = Math.atan2(dy, dx);
+      mx = center.x + Math.cos(angle) * maxDist;
+      my = center.y + Math.sin(angle) * maxDist;
+    }
+
+    point.x = mx;
+    point.y = my;
+
+    // Check if point reached crosshair (center)
+    if (distance(point, center) <= TARGET_RADIUS) {
+      lockPointToCenter();
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    if (!point.locked) {
+      point.dragging = false;
+    }
+  });
+  canvas.addEventListener('mouseleave', () => {
+    if (!point.locked) {
+      point.dragging = false;
+    }
+  });
+
+  function lockPointToCenter() {
+    if (point.locked) return;
+    point.locked = true;
+    point.x = center.x;
+    point.y = center.y;
+    point.dragging = false;
+
+    doneTimeout = onTaskDone();
+  }
+
+  function onTaskDone() {
+    taskDoneEl.style.display = "block";
+    taskDoneEl.style.top = "10px";
+    taskDoneEl.style.left = "50%";
+    taskDoneEl.style.transform = "translateX(-50%)";
+    taskDoneEl.style.opacity = "1";
+
+    setTimeout(() => {
+      taskDoneEl.style.top = "50%";
+      taskDoneEl.style.transform = "translate(-50%, -50%)";
+    }, 50);
+
+    setTimeout(() => {
+      window.location.href = "amongcraft://taskdone/stabilize_steering";
+    }, 2250);
+
+    canvas.style.pointerEvents = "none";
+  }
+
+  function drawLoop() {
+    draw();
+    requestAnimationFrame(drawLoop);
+  }
+  drawLoop();
+</script>
+</body>
+</html>
