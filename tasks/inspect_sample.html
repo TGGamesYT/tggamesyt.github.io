@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inspect Sample</title>
+  <style>
+    body {
+      margin: 0;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #displayBar {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    #linesContainer {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .line-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .vertical-line {
+      width: 10px;
+      height: 150px;
+      background: white;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      transition: background 0.3s;
+    }
+
+    #startBtn {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 8px;
+      background: limegreen;
+      cursor: pointer;
+    }
+
+    .selectBtn {
+      padding: 5px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #555;
+      color: white;
+      cursor: pointer;
+    }
+
+    #taskDone {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: limegreen;
+      animation: slideDown 2s forwards;
+      display: none;
+      z-index: 9999;
+    }
+
+    @keyframes slideDown {
+      0% { top: -100px; opacity: 0; }
+      50% { top: 50%; opacity: 1; transform: translate(-50%, -50%); }
+      100% { top: 50%; opacity: 1; transform: translate(-50%, -50%); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="displayBar">Click "Start" to begin</div>
+
+<div id="linesContainer"></div>
+
+<button id="startBtn">Start</button>
+
+<div id="taskDone">Task Done</div>
+
+<script>
+  const displayBar = document.getElementById("displayBar");
+  const linesContainer = document.getElementById("linesContainer");
+  const startBtn = document.getElementById("startBtn");
+  const taskDone = document.getElementById("taskDone");
+
+  const COOKIE_NAME = "inspect_sample_start";
+  const WAIT_TIME = 60; // seconds
+
+  let interval = null;
+  let startTime = null;
+  let redIndex = -1;
+  let isClickable = false;
+
+  function setCookie(name, value, days) {
+    const d = new Date();
+    d.setTime(d.getTime() + (days*24*60*60*1000));
+    document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/`;
+  }
+
+  function getCookie(name) {
+    const ca = document.cookie.split(";");
+    for (let c of ca) {
+      while (c.charAt(0) === " ") c = c.substring(1);
+      if (c.indexOf(name + "=") === 0) return c.substring((name + "=").length);
+    }
+    return "";
+  }
+
+  function clearCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  }
+
+  function updateCountdown() {
+    const now = Date.now();
+    const diff = (now - startTime) / 1000;
+    const remaining = Math.max(0, WAIT_TIME - diff);
+    displayBar.textContent = `ETA: ${remaining.toFixed(4)}s`;
+
+    if (remaining <= 0) {
+      clearInterval(interval);
+      triggerFinalPhase();
+    }
+  }
+
+  function createLines() {
+    linesContainer.innerHTML = "";
+    for (let i = 0; i < 5; i++) {
+      const block = document.createElement("div");
+      block.className = "line-block";
+
+      const line = document.createElement("div");
+      line.className = "vertical-line";
+      line.dataset.index = i;
+
+      const btn = document.createElement("button");
+      btn.className = "selectBtn";
+      btn.textContent = "Select";
+      btn.addEventListener("click", () => {
+        if (!isClickable) return;
+        if (parseInt(line.dataset.index) === redIndex) {
+          clearCookie(COOKIE_NAME);
+          taskDone.style.display = "block";
+          setTimeout(() => {
+            window.location.href = "amongcraft://taskdone/inspect_sample";
+          }, 2000);
+        } else {
+          clearCookie(COOKIE_NAME);
+          window.location.href = "amongcraft://taskfailed";
+        }
+      });
+
+      block.appendChild(line);
+      block.appendChild(btn);
+      linesContainer.appendChild(block);
+    }
+  }
+
+  function triggerFinalPhase() {
+    displayBar.textContent = "Select the contaminated sample";
+    redIndex = Math.floor(Math.random() * 5);
+    isClickable = true;
+    const lines = document.querySelectorAll(".vertical-line");
+    lines.forEach((line, idx) => {
+      line.style.background = idx === redIndex ? "red" : "blue";
+    });
+  }
+
+  function startCountdown() {
+    startTime = Date.now();
+    setCookie(COOKIE_NAME, startTime, 1);
+    updateCountdown();
+    interval = setInterval(updateCountdown, 100);
+  }
+
+  function checkExistingStart() {
+    const saved = getCookie(COOKIE_NAME);
+    if (saved) {
+      startTime = parseInt(saved);
+      const now = Date.now();
+      const elapsed = (now - startTime) / 1000;
+      if (elapsed >= WAIT_TIME) {
+        triggerFinalPhase();
+      } else {
+        interval = setInterval(updateCountdown, 100);
+      }
+    }
+  }
+
+  startBtn.addEventListener("click", () => {
+    if (interval || isClickable) return;
+    startCountdown();
+  });
+
+  createLines();
+  checkExistingStart();
+</script>
+
+</body>
+  </html>
