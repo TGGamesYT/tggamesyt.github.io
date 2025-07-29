@@ -9,7 +9,6 @@ sitemap: false
   <style>
     body {
       margin: 0;
-      background: #222;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -60,21 +59,30 @@ sitemap: false
       position: fixed;
       top: -100px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       font-size: 32px;
       font-weight: bold;
       color: limegreen;
       padding: 10px 20px;
       border-radius: 10px;
-      animation: slideDown 2s forwards;
-      z-index: 9999;
       display: none;
+      z-index: 9999;
+      animation: flyToCenter 2s forwards;
     }
 
-    @keyframes slideDown {
-      0% { top: -100px; opacity: 0; }
-      50% { top: 40px; opacity: 1; }
-      100% { top: 40px; opacity: 1; }
+    @keyframes flyToCenter {
+      0% {
+        top: -100px;
+        opacity: 0;
+      }
+      50% {
+        top: 50%;
+        opacity: 1;
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+      }
     }
   </style>
 </head>

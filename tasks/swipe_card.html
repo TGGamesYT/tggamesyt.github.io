@@ -37,6 +37,7 @@ sitemap: false
       height: 80px;
       position: relative;
       overflow: hidden;
+      margin-bottom: 20px;
     }
 
     .card {
@@ -56,25 +57,43 @@ sitemap: false
       user-select: none;
     }
 
+    .status-light {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: gray;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+
     #taskDone {
       position: fixed;
       top: -100px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       font-size: 32px;
       font-weight: bold;
       color: limegreen;
       padding: 10px 20px;
       border-radius: 10px;
-      animation: slideDown 2s forwards;
-      z-index: 9999;
       display: none;
+      z-index: 9999;
+      animation: slideDown 2s forwards;
     }
 
     @keyframes slideDown {
-      0% { top: -100px; opacity: 0; }
-      50% { top: 40px; opacity: 1; }
-      100% { top: 40px; opacity: 1; }
+      0% {
+        top: -100px;
+        opacity: 0;
+      }
+      50% {
+        top: 50%;
+        opacity: 1;
+      }
+      100% {
+        top: 50%;
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -84,6 +103,7 @@ sitemap: false
   <div class="scanner" id="scanner">
     <div class="card" id="card">CARD</div>
   </div>
+  <div class="status-light" id="statusLight"></div>
 </div>
 
 <div id="taskDone">Task Done</div>
@@ -91,6 +111,7 @@ sitemap: false
 <script>
   const card = document.getElementById("card");
   const scanner = document.getElementById("scanner");
+  const statusLight = document.getElementById("statusLight");
   let isDragging = false;
   let startX = 0;
   let startTime = 0;
@@ -116,9 +137,10 @@ sitemap: false
     const maxSpeed = 900;
 
     if (deltaX < 150 || speed < minSpeed || speed > maxSpeed) {
+      flashLight("red");
       card.style.left = "0px";
-      alert("Bad read. Try again.");
     } else {
+      flashLight("limegreen");
       showTaskDone();
     }
   });
@@ -130,6 +152,13 @@ sitemap: false
     card.style.left = newLeft + "px";
   });
 
+  function flashLight(color) {
+    statusLight.style.background = color;
+    setTimeout(() => {
+      statusLight.style.background = "gray";
+    }, 1000);
+  }
+
   function showTaskDone() {
     const done = document.getElementById("taskDone");
     done.style.display = "block";
@@ -140,4 +169,4 @@ sitemap: false
 </script>
 
 </body>
-  </html>
+</html>
