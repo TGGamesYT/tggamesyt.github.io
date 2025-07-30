@@ -93,28 +93,35 @@ function parseInventoryText(raw) {
         const items = [];
 
         for (const line of lines) {
-          if (line.toLowerCase().startsWith('title =')) {
-            title = line.split('=').slice(1).join('=').trim();
-          } else if (line.toLowerCase().startsWith('grid =')) {
-            const parts = line.split('=').slice(1).join('=').trim().split('x');
-            cols = parseInt(parts[0]) || 9;
-            rows = parseInt(parts[1]) || 3;
-          } else {
-            const match = line.match(/^(\d+)\s*=\s*(.*)$/);
-            let index = null;
-            let content = line;
+  if (line.toLowerCase().startsWith('title =')) {
+    title = line.split('=').slice(1).join('=').trim();
+  } else if (line.toLowerCase().startsWith('grid =')) {
+    const parts = line.split('=').slice(1).join('=').trim().split('x');
+    cols = parseInt(parts[0]) || 9;
+    rows = parseInt(parts[1]) || 3;
+  } else {
+    let index = null;
+    let name = '';
+    let count = null;
 
-            if (match) {
-              index = parseInt(match[1]);
-              content = match[2];
-            }
+    // Matches: index = name, count
+    const indexedMatch = line.match(/^(\d+)\s*=\s*(.*)$/);
+    if (indexedMatch) {
+      index = parseInt(indexedMatch[1]);
+      const rest = indexedMatch[2];
+      [name, countStr] = rest.split(',').map(s => s.trim());
+      count = countStr ? parseInt(countStr) : null;
+    } else {
+      // Fallback for "Item Name, Count"
+      const parts = line.split(',').map(s => s.trim());
+      name = parts[0];
+      count = parts[1] ? parseInt(parts[1]) : null;
+    }
 
-            const [name, countStr] = content.split(',').map(s => s.trim());
-            const count = countStr ? parseInt(countStr) : null;
-            items.push([index, name, count]);
-          }
+    items.push([index, name, count]);
+  }
         }
-
+        
         const titleEl = document.createElement('div');
         titleEl.className = 'inventory-title';
         titleEl.textContent = title;
