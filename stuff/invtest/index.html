@@ -21,9 +21,9 @@ sitemap: false
 
     .container-frame {
       position: relative;
-      width: 324px;
+      width: 340px; /* Slightly wider for padding */
       image-rendering: pixelated;
-      padding: 0 8px 16px 8px; /* padding for spacing */
+      padding: 12px 12px 24px 12px; /* padding inside so slots don’t cover border */
       box-sizing: border-box;
       border-style: solid;
       border-width: 4px;
@@ -37,18 +37,17 @@ sitemap: false
     .inventory-title {
       color: #3F3F3F;
       font-size: 16px;
-      margin: 4px 0 2px 2px;
+      margin: 4px 0 8px 2px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .inventory-grid {
-      /* Removed absolute positioning */
       display: grid;
       grid-template-columns: repeat(9, 36px);
       grid-template-rows: repeat(auto-fill, 36px);
       grid-gap: 0;
-      justify-content: center; /* center horizontally */
+      justify-content: start; /* Align left inside container */
       margin-top: 8px;
     }
 
@@ -72,9 +71,9 @@ sitemap: false
     }
 
     .inventory-label {
-      position: relative; /* changed from absolute */
+      position: relative;
       margin-left: 8px;
-      margin-top: 16px;
+      margin-top: 24px;
       color: #3F3F3F;
       font-family: Minecraft, sans-serif;
       font-size: 16px;
@@ -85,12 +84,12 @@ sitemap: false
       grid-template-columns: repeat(9, 36px);
       grid-template-rows: repeat(3, 36px) 8px 36px; /* 3 rows + gap + hotbar row */
       grid-gap: 0;
-      justify-content: center; /* center horizontally */
-      margin-top: 32px;
-      position: relative; /* removed absolute */
+      justify-content: start; /* align left to container */
+      margin-top: 12px;
+      position: relative;
     }
 
-    /* To allow slots to flow directly in the grid */
+    /* Allow slots to flow directly in the grid */
     .block {
       display: contents;
     }
@@ -123,15 +122,13 @@ function createSlot(itemName = '') {
   return slot;
 }
 
-function createGrid(rows, items) {
+function createGrid(rows, cols, items) {
   const grid = document.createElement('div');
   grid.className = 'inventory-grid';
   grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < 9; j++) {
-      const idx = i * 9 + j;
-      grid.appendChild(createSlot(items[idx]));
-    }
+  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  for (let i = 0; i < rows * cols; i++) {
+    grid.appendChild(createSlot(items[i]));
   }
   return grid;
 }
@@ -140,12 +137,12 @@ function createPlayerInventory(invItems = [], hotbarItems = []) {
   const wrapper = document.createElement('div');
   wrapper.className = 'player-inventory';
 
-  // Add 27 inventory slots (9x3)
+  // 27 slots inventory (9x3)
   for (let i = 0; i < 27; i++) {
     wrapper.appendChild(createSlot(invItems[i]));
   }
 
-  // Add 9 hotbar slots
+  // 9 slots hotbar
   for (let i = 0; i < 9; i++) {
     wrapper.appendChild(createSlot(hotbarItems[i]));
   }
@@ -166,17 +163,26 @@ function renderContainer({ type, title, slots = [], inv = [], hotbar = [], force
   frame.appendChild(name);
 
   let rows = 0;
+  let cols = 9;
+
   switch (type) {
-    case 'hopper': rows = 1; break;
-    case 'large-chest': rows = 6; break;
+    case 'hopper': 
+      rows = 1; 
+      cols = 5; // Hopper has 5 slots horizontally
+      break;
+    case 'large-chest': 
+      rows = 6; 
+      break;
     case 'chest':
     case 'barrel':
     case 'shulker-box':
     case 'ender-chest':
-    default: rows = 3; break;
+    default: 
+      rows = 3; 
+      break;
   }
 
-  const grid = createGrid(rows, slots);
+  const grid = createGrid(rows, cols, slots);
   grid.style.marginTop = '8px';
   frame.appendChild(grid);
 
