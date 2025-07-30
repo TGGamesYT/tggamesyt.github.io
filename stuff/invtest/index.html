@@ -11,7 +11,7 @@ sitemap: false
       font-weight: normal;
       font-style: normal;
     }
-    
+
     .container-wrapper {
       float: left;
       clear: left;
@@ -21,9 +21,8 @@ sitemap: false
 
     .container-frame {
       position: relative;
-      width: 340px; /* Slightly wider for padding */
       image-rendering: pixelated;
-      padding: 12px 12px 24px 12px; /* padding inside so slots don’t cover border */
+      padding: 12px;
       box-sizing: border-box;
       border-style: solid;
       border-width: 4px;
@@ -32,6 +31,8 @@ sitemap: false
       border-image-width: 4px;
       border-image-repeat: stretch;
       background-clip: padding-box;
+      background-color: #c6c6c6;
+      display: inline-block;
     }
 
     .inventory-title {
@@ -44,18 +45,16 @@ sitemap: false
 
     .inventory-grid {
       display: grid;
-      grid-template-columns: repeat(9, 36px);
-      grid-template-rows: repeat(auto-fill, 36px);
       grid-gap: 0;
-      justify-content: start; /* Align left inside container */
-      margin-top: 8px;
+      justify-content: center;
+      padding-right: 4px;
     }
 
     .slot {
       width: 36px;
       height: 36px;
       background: url('https://minecraft.wiki/images/GUI_slot.png') no-repeat;
-      background-size: 36px 36px; /* Scale 18x18 to 36x36 */
+      background-size: 36px 36px;
       background-position: 0 0;
       image-rendering: pixelated;
       position: relative;
@@ -82,14 +81,13 @@ sitemap: false
     .player-inventory {
       display: grid;
       grid-template-columns: repeat(9, 36px);
-      grid-template-rows: repeat(3, 36px) 8px 36px; /* 3 rows + gap + hotbar row */
+      grid-template-rows: repeat(3, 36px) 8px 36px;
       grid-gap: 0;
-      justify-content: start; /* align left to container */
+      justify-content: center;
       margin-top: 12px;
       position: relative;
     }
 
-    /* Allow slots to flow directly in the grid */
     .block {
       display: contents;
     }
@@ -137,12 +135,10 @@ function createPlayerInventory(invItems = [], hotbarItems = []) {
   const wrapper = document.createElement('div');
   wrapper.className = 'player-inventory';
 
-  // 27 slots inventory (9x3)
   for (let i = 0; i < 27; i++) {
     wrapper.appendChild(createSlot(invItems[i]));
   }
 
-  // 9 slots hotbar
   for (let i = 0; i < 9; i++) {
     wrapper.appendChild(createSlot(hotbarItems[i]));
   }
@@ -168,7 +164,7 @@ function renderContainer({ type, title, slots = [], inv = [], hotbar = [], force
   switch (type) {
     case 'hopper': 
       rows = 1; 
-      cols = 5; // Hopper has 5 slots horizontally
+      cols = 5;
       break;
     case 'large-chest': 
       rows = 6; 
