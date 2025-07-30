@@ -1,7 +1,6 @@
 ---
 sitemap: false
 ---
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,21 +13,23 @@ sitemap: false
     }
 
     body {
-      font-family: Minecraft, sans-serif;
+      background: #2b2b2b;
+      padding: 24px;
+      font-family: sans-serif;
     }
 
     .container-wrapper {
       float: left;
       clear: left;
-      font-family: Minecraft;
       margin: 16px 0;
+      font-family: Minecraft;
     }
 
     .container-frame {
       position: relative;
       width: fit-content;
       image-rendering: pixelated;
-      padding: 12px;
+      padding: 12px 12px 24px 12px;
       box-sizing: border-box;
       border-style: solid;
       border-width: 4px;
@@ -47,8 +48,11 @@ sitemap: false
 
     .inventory-grid {
       display: grid;
+      grid-template-columns: repeat(9, 36px);
+      grid-template-rows: repeat(3, 36px);
       grid-gap: 0;
       justify-content: start;
+      margin-bottom: 8px;
     }
 
     .slot {
@@ -56,6 +60,7 @@ sitemap: false
       height: 36px;
       background: url('https://minecraft.wiki/images/GUI_slot.png') no-repeat;
       background-size: 36px 36px;
+      background-position: 0 0;
       image-rendering: pixelated;
       position: relative;
     }
@@ -69,35 +74,26 @@ sitemap: false
       left: 2px;
     }
 
-    .count {
+    .slot-count {
       position: absolute;
-      right: 3px;
       bottom: 1px;
-      font-family: Minecraft, sans-serif;
-      font-size: 12px;
+      right: 3px;
       color: white;
-      text-shadow: 1px 1px 0 #3F3F3F;
+      font-family: Minecraft, sans-serif;
+      font-size: 14px;
+      text-shadow: 1px 1px #3f3f3f;
       pointer-events: none;
     }
   </style>
 </head>
 <body>
 
-<p class="container">
-{{
-|title = Inventory
-|grid = 9x3
-|Grass Block, 5
-|Stone, 8
-|Dirt
-}}
-</p>
-
+<!-- Example usage in the body -->
 <p class="container">
 {{
 |title = Copper Chest
 |grid = 9x3
-|Iron Ingot
+|Iron Ingot, 64
 |Iron Ingot
 |Iron Ingot
 }
@@ -106,7 +102,16 @@ sitemap: false
 |grid = 9x3
 |Copper Ingot
 |Copper Ingot
-|Redstone Dust
+|Redstone Dust, 8
+}}
+</p>
+
+<p class="container">
+{{
+|title = Hopper
+|grid = 5x1
+|Hopper
+|Hopper
 }}
 </p>
 
@@ -114,7 +119,7 @@ sitemap: false
 
 <script>
 function formatItemName(name) {
-  return name.trim()
+  return name
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join('_');
@@ -133,85 +138,91 @@ function createSlot(itemName = '', count = null) {
     img.src = getItemImage(itemName);
     slot.appendChild(img);
 
-    if (count !== null) {
-      const countEl = document.createElement('div');
-      countEl.className = 'count';
-      countEl.textContent = count;
-      slot.appendChild(countEl);
+    if (count) {
+      const label = document.createElement('div');
+      label.className = 'slot-count';
+      label.textContent = count;
+      slot.appendChild(label);
     }
   }
+
   return slot;
 }
 
 function createGrid(rows, cols, items) {
   const grid = document.createElement('div');
   grid.className = 'inventory-grid';
-  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
   grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
 
-  for (let i = 0; i < rows * cols; i++) {
+  const totalSlots = rows * cols;
+  for (let i = 0; i < totalSlots; i++) {
     const [name, count] = items[i] || [];
     grid.appendChild(createSlot(name, count));
   }
+
   return grid;
 }
 
-function renderContainer(title, rows, cols, slots) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'container-wrapper';
+function parseInventoryText(raw) {
+  const groups = raw.match(/\{\{([\s\S]*?)\}\}/g);
+  if (!groups) return [];
 
-  const frame = document.createElement('div');
-  frame.className = 'container-frame';
+  const wrappers = [];
 
-  const titleEl = document.createElement('div');
-  titleEl.className = 'inventory-title';
-  titleEl.textContent = title;
-  frame.appendChild(titleEl);
+  for (const group of groups) {
+    const subBlocks = group.match(/\{([\s\S]*?)\}/g);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'container-wrapper';
 
-  const grid = createGrid(rows, cols, slots);
-  frame.appendChild(grid);
-  wrapper.appendChild(frame);
+    const frame = document.createElement('div');
+    frame.className = 'container-frame';
 
-  return wrapper;
-}
+    if (subBlocks) {
+      for (const block of subBlocks) {
+        const lines = block.replace(/[{}]/g, '')
+          .split('|')
+          .map(s => s.trim())
+          .filter(Boolean);
 
-function parseContainerBlock(text) {
-  const blocks = text.match(/\{\{([\s\S]*?)\}\}/g);
-  if (!blocks) return [];
+        let title = 'Inventory';
+        let cols = 9, rows = 3;
+        const items = [];
 
-  return blocks.map(block => {
-    const lines = block.replace(/^\{\{|\}\}$/g, '').trim().split('\n').map(l => l.trim()).filter(Boolean);
-    let title = 'Inventory';
-    let rows = 3, cols = 9;
-    const items = [];
+        for (const line of lines) {
+          if (line.toLowerCase().startsWith('title =')) {
+            title = line.split('=').slice(1).join('=').trim();
+          } else if (line.toLowerCase().startsWith('grid =')) {
+            const parts = line.split('=').slice(1).join('=').trim().split('x');
+            cols = parseInt(parts[0]) || 9;
+            rows = parseInt(parts[1]) || 3;
+          } else {
+            const [item, count] = line.split(',').map(s => s.trim());
+            items.push([item, count ? parseInt(count) : null]);
+          }
+        }
 
-    for (const line of lines) {
-      if (line.startsWith('|title')) {
-        title = line.split('=').slice(1).join('=').trim();
-      } else if (line.startsWith('|grid')) {
-        const size = line.split('=').slice(1).join('=').trim();
-        const [c, r] = size.split('x').map(Number);
-        cols = c;
-        rows = r;
-      } else if (line.startsWith('|')) {
-        const content = line.slice(1).trim();
-        const parts = content.split(',');
-        const item = parts[0]?.trim();
-        const count = parts[1]?.trim();
-        items.push([item, count ? Number(count) : null]);
+        const titleEl = document.createElement('div');
+        titleEl.className = 'inventory-title';
+        titleEl.textContent = title;
+        frame.appendChild(titleEl);
+
+        const grid = createGrid(rows, cols, items);
+        frame.appendChild(grid);
       }
-    }
 
-    return renderContainer(title, rows, cols, items);
-  });
+      wrapper.appendChild(frame);
+      wrappers.push(wrapper);
+    }
+  }
+
+  return wrappers;
 }
 
-// Convert all <p class="container"> content blocks
+// Automatically parse <p class="container">...</p>
 document.querySelectorAll('p.container').forEach(p => {
-  const blocks = parseContainerBlock(p.innerText || p.textContent);
-  const parent = p.parentNode;
-  blocks.forEach(b => parent.insertBefore(b, p));
-  p.remove();
+  const parsed = parseInventoryText(p.innerHTML);
+  parsed.forEach(el => p.replaceWith(el));
 });
 </script>
 
