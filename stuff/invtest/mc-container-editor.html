@@ -51,12 +51,16 @@ sitemap: false
       .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
       .join('_');
 
-    const imageUrl = `https://minecraft.wiki/images/Invicon_${formattedName}.png`;
+    const baseUrl = `https://minecraft.wiki/images/Invicon_${formattedName}`;
 
-    // Check if image exists first
-    const img = new Image();
-    img.onload = () => {
-      // image exists — spawn it
+    function tryLoadImage(extension, onSuccess, onFail) {
+      const img = new Image();
+      img.onload = () => onSuccess(img, extension);
+      img.onerror = onFail;
+      img.src = `${baseUrl}.${extension}`;
+    }
+
+    function spawn(imgEl) {
       const allGrids = document.querySelectorAll('.inventory-grid');
       for (const grid of allGrids) {
         const slots = grid.querySelectorAll('.slot');
@@ -65,7 +69,7 @@ sitemap: false
             slot.dataset.item = itemName;
             slot.dataset.count = itemCount;
             slot.innerHTML = '';
-            slot.appendChild(img);
+            slot.appendChild(imgEl);
             if (itemCount > 1) {
               const countEl = document.createElement('div');
               countEl.className = 'slot-count';
@@ -77,15 +81,16 @@ sitemap: false
         }
       }
       alert("No empty slots found.");
-    };
+    }
 
-    img.onerror = () => {
-      alert(`Item image not found: "${itemName}"\n(URL: ${imageUrl})`);
-    };
-
-    img.src = imageUrl; // Trigger load
+    // Try PNG, then GIF
+    tryLoadImage('png', spawn, () => {
+      tryLoadImage('gif', spawn, () => {
+        alert(`Item image not found as PNG or GIF for "${itemName}"`);
+      });
+    });
   }
-        </script>
+</script>
 
 </body>
 </html>
