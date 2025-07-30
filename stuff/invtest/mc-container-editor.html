@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://tggamesyt.dev/stuff/invtest/mc-container.css">
+  <script src="https://tggamesyt.dev/stuff/invtest/mc-container.js" defer></script>
+</head>
+<body>
+
+<!-- Editor input UI -->
+<div style="margin: 16px; font-family: sans-serif;">
+  <label>
+    Item name:
+    <input type="text" id="itemName" placeholder="e.g. Copper Stairs">
+  </label>
+  <label style="margin-left: 10px;">
+    Count:
+    <input type="number" id="itemCount" min="1" max="64" value="1" style="width: 60px;">
+  </label>
+  <button onclick="spawnItemToFirstEmptySlot()">Spawn Item</button>
+</div>
+
+<!-- Container markup -->
+<p class="container">
+{{
+|title = Copper Chest
+|grid = 9x3
+|Iron Ingot, 64
+|Iron Ingot
+}
+{
+|title = Inventory
+|grid = 9x3
+|Copper Ingot
+|Redstone, 8
+}}
+</p>
+
+<!-- Spawn script logic -->
+<script>
+  function spawnItemToFirstEmptySlot() {
+    const itemName = document.getElementById('itemName').value.trim();
+    const itemCount = parseInt(document.getElementById('itemCount').value);
+    if (!itemName) return alert("Enter an item name.");
+    const allGrids = document.querySelectorAll('.inventory-grid');
+    for (const grid of allGrids) {
+      const slots = grid.querySelectorAll('.slot');
+      for (const slot of slots) {
+        if (!slot.dataset.item || slot.dataset.item.toLowerCase() === 'air') {
+          // fill slot
+          slot.dataset.item = itemName;
+          slot.dataset.count = itemCount;
+          slot.innerHTML = '';
+          if (itemName.toLowerCase() !== 'air') {
+            const img = document.createElement('img');
+            img.src = `https://minecraft.wiki/images/Invicon_${itemName.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join('_')}.png`;
+            slot.appendChild(img);
+            if (itemCount > 1) {
+              const countEl = document.createElement('div');
+              countEl.className = 'slot-count';
+              countEl.textContent = itemCount;
+              slot.appendChild(countEl);
+            }
+          }
+          return;
+        }
+      }
+    }
+    alert("No empty slots found.");
+  }
+</script>
+
+</body>
+</html>
