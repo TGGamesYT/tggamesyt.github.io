@@ -15,12 +15,13 @@ sitemap: false
     .container-frame {
       position: relative;
       width: 324px;
-      background: url('https://minecraft.wiki/images/Inventory_background.png') no-repeat;
-      background-size: cover;
-      border: 8px solid #a2a9b1;
+      border: 8px solid transparent;
+      border-image-source: url('https://minecraft.wiki/images/Inventory_background.png');
+      border-image-slice: 8 fill;
+      border-image-repeat: repeat;
       image-rendering: pixelated;
-      padding: 0;
-      box-sizing: content-box;
+      background-color: transparent;
+      box-sizing: border-box;
     }
 
     .inventory-title {
@@ -96,8 +97,6 @@ function createGrid(rows, items) {
   grid.className = 'inventory-grid';
   grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
   for (let i = 0; i < rows; i++) {
-    const row = document.createElement('div');
-    row.className = 'block';
     for (let j = 0; j < 9; j++) {
       const idx = i * 9 + j;
       grid.appendChild(createSlot(items[idx]));
@@ -205,4 +204,4 @@ output.appendChild(renderContainer({
 </script>
 
 </body>
-  </html>
+</html>
