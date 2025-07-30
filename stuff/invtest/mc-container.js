@@ -6,14 +6,16 @@ function formatItemName(name) {
 }
 
 function getItemImage(name) {
-  return name ? `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png` : '';
+  return name.toLowerCase() === 'air'
+    ? ''
+    : `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png`;
 }
 
 function createSlot(itemName = '', count = null) {
   const slot = document.createElement('div');
   slot.className = 'slot';
 
-  if (itemName) {
+  if (itemName && itemName.toLowerCase() !== 'air') {
     const img = document.createElement('img');
     img.src = getItemImage(itemName);
     slot.appendChild(img);
@@ -35,11 +37,20 @@ function createGrid(rows, cols, items) {
   grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
   grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
 
-  const totalSlots = rows * cols;
-  for (let i = 0; i < totalSlots; i++) {
-    const [name, count] = items[i] || [];
-    grid.appendChild(createSlot(name, count));
+  const total = rows * cols;
+  const finalSlots = Array(total).fill(['Air', null]);
+
+  for (let i = 0; i < items.length; i++) {
+    const [index, name, count] = items[i];
+    const slotIndex = typeof index === 'number' ? index : finalSlots.findIndex(s => s[0] === 'Air');
+    if (slotIndex >= 0 && slotIndex < total) {
+      finalSlots[slotIndex] = [name, count];
+    }
   }
+
+  finalSlots.forEach(([name, count]) => {
+    grid.appendChild(createSlot(name, count));
+  });
 
   return grid;
 }
@@ -77,8 +88,18 @@ function parseInventoryText(raw) {
             cols = parseInt(parts[0]) || 9;
             rows = parseInt(parts[1]) || 3;
           } else {
-            const [item, count] = line.split(',').map(s => s.trim());
-            items.push([item, count ? parseInt(count) : null]);
+            const match = line.match(/^(\d+)\s*=\s*(.*)$/); // index = item
+            let index = null;
+            let content = line;
+
+            if (match) {
+              index = parseInt(match[1]);
+              content = match[2];
+            }
+
+            const [name, countStr] = content.split(',').map(s => s.trim());
+            const count = countStr ? parseInt(countStr) : null;
+            items.push([index, name, count]);
           }
         }
 
