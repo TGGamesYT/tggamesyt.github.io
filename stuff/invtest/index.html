@@ -43,12 +43,13 @@ sitemap: false
     }
 
     .slot {
-      width: 36px;
-      height: 36px;
-      background: url('https://minecraft.wiki/images/Slot.png') no-repeat;
-      background-size: 72px 72px; /* Zoom in to 8x8 section of 128x128 */
-      background-position: 0 0;
-      position: relative;
+  width: 36px;
+  height: 36px;
+  background: url('https://minecraft.wiki/images/Slot.png') no-repeat;
+  background-size: 128px 128px;       /* Original image size */
+  background-position: 0 0;           /* Top-left 8x8 area */
+  image-rendering: pixelated;          /* Keep pixelated when scaled */
+  position: relative;
     }
 
     .slot img {
