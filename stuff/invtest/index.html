@@ -1,0 +1,218 @@
+---
+sitemap: false
+---
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    @font-face {
+      font-family: 'Minecraft';
+      src: url('https://tggamesyt.dev/assets/Minecraft-Seven_v2.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      font-family: Minecraft, sans-serif;
+    }
+
+    .container-wrapper {
+      float: left;
+      clear: left;
+      font-family: Minecraft;
+      margin: 16px 0;
+    }
+
+    .container-frame {
+      position: relative;
+      width: fit-content;
+      image-rendering: pixelated;
+      padding: 12px;
+      box-sizing: border-box;
+      border-style: solid;
+      border-width: 4px;
+      border-image-source: url('https://minecraft.wiki/images/Inventory_background.png');
+      border-image-slice: 4 fill;
+      border-image-width: 4px;
+      border-image-repeat: stretch;
+      background-clip: padding-box;
+    }
+
+    .inventory-title {
+      color: #3F3F3F;
+      font-size: 16px;
+      margin: 4px 0 8px 2px;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-gap: 0;
+      justify-content: start;
+    }
+
+    .slot {
+      width: 36px;
+      height: 36px;
+      background: url('https://minecraft.wiki/images/GUI_slot.png') no-repeat;
+      background-size: 36px 36px;
+      image-rendering: pixelated;
+      position: relative;
+    }
+
+    .slot img {
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+    }
+
+    .count {
+      position: absolute;
+      right: 3px;
+      bottom: 1px;
+      font-family: Minecraft, sans-serif;
+      font-size: 12px;
+      color: white;
+      text-shadow: 1px 1px 0 #3F3F3F;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<p class="container">
+{{
+|title = Inventory
+|grid = 9x3
+|Grass Block, 5
+|Stone, 8
+|Dirt
+}}
+</p>
+
+<p class="container">
+{{
+|title = Copper Chest
+|grid = 9x3
+|Iron Ingot
+|Iron Ingot
+|Iron Ingot
+}
+{
+|title = Inventory
+|grid = 9x3
+|Copper Ingot
+|Copper Ingot
+|Redstone Dust
+}}
+</p>
+
+<div id="output"></div>
+
+<script>
+function formatItemName(name) {
+  return name.trim()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join('_');
+}
+
+function getItemImage(name) {
+  return name ? `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png` : '';
+}
+
+function createSlot(itemName = '', count = null) {
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+
+  if (itemName) {
+    const img = document.createElement('img');
+    img.src = getItemImage(itemName);
+    slot.appendChild(img);
+
+    if (count !== null) {
+      const countEl = document.createElement('div');
+      countEl.className = 'count';
+      countEl.textContent = count;
+      slot.appendChild(countEl);
+    }
+  }
+  return slot;
+}
+
+function createGrid(rows, cols, items) {
+  const grid = document.createElement('div');
+  grid.className = 'inventory-grid';
+  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
+
+  for (let i = 0; i < rows * cols; i++) {
+    const [name, count] = items[i] || [];
+    grid.appendChild(createSlot(name, count));
+  }
+  return grid;
+}
+
+function renderContainer(title, rows, cols, slots) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'container-wrapper';
+
+  const frame = document.createElement('div');
+  frame.className = 'container-frame';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'inventory-title';
+  titleEl.textContent = title;
+  frame.appendChild(titleEl);
+
+  const grid = createGrid(rows, cols, slots);
+  frame.appendChild(grid);
+  wrapper.appendChild(frame);
+
+  return wrapper;
+}
+
+function parseContainerBlock(text) {
+  const blocks = text.match(/\{\{([\s\S]*?)\}\}/g);
+  if (!blocks) return [];
+
+  return blocks.map(block => {
+    const lines = block.replace(/^\{\{|\}\}$/g, '').trim().split('\n').map(l => l.trim()).filter(Boolean);
+    let title = 'Inventory';
+    let rows = 3, cols = 9;
+    const items = [];
+
+    for (const line of lines) {
+      if (line.startsWith('|title')) {
+        title = line.split('=').slice(1).join('=').trim();
+      } else if (line.startsWith('|grid')) {
+        const size = line.split('=').slice(1).join('=').trim();
+        const [c, r] = size.split('x').map(Number);
+        cols = c;
+        rows = r;
+      } else if (line.startsWith('|')) {
+        const content = line.slice(1).trim();
+        const parts = content.split(',');
+        const item = parts[0]?.trim();
+        const count = parts[1]?.trim();
+        items.push([item, count ? Number(count) : null]);
+      }
+    }
+
+    return renderContainer(title, rows, cols, items);
+  });
+}
+
+// Convert all <p class="container"> content blocks
+document.querySelectorAll('p.container').forEach(p => {
+  const blocks = parseContainerBlock(p.innerText || p.textContent);
+  const parent = p.parentNode;
+  blocks.forEach(b => parent.insertBefore(b, p));
+  p.remove();
+});
+</script>
+
+</body>
+</html>
