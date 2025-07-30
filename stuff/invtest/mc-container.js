@@ -18,6 +18,9 @@ function createSlot(itemName = '', count = null) {
   if (itemName && itemName.toLowerCase() !== 'air') {
     const img = document.createElement('img');
     img.src = getItemImage(itemName);
+    img.onerror = () => {
+      img.src = 'https://minecraft.wiki/images/Missing_Texture_JE4.png';
+    };
     slot.appendChild(img);
 
     if (count) {
