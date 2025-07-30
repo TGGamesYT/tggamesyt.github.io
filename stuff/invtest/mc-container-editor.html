@@ -45,18 +45,26 @@ sitemap: false
     const itemName = document.getElementById('itemName').value.trim();
     const itemCount = parseInt(document.getElementById('itemCount').value);
     if (!itemName) return alert("Enter an item name.");
-    const allGrids = document.querySelectorAll('.inventory-grid');
-    for (const grid of allGrids) {
-      const slots = grid.querySelectorAll('.slot');
-      for (const slot of slots) {
-        if (!slot.dataset.item || slot.dataset.item.toLowerCase() === 'air') {
-          // fill slot
-          slot.dataset.item = itemName;
-          slot.dataset.count = itemCount;
-          slot.innerHTML = '';
-          if (itemName.toLowerCase() !== 'air') {
-            const img = document.createElement('img');
-            img.src = `https://minecraft.wiki/images/Invicon_${itemName.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join('_')}.png`;
+
+    const formattedName = itemName
+      .split(' ')
+      .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join('_');
+
+    const imageUrl = `https://minecraft.wiki/images/Invicon_${formattedName}.png`;
+
+    // Check if image exists first
+    const img = new Image();
+    img.onload = () => {
+      // image exists — spawn it
+      const allGrids = document.querySelectorAll('.inventory-grid');
+      for (const grid of allGrids) {
+        const slots = grid.querySelectorAll('.slot');
+        for (const slot of slots) {
+          if (!slot.dataset.item || slot.dataset.item.toLowerCase() === 'air') {
+            slot.dataset.item = itemName;
+            slot.dataset.count = itemCount;
+            slot.innerHTML = '';
             slot.appendChild(img);
             if (itemCount > 1) {
               const countEl = document.createElement('div');
@@ -64,14 +72,20 @@ sitemap: false
               countEl.textContent = itemCount;
               slot.appendChild(countEl);
             }
+            return;
           }
-          return;
         }
       }
-    }
-    alert("No empty slots found.");
+      alert("No empty slots found.");
+    };
+
+    img.onerror = () => {
+      alert(`Item image not found: "${itemName}"\n(URL: ${imageUrl})`);
+    };
+
+    img.src = imageUrl; // Trigger load
   }
-</script>
+        </script>
 
 </body>
 </html>
