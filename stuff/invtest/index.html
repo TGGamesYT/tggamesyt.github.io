@@ -23,7 +23,6 @@ sitemap: false
       border-image-source: url('https://minecraft.wiki/images/Inventory_background.png');
       border-image-slice: 4 fill;
       border-image-width: 4px;
-      border-image-outset: 0;
       border-image-repeat: stretch;
       background-clip: padding-box;
     }
@@ -47,7 +46,7 @@ sitemap: false
       width: 36px;
       height: 36px;
       background: url('https://minecraft.wiki/images/Slot.png') no-repeat;
-      background-size: 128px 128px;
+      background-size: 72px 72px; /* Zoom in to 8x8 section of 128x128 */
       background-position: 0 0;
       position: relative;
     }
@@ -169,7 +168,7 @@ function renderContainer({ type, title, slots = [], inv = [], hotbar = [], force
   }
 
   const grid = createGrid(rows, slots);
-  grid.style.top = type === 'hopper' ? '30px' : '30px';
+  grid.style.top = '30px';
   grid.style.left = type === 'hopper' ? '78px' : '8px';
   frame.appendChild(grid);
 
