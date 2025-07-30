@@ -15,13 +15,17 @@ sitemap: false
     .container-frame {
       position: relative;
       width: 324px;
-      border: 8px solid transparent;
+      image-rendering: pixelated;
+      padding: 0;
+      box-sizing: content-box;
+      border-style: solid;
+      border-width: 4px;
       border-image-source: url('https://minecraft.wiki/images/Inventory_background.png');
       border-image-slice: 4 fill;
-      border-image-repeat: repeat;
-      image-rendering: pixelated;
-      background-color: transparent;
-      box-sizing: border-box;
+      border-image-width: 4px;
+      border-image-outset: 0;
+      border-image-repeat: stretch;
+      background-clip: padding-box;
     }
 
     .inventory-title {
@@ -42,8 +46,9 @@ sitemap: false
     .slot {
       width: 36px;
       height: 36px;
-      background: url('https://minecraft.wiki/images/Inventory_slot.png') no-repeat;
-      background-size: contain;
+      background: url('https://minecraft.wiki/images/Slot.png') no-repeat;
+      background-size: 128px 128px;
+      background-position: 0 0;
       position: relative;
     }
 
@@ -81,12 +86,23 @@ sitemap: false
 <div id="output"></div>
 
 <script>
-function createSlot(itemImg = '') {
+function formatItemName(name) {
+  return name
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join('_');
+}
+
+function getItemImage(name) {
+  return name ? `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png` : '';
+}
+
+function createSlot(itemName = '') {
   const slot = document.createElement('div');
   slot.className = 'slot';
-  if (itemImg) {
+  if (itemName) {
     const img = document.createElement('img');
-    img.src = itemImg;
+    img.src = getItemImage(itemName);
     slot.appendChild(img);
   }
   return slot;
@@ -176,28 +192,28 @@ function renderContainer({ type, title, slots = [], inv = [], hotbar = [], force
   return wrapper;
 }
 
-// Sample demo rendering
+// Sample rendering
 const output = document.getElementById('output');
 
 output.appendChild(renderContainer({
   type: 'chest',
   title: 'Copper Chest',
-  slots: Array(27).fill('https://minecraft.wiki/images/Iron_Ingot_JE2_BE2.png'),
-  inv: Array(27).fill('https://minecraft.wiki/images/Copper_Ingot_JE2_BE2.png'),
-  hotbar: Array(9).fill('https://minecraft.wiki/images/Redstone_JE2_BE2.png'),
+  slots: Array(27).fill('Iron Ingot'),
+  inv: Array(27).fill('Copper Ingot'),
+  hotbar: Array(9).fill('Redstone'),
 }));
 
 output.appendChild(renderContainer({
   type: 'hopper',
   title: 'Hopper',
-  slots: Array(5).fill('https://minecraft.wiki/images/Hopper_JE2_BE2.png'),
+  slots: Array(5).fill('Hopper'),
   forceInventory: false
 }));
 
 output.appendChild(renderContainer({
   type: 'dispenser',
   title: 'Dispenser',
-  slots: Array(9).fill('https://minecraft.wiki/images/Arrow_JE2_BE2.png'),
+  slots: Array(9).fill('Arrow'),
   inv: Array(27).fill(''),
   hotbar: Array(9).fill(''),
 }));
