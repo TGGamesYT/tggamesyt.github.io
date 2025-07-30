@@ -1,14 +1,14 @@
-function formatItemName(name) {
+  function formatItemName(name) {
   return name
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join('_');
 }
 
-function getItemImage(name) {
+function getItemImage(name, extension = 'png') {
   return name.toLowerCase() === 'air'
     ? ''
-    : `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png`;
+    : `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.${extension}`;
 }
 
 function createSlot(itemName = '', count = null) {
@@ -17,10 +17,19 @@ function createSlot(itemName = '', count = null) {
 
   if (itemName && itemName.toLowerCase() !== 'air') {
     const img = document.createElement('img');
-    img.src = getItemImage(itemName);
+    img.src = getItemImage(itemName, 'png');
+
     img.onerror = () => {
-      img.src = 'https://minecraft.wiki/images/Missing_Texture_JE4.png';
+      // Try GIF fallback
+      const gifUrl = getItemImage(itemName, 'gif');
+      const gifImg = new Image();
+      gifImg.onload = () => img.src = gifUrl;
+      gifImg.onerror = () => {
+        img.src = 'https://minecraft.wiki/images/Missing_Texture_JE4.png';
+      };
+      gifImg.src = gifUrl;
     };
+
     slot.appendChild(img);
 
     if (count) {
@@ -91,7 +100,7 @@ function parseInventoryText(raw) {
             cols = parseInt(parts[0]) || 9;
             rows = parseInt(parts[1]) || 3;
           } else {
-            const match = line.match(/^(\d+)\s*=\s*(.*)$/); // index = item
+            const match = line.match(/^(\d+)\s*=\s*(.*)$/);
             let index = null;
             let content = line;
 
