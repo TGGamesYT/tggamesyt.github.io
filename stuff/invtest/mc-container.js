@@ -253,7 +253,7 @@ function positionMidItems(container) {
   });
 }
 
-function createMultiGrid(baseRows, baseCols, items, newGrids, hiddenSlots) {
+function createMultiGrid(baseRows, baseCols, items, newGrids, hiddenSlots = new Set()) {
   // Ensure newGrids is an array to avoid .map() crash
   if (!Array.isArray(newGrids)) newGrids = [];
 
