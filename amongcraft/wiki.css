@@ -17,6 +17,8 @@ body {
   top: 56px; /* below topbar */
   bottom: 0;
   background: white;
+  background-image: var(--wiki-nav-bg, none);
+  background-repeat: repeat;
   overflow-y: auto;
   width: 250px;
   box-shadow: 2px 0 5px rgba(0,0,0,0.3);
@@ -168,6 +170,8 @@ body {
   overflow-y: auto;
   flex-grow: 1;
   box-sizing: border-box;
+  background-image: var(--wiki-main-bg, none);
+  background-repeat: repeat;
 }
 
 /* MOBILE LAYOUT */
