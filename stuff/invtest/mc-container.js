@@ -229,26 +229,29 @@ function parseMinecraftInventories() {
 }
 
 function positionMidItems(container) {
-  const slots = container.querySelectorAll('.slot');
-  const mids = container.querySelectorAll('.mid-item');
+  requestAnimationFrame(() => {
+    const slots = container.querySelectorAll('.slot');
+    const mids = container.querySelectorAll('.mid-item');
 
-  mids.forEach(mid => {
-    const a = parseInt(mid.dataset.slotA);
-    const b = parseInt(mid.dataset.slotB);
-    const elA = slots[a];
-    const elB = slots[b];
+    mids.forEach(mid => {
+      const a = parseInt(mid.dataset.slotA);
+      const b = parseInt(mid.dataset.slotB);
+      const elA = slots[a];
+      const elB = slots[b];
 
-    if (!elA || !elB) return;
+      if (!elA || !elB) return;
 
-    const rectA = elA.getBoundingClientRect();
-    const rectB = elB.getBoundingClientRect();
+      const rectA = elA.getBoundingClientRect();
+      const rectB = elB.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
 
-    const x = (rectA.left + rectB.left) / 2 + window.scrollX;
-    const y = (rectA.top + rectB.top) / 2 + window.scrollY;
+      const x = ((rectA.left + rectB.left) / 2 - containerRect.left);
+      const y = ((rectA.top + rectB.top) / 2 - containerRect.top);
 
-    mid.style.position = 'absolute';
-    mid.style.left = `${x}px`;
-    mid.style.top = `${y}px`;
+      mid.style.position = 'absolute';
+      mid.style.left = `${x}px`;
+      mid.style.top = `${y}px`;
+    });
   });
 }
 
