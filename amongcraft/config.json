@@ -1,6 +1,6 @@
 {
   "siteName": "Amongcraft Wiki",
-  "siteLogo": "logo.png",
+  "siteLogo": "icon.png",
   "themeColor": "#4A90E2",
   "navItems": [
     { "name": "Home", "url": "index.html" },
