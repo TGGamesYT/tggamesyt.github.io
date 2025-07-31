@@ -12,9 +12,9 @@ function getItemImage(name, extension = 'png') {
     : `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.${extension}`;
 }
 
-function createSlot(itemName = '', count = null, hidden = false) {
+function createSlot(itemName = '', count = null, hidden = false, isMid = false) {
   const slot = document.createElement('div');
-  slot.className = 'slot';
+  slot.className = isMid ? 'mid-item' : 'slot'; // 👈 Only change: mid-item vs slot
 
   if (itemName && itemName.toLowerCase() !== 'air') {
     const img = document.createElement('img');
@@ -46,7 +46,7 @@ function createSlot(itemName = '', count = null, hidden = false) {
   }
 
   if (hidden) {
-  slot.classList.add('invisible-slot');
+    slot.classList.add('invisible-slot');
   }
 
   return slot;
