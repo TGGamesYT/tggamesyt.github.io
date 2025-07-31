@@ -152,7 +152,7 @@ function parseInventoryBlock(lines) {
   frame.appendChild(titleEl);
 
   // Multi-grid setup
-  const grid = createMultiGrid(rows, cols, items, newGrids);
+  const grid = createMultiGrid(rows, cols, items, newGrids, hiddenSlots);
   frame.appendChild(grid);
 
   // Add mid items (floating)
@@ -253,7 +253,7 @@ function positionMidItems(container) {
   });
 }
 
-function createMultiGrid(baseRows, baseCols, items, newGrids) {
+function createMultiGrid(baseRows, baseCols, items, newGrids, hiddenSlots) {
   // Ensure newGrids is an array to avoid .map() crash
   if (!Array.isArray(newGrids)) newGrids = [];
 
@@ -284,7 +284,7 @@ function createMultiGrid(baseRows, baseCols, items, newGrids) {
 
   // Render all grids
   allGrids.forEach((grid, i) => {
-    const gridEl = createGrid(grid.rows, grid.cols, grid.items);
+    const gridEl = createGrid(grid.rows, grid.cols, grid.items, hiddenSlots);
     gridEl.classList.add('grid-block');
     container.appendChild(gridEl);
   });
