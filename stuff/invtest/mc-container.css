@@ -5,6 +5,23 @@
   font-style: normal;
 }
 
+.multi-grid-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.grid-block {
+  position: relative;
+}
+
+.mid-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .container-wrapper {
   float: left;
   clear: left;
