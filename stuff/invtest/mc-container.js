@@ -254,6 +254,9 @@ function positionMidItems(container) {
 }
 
 function createMultiGrid(baseRows, baseCols, items, newGrids) {
+  // Ensure newGrids is an array to avoid .map() crash
+  if (!Array.isArray(newGrids)) newGrids = [];
+
   const container = document.createElement('div');
   container.className = 'multi-grid-wrapper';
 
@@ -288,6 +291,6 @@ function createMultiGrid(baseRows, baseCols, items, newGrids) {
 
   container.classList.add('grid-flex');
   return container;
-}
+    }
 
 window.addEventListener('DOMContentLoaded', parseMinecraftInventories);
