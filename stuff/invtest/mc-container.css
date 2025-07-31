@@ -5,6 +5,11 @@
   font-style: normal;
 }
 
+.slot.invisible-slot {
+  background: none !important;
+  border: none !important;
+}
+
 .multi-grid-wrapper {
   display: flex;
   justify-content: center;
