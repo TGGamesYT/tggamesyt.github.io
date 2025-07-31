@@ -46,7 +46,7 @@ function createSlot(itemName = '', count = null, hidden = false) {
   }
 
   if (hidden) {
-    slot.style.visibility = 'hidden';
+  slot.classList.add('invisible-slot');
   }
 
   return slot;
