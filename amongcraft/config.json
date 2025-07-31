@@ -1,0 +1,12 @@
+{
+  "siteName": "Amongcraft Wiki",
+  "siteLogo": "logo.png",
+  "themeColor": "#4A90E2",
+  "navItems": [
+    { "name": "Home", "url": "index.html" },
+    { "name": "Roles", "url": "roles.html" },
+    { "name": "Impostor Abilities", "url": "impostor-abilities.html" },
+    { "name": "Maps", "url": "maps.html" },
+    { "name": "Commands", "url": "commands.html" }
+  ]
+}
