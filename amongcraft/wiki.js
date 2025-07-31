@@ -1,6 +1,15 @@
 (async () => {
   const config = await fetch('https://tggamesyt.dev/amongcraft/config.json').then(r => r.json());
+
   document.documentElement.style.setProperty('--theme-color', config.themeColor);
+
+  // Apply background images from config
+  if (config["background-main"]) {
+    document.body.style.setProperty('--wiki-main-bg', `url('${config["background-main"]}')`);
+  }
+  if (config["background-nav"]) {
+    document.body.style.setProperty('--wiki-nav-bg', `url('${config["background-nav"]}')`);
+  }
 
   const root = document.getElementById('wiki-root');
 
@@ -39,26 +48,30 @@
     </main>
   `;
 
+  // Apply background to main and nav if defined
+  const wikiContent = document.getElementById('wiki-content');
   const navDrawer = document.getElementById('nav-drawer');
+  if (wikiContent && config["background-main"]) {
+    wikiContent.style.backgroundImage = `url('${config["background-main"]}')`;
+    wikiContent.style.backgroundRepeat = 'repeat';
+  }
+  if (navDrawer && config["background-nav"]) {
+    navDrawer.style.backgroundImage = `url('${config["background-nav"]}')`;
+    navDrawer.style.backgroundRepeat = 'repeat';
+  }
+
   const hamburgerBtn = document.getElementById('hamburger-btn');
   const searchBtn = document.getElementById('search-btn');
   const searchPanel = document.getElementById('search-panel');
   const searchInput = document.getElementById('search-input');
   const searchResults = document.getElementById('search-results');
 
-  // Toggle nav drawer on mobile
   hamburgerBtn?.addEventListener('click', () => {
     const isClosed = navDrawer.classList.contains('closed');
-    if (isClosed) {
-      navDrawer.classList.remove('closed');
-      navDrawer.classList.add('open');
-    } else {
-      navDrawer.classList.add('closed');
-      navDrawer.classList.remove('open');
-    }
+    navDrawer.classList.toggle('closed', !isClosed);
+    navDrawer.classList.toggle('open', isClosed);
   });
 
-  // Toggle search panel on mobile
   searchBtn?.addEventListener('click', () => {
     searchPanel.classList.toggle('open');
     if (searchPanel.classList.contains('open')) {
@@ -69,10 +82,8 @@
     }
   });
 
-  // Pages for search
   const pages = config.navItems;
 
-  // Live search handler
   searchInput?.addEventListener('input', () => {
     const query = searchInput.value.trim().toLowerCase();
     if (!query) {
@@ -88,14 +99,12 @@
     }
   });
 
-  // Close desktop search results on click outside
   document.addEventListener('click', e => {
     if (window.innerWidth >= 768 && !searchPanel.contains(e.target)) {
       searchResults.classList.remove('show');
     }
   });
 
-  // Accessibility: Close nav drawer by pressing Escape (mobile)
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       if (!navDrawer.classList.contains('closed')) {
