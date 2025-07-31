@@ -173,7 +173,7 @@ function parseInventoryText(raw, callback)
   if (!groups) return;
   
   for (const group of groups) {
-    const presetMatch = group.match(/\|preset\s*=\s*(.+)/i);
+    const presetMatch = group.match(/\|preset\s*=\s*([^\|\}\n]+)/i);
     if (presetMatch) {
       let presetPath = presetMatch[1].trim();
       if (!presetPath.endsWith('.json')) presetPath += '.json';
