@@ -5,11 +5,11 @@
 
   // Apply background images from config
   if (config["background-main"]) {
-    document.body.style.setProperty('--wiki-main-bg', `url('${config["background-main"]}')`);
-  }
-  if (config["background-nav"]) {
-    document.body.style.setProperty('--wiki-nav-bg', `url('${config["background-nav"]}')`);
-  }
+  document.documentElement.style.setProperty('--wiki-main-bg', `url('${config["background-main"]}')`);
+}
+if (config["background-nav"]) {
+  document.documentElement.style.setProperty('--wiki-nav-bg', `url('${config["background-nav"]}')`);
+}
 
   const root = document.getElementById('wiki-root');
 
