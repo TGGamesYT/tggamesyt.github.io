@@ -1,7 +1,7 @@
 {
   "siteName": "Amongcraft Wiki",
   "siteLogo": "icon.png",
-  "themeColor": "#4A90E2",
+  "themeColor": "#FF0000",
   "navItems": [
     { "name": "Home", "url": "index.html" },
     { "name": "Roles", "url": "roles.html" },
