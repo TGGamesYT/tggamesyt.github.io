@@ -16,10 +16,6 @@ function createSlot(itemName = '', count = null, hidden = false) {
   const slot = document.createElement('div');
   slot.className = 'slot';
 
-  if (hidden) {
-    slot.style.visibility = 'hidden';
-  }
-
   if (itemName && itemName.toLowerCase() !== 'air') {
     const img = document.createElement('img');
     const isUrl = /^https?:\/\//i.test(itemName);
@@ -47,6 +43,10 @@ function createSlot(itemName = '', count = null, hidden = false) {
       label.textContent = count;
       slot.appendChild(label);
     }
+  }
+
+  if (hidden) {
+    slot.style.visibility = 'hidden';
   }
 
   return slot;
