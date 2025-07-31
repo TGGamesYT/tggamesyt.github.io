@@ -1,5 +1,5 @@
 (async () => {
-  const config = await fetch('config.json').then(r => r.json());
+  const config = await fetch('https://tggamesyt.dev/amongcraft/config.json').then(r => r.json());
   document.documentElement.style.setProperty('--theme-color', config.themeColor);
 
   const root = document.getElementById('wiki-root');
