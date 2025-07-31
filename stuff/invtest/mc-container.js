@@ -152,7 +152,7 @@ function parseInventoryBlock(lines) {
   frame.appendChild(titleEl);
 
   // Multi-grid setup
-  const grid = createMultiGrid(rows, cols, items, hiddenSlots, newGrids);
+  const grid = createMultiGrid(rows, cols, items, newGrids);
   frame.appendChild(grid);
 
   // Add mid items (floating)
