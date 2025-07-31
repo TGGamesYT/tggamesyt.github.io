@@ -18,7 +18,6 @@ function createSlot(itemName = '', count = null, hidden = false) {
 
   if (hidden) {
     slot.style.visibility = 'hidden';
-    return slot;
   }
 
   if (itemName && itemName.toLowerCase() !== 'air') {
