@@ -221,7 +221,7 @@ function parseInventoryText(raw, callback)
 
 function parseMinecraftInventories() {
   document.querySelectorAll('p.container').forEach(p => {
-    const raw = p.innerHTML;
+    const raw = p.textContent;
     parseInventoryText(raw, parsed => {
       p.replaceWith(parsed);
       positionMidItems(parsed);
