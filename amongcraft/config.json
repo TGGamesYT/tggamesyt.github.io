@@ -1,6 +1,6 @@
 {
   "siteName": "Amongcraft Wiki",
-  "siteLogo": "icon.png",
+  "siteLogo": "https://tggamesyt.dev/amongcraft/icon.png",
   "themeColor": "#FF0000",
   "navItems": [
     { "name": "Home", "url": "index.html" },
