@@ -172,6 +172,9 @@ body {
   box-sizing: border-box;
   background-image: var(--wiki-main-bg, none);
   background-repeat: repeat;
+  background-position: top left;
+  background-size: auto; /* or 64px 64px for Minecraft-style tiles */
+  background-attachment: scroll;
 }
 
 /* MOBILE LAYOUT */
