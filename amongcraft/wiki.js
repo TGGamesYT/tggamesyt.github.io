@@ -43,9 +43,7 @@ if (config["background-nav"]) {
       <div id="search-results" role="listbox" aria-live="polite" aria-relevant="additions"></div>
     </aside>
 
-    <main id="wiki-content" tabindex="0">
-      <!-- Your wiki content here -->
-    </main>
+    
   `;
 
   // Apply background to main and nav if defined
