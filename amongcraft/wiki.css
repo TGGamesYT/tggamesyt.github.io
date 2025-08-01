@@ -1,15 +1,21 @@
+@font-face {
+  font-family: 'MinecraftSeven';
+  src: url('https://tggamesyt.dev/assets/Minecraft-Seven_v2.ttf') format('truetype');
+}
+
 :root {
   --theme-color: #4A90E2;
 }
 
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'MinecraftSeven', Arial, sans-serif;
   display: flex;
   height: 100vh;
   overflow: hidden;
   background-image: var(--wiki-main-bg, none);
   background-repeat: repeat;
+  color: white;
 }
 
 /* NAVIGATION */
