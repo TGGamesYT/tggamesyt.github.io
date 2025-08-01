@@ -6,8 +6,33 @@
   "themeColor": "#FF0000",
   "navItems": [
     { "name": "Home", "url": "index.html" },
-    { "name": "Roles", "url": "roles.html" },
-    { "name": "Impostor Abilities", "url": "impostor-abilities.html" },
+    {
+      "name": "Sabotages",
+      "url": "sabotages.html",
+      "children": [
+        { "name": "O2 Sabotage", "url": "sabotage-o2.html" },
+        { "name": "Reactor Sabotage", "url": "sabotage-reactor.html" }
+      ]
+    },
+    {
+      "name": "Roles",
+      "url": "roles.html",
+      "children": [
+        {
+          "name": "Crewmate",
+          "children": [
+            { "name": "Engineer", "url": "engineer.html" },
+            { "name": "Scientist", "url": "scientist.html" }
+          ]
+        },
+        {
+          "name": "Impostor",
+          "children": [
+            { "name": "Shapeshifter", "url": "shapeshifter.html" }
+          ]
+        }
+      ]
+    },
     { "name": "Maps", "url": "maps.html" },
     { "name": "Commands", "url": "commands.html" }
   ]
