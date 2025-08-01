@@ -10,8 +10,11 @@
       "name": "Sabotages",
       "url": "sabotages.html",
       "children": [
-        { "name": "O2 Sabotage", "url": "sabotage-o2.html" },
-        { "name": "Reactor Sabotage", "url": "sabotage-reactor.html" }
+        { "name": "Doors", "url": "sabotage-doors.html" },
+        { "name": "Reactor", "url": "sabotage-reactor.html" },
+        { "name": "O2", "url": "sabotage-o2.html" },
+        { "name": "Lights", "url": "sabotage-lights.html" },
+        { "name": "Comms", "url": "sabotage-comms.html" }
       ]
     },
     {
@@ -21,19 +24,28 @@
         {
           "name": "Crewmate",
           "children": [
+            { "name": "Crewmate", "url": "crewmate.html" },
             { "name": "Engineer", "url": "engineer.html" },
-            { "name": "Scientist", "url": "scientist.html" }
+            { "name": "Angel", "url": "angel.html" },
+            { "name": "Noisemaker", "url": "noisemaker.html" },
+            { "name": "Scientist", "url": "scientist.html" },
+            { "name": "Sheriff", "url": "sheriff.html" },
+            { "name": "Tracker", "url": "tracker.html" },
+            { "name": "Jester", "url": "jester.html" }
           ]
         },
         {
           "name": "Impostor",
           "children": [
-            { "name": "Shapeshifter", "url": "shapeshifter.html" }
+            { "name": "Impostor", "url": "impostor.html" },
+            { "name": "Shapeshifter", "url": "shapeshifter.html" },
+            { "name": "Phantom", "url": "phantom.html" }
           ]
         }
       ]
     },
     { "name": "Maps", "url": "maps.html" },
+    { "name": "Tasks", "url": "tasks.html" },
     { "name": "Commands", "url": "commands.html" }
   ]
 }
