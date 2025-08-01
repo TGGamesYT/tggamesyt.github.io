@@ -1,0 +1,90 @@
+---
+sitemap: false
+---
+{% raw %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Inventory Showcase</title>
+  <link rel="stylesheet" href="mc-container.css">
+  <style>
+    body {
+      font-family: Minecraft, sans-serif;
+      padding: 20px;
+      background: #111;
+      color: #eee;
+    }
+    p {
+      margin-bottom: 1em;
+    }
+    pre {
+      background: #222;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+  <script src="mc-container.js" defer></script>
+</head>
+<body>
+
+<h1>Minecraft Inventory Renderer Showcase</h1>
+
+<h2>1. |title</h2>
+<pre>|title = My Inventory</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |title = My Inventory } }}</p>
+
+<h2>2. |grid =</h2>
+<pre>|grid = 3x3</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 } }}</p>
+
+<h2>3. |preset =</h2>
+<pre>|preset = https://tggamesyt.dev/inv/presets/Crafting.json</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |preset = https://tggamesyt.dev/inv/presets/crafting.json } }}</p>
+
+<h2>4. |preset = (shortcut)</h2>
+<pre>|preset = Crafting</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |preset = crafting } }}</p>
+
+<h2>5. |hideslot = [3-5,7]</h2>
+<pre>|grid = 3x3 |hideslot = [3-5,7]</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |hideslot = [3-5,7] } }}</p>
+
+<h2>6. Slot Index and Item/Count</h2>
+<pre>|0 = Apple, 3 |1 = Diamond, 1</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |0 = Apple, 3 |1 = Diamond, 1 } }}</p>
+
+<h2>7. URL Custom Item</h2>
+<pre>|https://static.wikia.nocookie.net/create_mod/images/5/5b/Mechanical_Arm.png, 2</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |https://static.wikia.nocookie.net/create_mod/images/5/5b/Mechanical_Arm.png, 2 } }}</p>
+
+<h2>8. Slot + URL Custom Item</h2>
+<pre>|4 = https://static.wikia.nocookie.net/create_mod/images/5/5b/Mechanical_Arm.png, 8</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |4 = https://static.wikia.nocookie.net/create_mod/images/5/5b/Mechanical_Arm.png, 8 } }}</p>
+
+<h2>9. |mid a,b = item, count</h2>
+<pre>|grid = 3x3 |mid 1,7 = Grass Block, 5</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |1 = Stone |7 = Dirt |mid 1,7 = Grass Block, 5 } }}</p>
+
+<h2>10. |newgrid = colsxrows DIR cutslots</h2>
+<pre>|grid = 3x3 |newgrid = 3x3 R 1x2 4,5</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 3x3 |newgrid = 3x3 R 1x2 4,5 |0 = Stone |4 = Diamond |5 = Apple } }}</p>
+
+<h2>11. Multiple |newgrid</h2>
+<pre>|grid = 2x2 |newgrid = 2x2 R 1x1 1 |newgrid = 2x2 L 1x1 2</pre>
+<p>Example:<br></p>
+<p class="container">{{ { |grid = 2x2 |newgrid = 2x2 R 1x1 1 |newgrid = 2x2 L 1x1 2 |0 = Stone |1 = Dirt |2 = Apple } }}</p>
+
+</body>
+</html>
+{% endraw %}

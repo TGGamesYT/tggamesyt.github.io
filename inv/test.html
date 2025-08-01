@@ -1,0 +1,228 @@
+---
+sitemap: false
+---
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    @font-face {
+      font-family: 'Minecraft';
+      src: url('https://tggamesyt.dev/assets/Minecraft-Seven_v2.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    .container-wrapper {
+      float: left;
+      clear: left;
+      font-family: Minecraft;
+      margin: 16px 0;
+    }
+
+    .container-frame {
+      position: relative;
+      image-rendering: pixelated;
+      padding: 12px;
+      box-sizing: border-box;
+      border-style: solid;
+      border-width: 4px;
+      border-image-source: url('https://minecraft.wiki/images/Inventory_background.png');
+      border-image-slice: 4 fill;
+      border-image-width: 4px;
+      border-image-repeat: stretch;
+      background-clip: padding-box;
+      background-color: #c6c6c6;
+      display: inline-block;
+    }
+
+    .inventory-title {
+      color: #3F3F3F;
+      font-size: 16px;
+      margin: 4px 0 8px 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-gap: 0;
+      justify-content: center;
+      padding-right: 4px;
+    }
+
+    .slot {
+      width: 36px;
+      height: 36px;
+      background: url('https://minecraft.wiki/images/GUI_slot.png') no-repeat;
+      background-size: 36px 36px;
+      background-position: 0 0;
+      image-rendering: pixelated;
+      position: relative;
+    }
+
+    .slot img {
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+    }
+
+    .inventory-label {
+      position: relative;
+      margin-left: 8px;
+      margin-top: 24px;
+      color: #3F3F3F;
+      font-family: Minecraft, sans-serif;
+      font-size: 16px;
+    }
+
+    .player-inventory {
+      display: grid;
+      grid-template-columns: repeat(9, 36px);
+      grid-template-rows: repeat(3, 36px) 8px 36px;
+      grid-gap: 0;
+      justify-content: center;
+      margin-top: 12px;
+      position: relative;
+    }
+
+    .block {
+      display: contents;
+    }
+  </style>
+</head>
+<body>
+
+<div id="output"></div>
+
+<script>
+function formatItemName(name) {
+  return name
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join('_');
+}
+
+function getItemImage(name) {
+  return name ? `https://minecraft.wiki/images/Invicon_${formatItemName(name)}.png` : '';
+}
+
+function createSlot(itemName = '') {
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+  if (itemName) {
+    const img = document.createElement('img');
+    img.src = getItemImage(itemName);
+    slot.appendChild(img);
+  }
+  return slot;
+}
+
+function createGrid(rows, cols, items) {
+  const grid = document.createElement('div');
+  grid.className = 'inventory-grid';
+  grid.style.gridTemplateRows = `repeat(${rows}, 36px)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  for (let i = 0; i < rows * cols; i++) {
+    grid.appendChild(createSlot(items[i]));
+  }
+  return grid;
+}
+
+function createPlayerInventory(invItems = [], hotbarItems = []) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'player-inventory';
+
+  for (let i = 0; i < 27; i++) {
+    wrapper.appendChild(createSlot(invItems[i]));
+  }
+
+  for (let i = 0; i < 9; i++) {
+    wrapper.appendChild(createSlot(hotbarItems[i]));
+  }
+
+  return wrapper;
+}
+
+function renderContainer({ type, title, slots = [], inv = [], hotbar = [], forceInventory = false }) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'container-wrapper';
+
+  const frame = document.createElement('div');
+  frame.className = 'container-frame';
+
+  const name = document.createElement('div');
+  name.className = 'inventory-title';
+  name.textContent = title || type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ');
+  frame.appendChild(name);
+
+  let rows = 0;
+  let cols = 9;
+
+  switch (type) {
+    case 'hopper': 
+      rows = 1; 
+      cols = 5;
+      break;
+    case 'large-chest': 
+      rows = 6; 
+      break;
+    case 'chest':
+    case 'barrel':
+    case 'shulker-box':
+    case 'ender-chest':
+    default: 
+      rows = 3; 
+      break;
+  }
+
+  const grid = createGrid(rows, cols, slots);
+  grid.style.marginTop = '8px';
+  frame.appendChild(grid);
+
+  const includeInventory = forceInventory || inv.some(x => x) || hotbar.some(x => x);
+  if (includeInventory) {
+    const label = document.createElement('div');
+    label.className = 'inventory-label';
+    label.textContent = 'Inventory';
+    frame.appendChild(label);
+
+    const playerInv = createPlayerInventory(inv, hotbar);
+    frame.appendChild(playerInv);
+  }
+
+  wrapper.appendChild(frame);
+  return wrapper;
+}
+
+// Sample rendering
+const output = document.getElementById('output');
+
+output.appendChild(renderContainer({
+  type: 'chest',
+  title: 'Copper Chest',
+  slots: Array(27).fill('Iron Ingot'),
+  inv: Array(27).fill('Copper Ingot'),
+  hotbar: Array(9).fill('Redstone'),
+}));
+
+output.appendChild(renderContainer({
+  type: 'hopper',
+  title: 'Hopper',
+  slots: Array(5).fill('Hopper'),
+  forceInventory: false
+}));
+
+output.appendChild(renderContainer({
+  type: 'dispenser',
+  title: 'Dispenser',
+  slots: Array(9).fill('Arrow'),
+  inv: Array(27).fill(''),
+  hotbar: Array(9).fill(''),
+}));
+</script>
+
+</body>
+</html>
