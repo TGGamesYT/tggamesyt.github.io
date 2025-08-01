@@ -33,9 +33,7 @@ if (config["background-nav"]) {
     </header>
 
     <nav id="nav-drawer" class="closed" aria-label="Main navigation">
-      <ul>
-        ${config.navItems.map(item => `<li><a href="${item.url}">${item.name}</a></li>`).join('')}
-      </ul>
+        ${renderNavItems(config.navItems)}
     </nav>
 
     <aside id="search-panel" role="search">
@@ -56,6 +54,24 @@ if (config["background-nav"]) {
   if (navDrawer && config["background-nav"]) {
     navDrawer.style.backgroundImage = `url('${config["background-nav"]}')`;
     navDrawer.style.backgroundRepeat = 'repeat';
+  }
+
+  function renderNavItems(items, level = 0) {
+  return `<ul class="nav-level-${level}">
+    ${items.map(item => {
+      const hasChildren = item.children && item.children.length > 0;
+      const toggle = hasChildren
+        ? `<button class="nav-toggle" aria-label="Expand/Collapse">▶</button>`
+        : '';
+      const link = item.url
+        ? `<a href="${item.url}">${item.name}</a>`
+        : `<span>${item.name}</span>`;
+      const children = hasChildren
+        ? `<div class="nav-children hidden">${renderNavItems(item.children, level + 1)}</div>`
+        : '';
+      return `<li>${toggle}${link}${children}</li>`;
+    }).join('')}
+  </ul>`;
   }
 
   const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -102,6 +118,16 @@ if (config["background-nav"]) {
       searchResults.classList.remove('show');
     }
   });
+
+  document.querySelectorAll('.nav-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const children = btn.nextElementSibling?.nextElementSibling;
+    if (children) {
+      children.classList.toggle('hidden');
+      btn.textContent = children.classList.contains('hidden') ? '▶' : '▼';
+    }
+  });
+});
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
