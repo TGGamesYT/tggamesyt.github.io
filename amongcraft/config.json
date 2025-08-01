@@ -23,6 +23,7 @@
       "children": [
         {
           "name": "Crewmate",
+          "url": "crewmate.html",
           "children": [
             { "name": "Crewmate", "url": "crewmate.html" },
             { "name": "Engineer", "url": "engineer.html" },
@@ -36,6 +37,7 @@
         },
         {
           "name": "Impostor",
+          "url": "impostor.html",
           "children": [
             { "name": "Impostor", "url": "impostor.html" },
             { "name": "Shapeshifter", "url": "shapeshifter.html" },
