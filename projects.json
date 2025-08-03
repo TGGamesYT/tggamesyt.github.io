@@ -18,6 +18,28 @@
       }
     }
   },
+  "invtest": {
+    "name": "Minecraft Inventory",
+    "description": "An importable javascript lib that lets you make minecraft containers (chests, crafting guis etc)",
+    "type": "JS / HTML",
+    "links": {
+      "modrinth": {
+        "text": "Showcase",
+        "url": "https://tggamesyt.dev/inv"
+      }
+    }
+  },
+  "overlaywardrobe": {
+    "name": "Overlay Wardrobe",
+    "description": "A Minecraft Mod that lets you overlay your skin with cool pre-made overlays",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "modrinth": {
+        "text": "Modrinth",
+        "url": "https://modrinth.com/mod/overlaywardrobe"
+      }
+    }
+  },
   "versionnotifier-app": {
     "name": "Version Notifier (Mobile App)",
     "description": "A Mobile app that notifies you whenever a new version of Minecraft comes out",
