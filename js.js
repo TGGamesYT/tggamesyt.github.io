@@ -86,3 +86,11 @@ function turn() {
         spans[2].style.transform = "translateY(0) rotate(0)";
     }
 }
+
+window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      const text = params.get("text");
+      if (text) {
+        alert(text);
+      }
+    });
