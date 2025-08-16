@@ -127,32 +127,36 @@
   }
 
   // --- Upload test (live updates added ✅)
-  async function runUpload(durationMs=10000){
-    setStatus('Uploading…');
-    let bytes = 0;
-    const tStart = performance.now();
-    const deadline = tStart + durationMs;
-    const chunk = new Uint8Array(1_000_000);
-    crypto.getRandomValues(chunk);
+  // --- Upload test (fixed getRandomValues issue)
+async function runUpload(durationMs=10000){
+  setStatus('Uploading…');
+  let bytes = 0;
+  const tStart = performance.now();
+  const deadline = tStart + durationMs;
 
-    while (performance.now() < deadline) {
-      const payload = new Uint8Array(chunk.length*4);
-      for (let i=0;i<4;i++) payload.set(chunk,i*chunk.length);
-      try {
-        await fetch('https://speed.cloudflare.com/__up', {
-          method: 'POST',
-          body: payload.buffer,
-          headers: {'Content-Type':'application/octet-stream'},
-          cache:'no-store'
-        });
-        bytes += payload.byteLength;
-        const seconds = (performance.now()-tStart)/1000;
-        upVal.textContent = fmtMbps(bytes/seconds); // live update
-      } catch {}
-    }
-    const seconds = (performance.now()-tStart)/1000;
-    return bytes/seconds;
+  // Just fill with zeros (no need for randomness, saves CPU)
+  const chunk = new Uint8Array(65536); // safe max
+  const repeats = 16;                  // 16 * 64KB ≈ 1MB
+  const payload = new Uint8Array(chunk.length * repeats);
+  for (let i=0;i<repeats;i++) payload.set(chunk,i*chunk.length);
+
+  while (performance.now() < deadline) {
+    try {
+      await fetch('https://speed.cloudflare.com/__up', {
+        method: 'POST',
+        body: payload.buffer,
+        headers: {'Content-Type':'application/octet-stream'},
+        cache:'no-store'
+      });
+      bytes += payload.byteLength;
+      const seconds = (performance.now()-tStart)/1000;
+      upVal.textContent = fmtMbps(bytes/seconds); // live update
+    } catch {}
   }
+
+  const seconds = (performance.now()-tStart)/1000;
+  return bytes/seconds;
+}
 
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
