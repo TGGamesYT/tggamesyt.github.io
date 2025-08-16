@@ -108,6 +108,8 @@
     let bytes = 0;
     const tStart = performance.now();
     const deadline = tStart + durationMs;
+    const proxy = "https://corsproxy.io/?url=";
+    const uploadUrl = proxy + encodeURIComponent("https://speed.cloudflare.com/__up");
     while (performance.now() < deadline) {
       try {
         const res = await fetch(`https://speed.cloudflare.com/__down?bytes=20000000&r=${Math.random()}`, {cache:'no-store'});
@@ -141,7 +143,7 @@ async function runUpload(durationMs=10000){
 
   while (performance.now() < deadline) {
     try {
-      await fetch('https://speed.cloudflare.com/__up', {
+      await fetch(uploadUrl, {
         method: 'POST',
         body: payload.buffer,
         headers: {'Content-Type':'application/octet-stream'},
