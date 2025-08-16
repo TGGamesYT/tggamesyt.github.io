@@ -88,35 +88,50 @@
   }
   fetch('https://ipapi.co/org/').then(r=>r.text()).then(txt=> $('isp').textContent = txt).catch(()=>{$('isp').textContent="—";});
 
-  const client = new ndt7.Client();
+  let startTime, interval;
 
-  client.on('download', (info) => {
-    if (info.MeanClientMbps) {
-      downVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
-      statusEl.textContent = 'Downloading…';
-    }
-  });
-
-  client.on('upload', (info) => {
-    if (info.MeanClientMbps) {
-      upVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
-      statusEl.textContent = 'Uploading…';
-    }
-  });
-
-  client.on('protocol-complete', () => {
-    statusEl.textContent = 'Done';
-    btn.disabled = false;
-    timerEl.textContent = '✓';
-  });
-
-  btn.addEventListener('click', async () => {
+  btn.addEventListener('click', () => {
     btn.disabled = true;
     downVal.textContent = '0.00 Mbps';
     upVal.textContent = '0.00 Mbps';
     statusEl.textContent = 'Starting…';
-    timerEl.textContent = 'Running';
-    await client.start();  // runs download + upload automatically
+    timerEl.textContent = '0s';
+    startTime = Date.now();
+
+    interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime)/1000);
+      timerEl.textContent = elapsed + 's';
+    }, 500);
+
+    ndt7.test({
+      userAcceptedDataPolicy: true,
+      downloadMeasurement: m => {
+        if (m.MeanClientMbps) {
+          downVal.textContent = m.MeanClientMbps.toFixed(2) + ' Mbps';
+          statusEl.textContent = 'Downloading…';
+        }
+      },
+      uploadMeasurement: m => {
+        if (m.MeanClientMbps) {
+          upVal.textContent = m.MeanClientMbps.toFixed(2) + ' Mbps';
+          statusEl.textContent = 'Uploading…';
+        }
+      },
+      downloadComplete: () => { statusEl.textContent = 'Upload running…'; },
+      uploadComplete: () => {
+        statusEl.textContent = 'Done';
+        btn.disabled = false;
+        clearInterval(interval);
+        timerEl.textContent = '✓';
+      },
+      error: err => {
+        console.error(err);
+        statusEl.textContent = 'Error';
+        btn.disabled = false;
+        clearInterval(interval);
+        timerEl.textContent = '—';
+      }
+    });
   });
 })();
 </script>
