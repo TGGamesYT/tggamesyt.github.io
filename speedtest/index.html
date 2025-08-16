@@ -7,7 +7,7 @@
 <style>
   :root { --bg:#0f172a; --fg:#e2e8f0; --muted:#94a3b8; --card:#111827; --accent:#38bdf8; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji','Segoe UI Emoji'; background:linear-gradient(180deg,#0b1023,#0f172a); color:var(--fg); }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial; background:linear-gradient(180deg,#0b1023,#0f172a); color:var(--fg); }
   .wrap { max-width: 820px; margin: 32px auto; padding: 0 16px; }
   .card { background: radial-gradient(1200px 600px at 10% -20%, #10243e 0%, #0b1220 60%, #0a0f1f 100%), var(--card);
           border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
@@ -20,20 +20,17 @@
   .row:last-child { border-bottom: none; }
   .label { color: #cbd5e1; font-weight: 600; }
   .value { color: #ffffff; font-variant-numeric: tabular-nums; }
-  .value.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  .value.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas; }
   .actions { display:flex; gap:12px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
   button { flex:1; appearance:none; border:none; border-radius: 999px; padding: 14px; font-weight: 700; cursor: pointer; color:#001018;
            background: linear-gradient(180deg,#67e8f9,#38bdf8); box-shadow: 0 8px 24px rgba(56,189,248,0.35); min-width: 120px; }
   button[disabled] { opacity: 0.6; cursor: not-allowed; }
   .pill { padding:6px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; white-space: nowrap; }
-  progress { width: 100%; height: 10px; border-radius: 6px; overflow:hidden; }
-  progress::-webkit-progress-bar { background: rgba(255,255,255,0.08); }
-  progress::-webkit-progress-value { background: var(--accent); }
   .small { font-size: 12px; color: var(--muted); }
   .foot { margin-top: 12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   a { color:#7dd3fc; text-decoration: none; }
 
-  /* 📱 Responsive: stack layout on small screens */
+  /* 📱 Responsive */
   @media (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }
     .actions { flex-direction: column; align-items: stretch; }
@@ -46,7 +43,7 @@
   <div class="wrap">
     <div class="card">
       <h1>Basic Speed Test</h1>
-      <p>Press start to run a 10s download and 10s upload test. Results are shown in Mbps.</p>
+      <p>Press start to measure download and upload speed (M-Lab ndt7).</p>
 
       <div class="grid">
         <div class="info">
@@ -60,133 +57,66 @@
           <div class="row"><div class="label">Download</div><div class="value mono" id="downVal">0.00 Mbps</div></div>
           <div class="row"><div class="label">Upload</div><div class="value mono" id="upVal">0.00 Mbps</div></div>
           <div class="row"><div class="label">Status</div><div class="value" id="status">Idle</div></div>
-          <div class="row" style="padding-bottom:0">
-            <progress id="progress" max="1" value="0"></progress>
-          </div>
         </div>
       </div>
 
       <div class="actions">
         <button id="startBtn">Start Test</button>
-        <span class="pill" id="timer">00:00</span>
+        <span class="pill" id="timer">—</span>
       </div>
 
       <div class="foot small">
         <div>Tip: keep this tab focused for best accuracy.</div>
         <div>
-          Sources: Download via <code>speed.cloudflare.com/__down</code>, Upload via <code>speed.cloudflare.com/__up</code>. ISP via <code>ipapi.co</code>.
+          Powered by <a href="https://measurementlab.net" target="_blank">M-Lab</a> (ndt7).
         </div>
       </div>
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@m-lab/ndt7@0.0.6/src/ndt7.min.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
-  const downVal = $('downVal'), upVal = $('upVal'), statusEl = $('status'), prog = $('progress'), timerEl = $('timer'), btn = $('startBtn');
+  const downVal = $('downVal'), upVal = $('upVal'), statusEl = $('status'), timerEl = $('timer'), btn = $('startBtn');
 
-  const MBIT = 8 / (1000*1000); // bytes → megabits
-  function fmtMbps(bps){ return (bps * MBIT).toFixed(2) + ' Mbps'; }
-  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-  function setStatus(s){ statusEl.textContent = s; }
-
-  function startTimer(durationMs){
-    const t0 = performance.now();
-    return setInterval(() => {
-      const elapsed = Math.min(performance.now() - t0, durationMs);
-      const secs = Math.ceil((durationMs - elapsed)/1000);
-      const mm = String(Math.floor(secs/60)).padStart(2,'0');
-      const ss = String(Math.max(secs%60,0)).padStart(2,'0');
-      timerEl.textContent = `${mm}:${ss}`;
-      prog.value = elapsed / durationMs;
-    }, 200);
+  // Device/browser info
+  $('deviceName').textContent = navigator.platform || 'Unknown';
+  $('browserName').textContent = navigator.userAgent.split(") ")[0] || 'Unknown';
+  if (navigator.connection) {
+    $('netInfo').textContent = `${navigator.connection.effectiveType} (${navigator.connection.downlink} Mbps est.)`;
   }
+  fetch('https://ipapi.co/org/').then(r=>r.text()).then(txt=> $('isp').textContent = txt).catch(()=>{$('isp').textContent="—";});
 
-  // --- Download test
-  async function runDownload(durationMs=10000){
-    setStatus('Downloading…');
-    let bytes = 0;
-    const tStart = performance.now();
-    const deadline = tStart + durationMs;
-    const proxy = "https://corsproxy.io/?url=";
-    const uploadUrl = proxy + encodeURIComponent("https://speed.cloudflare.com/__up");
-    while (performance.now() < deadline) {
-      try {
-        const res = await fetch(`https://speed.cloudflare.com/__down?bytes=20000000&r=${Math.random()}`, {cache:'no-store'});
-        const reader = res.body.getReader();
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          bytes += value.byteLength;
-          const seconds = (performance.now()-tStart)/1000;
-          downVal.textContent = fmtMbps(bytes/seconds);
-          if (performance.now() >= deadline) break;
-        }
-      } catch {}
+  const client = new ndt7.Client();
+
+  client.on('download', (info) => {
+    if (info.MeanClientMbps) {
+      downVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
+      statusEl.textContent = 'Downloading…';
     }
-    const seconds = (performance.now()-tStart)/1000;
-    return bytes/seconds;
-  }
-  
-// --- Upload test (fixed getRandomValues issue)
-async function runUpload(durationMs=10000){
-  setStatus('Uploading…');
-  let bytes = 0;
-  const tStart = performance.now();
-  const deadline = tStart + durationMs;
+  });
 
-  // Just fill with zeros (no need for randomness, saves CPU)
-  const chunk = new Uint8Array(65536); // safe max
-  const repeats = 16;                  // 16 * 64KB ≈ 1MB
-  const payload = new Uint8Array(chunk.length * repeats);
-  for (let i=0;i<repeats;i++) payload.set(chunk,i*chunk.length);
+  client.on('upload', (info) => {
+    if (info.MeanClientMbps) {
+      upVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
+      statusEl.textContent = 'Uploading…';
+    }
+  });
 
-  while (performance.now() < deadline) {
-    try {
-      await fetch(uploadUrl, {
-        method: 'POST',
-        body: payload.buffer,
-        headers: {'Content-Type':'application/octet-stream'},
-        cache:'no-store'
-      });
-      bytes += payload.byteLength;
-      const seconds = (performance.now()-tStart)/1000;
-      upVal.textContent = fmtMbps(bytes/seconds); // live update
-    } catch {}
-  }
-
-  const seconds = (performance.now()-tStart)/1000;
-  return bytes/seconds;
-}
+  client.on('protocol-complete', () => {
+    statusEl.textContent = 'Done';
+    btn.disabled = false;
+    timerEl.textContent = '✓';
+  });
 
   btn.addEventListener('click', async () => {
-    if (btn.disabled) return;
     btn.disabled = true;
     downVal.textContent = '0.00 Mbps';
     upVal.textContent = '0.00 Mbps';
-    prog.value = 0;
-
-    // Download phase
-    timerEl.textContent = '00:10';
-    const timer1 = startTimer(10000);
-    const downBps = await runDownload(10000);
-    clearInterval(timer1);
-    prog.value = 1;
-    downVal.textContent = fmtMbps(downBps);
-
-    await sleep(400);
-
-    // Upload phase
-    prog.value = 0;
-    timerEl.textContent = '00:10';
-    const timer2 = startTimer(10000);
-    const upBps = await runUpload(10000);
-    clearInterval(timer2);
-    prog.value = 1;
-    upVal.textContent = fmtMbps(upBps);
-
-    setStatus('Done');
-    btn.disabled = false;
+    statusEl.textContent = 'Starting…';
+    timerEl.textContent = 'Running';
+    await client.start();  // runs download + upload automatically
   });
 })();
 </script>
