@@ -125,9 +125,8 @@
     const seconds = (performance.now()-tStart)/1000;
     return bytes/seconds;
   }
-
-  // --- Upload test (live updates added ✅)
-  // --- Upload test (fixed getRandomValues issue)
+  
+// --- Upload test (fixed getRandomValues issue)
 async function runUpload(durationMs=10000){
   setStatus('Uploading…');
   let bytes = 0;
