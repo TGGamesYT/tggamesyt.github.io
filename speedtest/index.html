@@ -21,17 +21,25 @@
   .label { color: #cbd5e1; font-weight: 600; }
   .value { color: #ffffff; font-variant-numeric: tabular-nums; }
   .value.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-  .actions { display:flex; gap:12px; margin-top: 16px; align-items: center; }
-  button { appearance:none; border:none; border-radius: 999px; padding: 12px 18px; font-weight: 700; cursor: pointer; color:#001018;
-           background: linear-gradient(180deg,#67e8f9,#38bdf8); box-shadow: 0 8px 24px rgba(56,189,248,0.35); }
+  .actions { display:flex; gap:12px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
+  button { flex:1; appearance:none; border:none; border-radius: 999px; padding: 14px; font-weight: 700; cursor: pointer; color:#001018;
+           background: linear-gradient(180deg,#67e8f9,#38bdf8); box-shadow: 0 8px 24px rgba(56,189,248,0.35); min-width: 120px; }
   button[disabled] { opacity: 0.6; cursor: not-allowed; }
-  .pill { padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; }
+  .pill { padding:6px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; white-space: nowrap; }
   progress { width: 100%; height: 10px; border-radius: 6px; overflow:hidden; }
   progress::-webkit-progress-bar { background: rgba(255,255,255,0.08); }
   progress::-webkit-progress-value { background: var(--accent); }
   .small { font-size: 12px; color: var(--muted); }
   .foot { margin-top: 12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   a { color:#7dd3fc; text-decoration: none; }
+
+  /* 📱 Responsive: stack layout on small screens */
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+    .actions { flex-direction: column; align-items: stretch; }
+    button { width: 100%; }
+    .pill { align-self: center; }
+  }
 </style>
 </head>
 <body>
@@ -66,7 +74,7 @@
       <div class="foot small">
         <div>Tip: keep this tab focused for best accuracy.</div>
         <div>
-          Sources used: Download via <code>speed.cloudflare.com/__down</code>, Upload via <code>speed.cloudflare.com/__up</code>. ISP via <code>ipapi.co</code> (best‑effort).
+          Sources: Download via <code>speed.cloudflare.com/__down</code>, Upload via <code>speed.cloudflare.com/__up</code>. ISP via <code>ipapi.co</code>.
         </div>
       </div>
     </div>
@@ -77,50 +85,9 @@
   const $ = id => document.getElementById(id);
   const downVal = $('downVal'), upVal = $('upVal'), statusEl = $('status'), prog = $('progress'), timerEl = $('timer'), btn = $('startBtn');
 
-  // --- Device & Browser info
-  const ua = navigator.userAgent || '';
-  const uaData = navigator.userAgentData || null;
-  const device = (uaData && uaData.platform) || (navigator.platform || 'Unknown');
-  $('deviceName').textContent = device;
-  const brands = uaData && uaData.brands ? uaData.brands.map(b => b.brand).join(', ') : ua.split(') ')[0].replace('(','');
-  $('browserName').textContent = brands || 'Unknown';
-
-  // Network info (best-effort)
-  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  function fmtConn(){
-    if (!conn) return 'Unknown';
-    const parts = [];
-    if (conn.effectiveType) parts.push(conn.effectiveType);
-    if (conn.downlink) parts.push(conn.downlink + ' Mbps est.');
-    if (conn.rtt) parts.push(conn.rtt + ' ms RTT');
-    return parts.join(' • ') || 'Unknown';
-  }
-  $('netInfo').textContent = fmtConn();
-  if (conn) conn.addEventListener('change', () => { $('netInfo').textContent = fmtConn(); });
-
-  // ISP detection
-  (async function detectISP(){
-    try {
-      const c = new AbortController();
-      const to = setTimeout(() => c.abort(), 6000);
-      const res = await fetch('https://ipapi.co/json/', {signal: c.signal});
-      clearTimeout(to);
-      if (!res.ok) throw new Error('bad status');
-      const j = await res.json();
-      const isp = j.org || j.asn_org || j.company || j.carrier || 'Unknown';
-      $('isp').textContent = isp || 'Unknown';
-    } catch (e) {
-      $('isp').textContent = 'Unknown (you can type it)';
-      $('isp').contentEditable = 'true';
-      $('isp').title = 'Click to edit';
-      $('isp').style.borderBottom = '1px dotted rgba(255,255,255,0.3)';
-    }
-  })();
-
-  // --- Utilities
-  const MBIT = 8 / (1000*1000); // bytes -> megabits (decimal)
-  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  const MBIT = 8 / (1000*1000); // bytes → megabits
   function fmtMbps(bps){ return (bps * MBIT).toFixed(2) + ' Mbps'; }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
   function setStatus(s){ statusEl.textContent = s; }
 
   function startTimer(durationMs){
@@ -135,90 +102,66 @@
     }, 200);
   }
 
-  // --- Download test (10s)
-  async function runDownload(durationMs = 10000){
+  // --- Download test
+  async function runDownload(durationMs=10000){
     setStatus('Downloading…');
     let bytes = 0;
     const tStart = performance.now();
     const deadline = tStart + durationMs;
-
-    // We’ll stream chunks from Cloudflare’s endpoint; repeat until time’s up.
     while (performance.now() < deadline) {
-      const remaining = Math.max(1, Math.floor((deadline - performance.now())/1000));
-      const targetBytes = Math.min(200_000_000, 20_000_000 * remaining); // 20MB/slice scale
-      const url = `https://speed.cloudflare.com/__down?bytes=${targetBytes}&r=${Math.random()}`;
       try {
-        const controller = new AbortController();
-        const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        const res = await fetch(`https://speed.cloudflare.com/__down?bytes=20000000&r=${Math.random()}`, {cache:'no-store'});
         const reader = res.body.getReader();
         while (true) {
           const {done, value} = await reader.read();
           if (done) break;
           bytes += value.byteLength;
-          if (performance.now() >= deadline) { controller.abort(); break; }
+          const seconds = (performance.now()-tStart)/1000;
+          downVal.textContent = fmtMbps(bytes/seconds);
+          if (performance.now() >= deadline) break;
         }
-      } catch (e) {
-        // swallow and continue to next loop
-      }
+      } catch {}
     }
-    const tEnd = performance.now();
-    const seconds = (tEnd - tStart) / 1000;
-    const bps = bytes / seconds; // bytes per sec
-    return bps;
+    const seconds = (performance.now()-tStart)/1000;
+    return bytes/seconds;
   }
 
-  // --- Upload test (10s)
-  async function runUpload(durationMs = 10000){
+  // --- Upload test (live updates added ✅)
+  async function runUpload(durationMs=10000){
     setStatus('Uploading…');
     let bytes = 0;
     const tStart = performance.now();
     const deadline = tStart + durationMs;
-
-    // Prebuild a 1MB random chunk we can repeat to form larger payloads
     const chunk = new Uint8Array(1_000_000);
     crypto.getRandomValues(chunk);
 
     while (performance.now() < deadline) {
-      // Build a payload of ~4–8MB to keep requests chunky
-      const repeat = 4 + Math.floor(Math.random()*5);
-      const payload = new Uint8Array(chunk.length * repeat);
-      for (let i=0;i<repeat;i++) payload.set(chunk, i*chunk.length);
-
-      const controller = new AbortController();
-      const body = payload.buffer; // ArrayBuffer
+      const payload = new Uint8Array(chunk.length*4);
+      for (let i=0;i<4;i++) payload.set(chunk,i*chunk.length);
       try {
-        const res = await fetch('https://speed.cloudflare.com/__up', {
+        await fetch('https://speed.cloudflare.com/__up', {
           method: 'POST',
-          body,
-          headers: { 'Content-Type': 'application/octet-stream' },
-          cache: 'no-store',
-          signal: controller.signal
+          body: payload.buffer,
+          headers: {'Content-Type':'application/octet-stream'},
+          cache:'no-store'
         });
-        // Count bytes we attempted to send; browsers don't expose actual sent size precisely
         bytes += payload.byteLength;
-        // If time's up, abort further iterations
-        if (performance.now() >= deadline) { controller.abort(); break; }
-      } catch (e) {
-        // continue trying until time is up
-      }
+        const seconds = (performance.now()-tStart)/1000;
+        upVal.textContent = fmtMbps(bytes/seconds); // live update
+      } catch {}
     }
-
-    const tEnd = performance.now();
-    const seconds = (tEnd - tStart) / 1000;
-    const bps = bytes / seconds; // bytes per sec (approx)
-    return bps;
+    const seconds = (performance.now()-tStart)/1000;
+    return bytes/seconds;
   }
 
-  // --- Orchestrate test
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
     btn.disabled = true;
-    prog.value = 0;
     downVal.textContent = '0.00 Mbps';
     upVal.textContent = '0.00 Mbps';
-    setStatus('Preparing…');
+    prog.value = 0;
 
-    // Visible countdown/progress tied to each 10s phase
+    // Download phase
     timerEl.textContent = '00:10';
     const timer1 = startTimer(10000);
     const downBps = await runDownload(10000);
@@ -226,8 +169,9 @@
     prog.value = 1;
     downVal.textContent = fmtMbps(downBps);
 
-    await sleep(500); // brief breather
+    await sleep(400);
 
+    // Upload phase
     prog.value = 0;
     timerEl.textContent = '00:10';
     const timer2 = startTimer(10000);
@@ -239,7 +183,6 @@
     setStatus('Done');
     btn.disabled = false;
   });
-
 })();
 </script>
 </body>
