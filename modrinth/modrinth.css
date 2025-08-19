@@ -1,0 +1,60 @@
+.modrinth-card {
+  display: block;
+  width: 350px;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: #1e1e1e;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin: 12px 0;
+}
+
+.modrinth-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
+
+.modrinth-banner {
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+.modrinth-content {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+}
+
+.modrinth-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.modrinth-info {
+  flex: 1;
+}
+
+.modrinth-title {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: white;
+}
+
+.modrinth-author {
+  margin: 2px 0 0;
+  font-size: 0.9em;
+  color: #ccc;
+}
+
+.modrinth-description {
+  padding: 0 12px 12px;
+  font-size: 0.95em;
+  color: #ddd;
+  line-height: 1.4em;
+}
