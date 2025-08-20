@@ -58,3 +58,9 @@
   color: #ddd;
   line-height: 1.4em;
 }
+
+.modrinth-user-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
