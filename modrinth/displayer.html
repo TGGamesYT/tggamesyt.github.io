@@ -4,6 +4,11 @@ sitemap: false
 <link rel="stylesheet" href="modrinth.css">
 <script src="modrinth.js"></script>
 <h1>Modrinth Project display js&css script</h1>
+<h2>setup</h2>
+<p>just paste this into the head of your HTML file:</p>
+<pre id="snippet">&lt;link rel="stylesheet" href="https://tggamesyt.dev/modrinth/modrinth.css"&gt;
+&lt;script src="https://tggamesyt.dev/modrinth/modrinth.js"&gt;&lt;/script&gt;</pre>
+<button onclick="copyCode()">Copy</button>
 <h2>showcase:</h2>
 <h3>single</h3>
 <p>fabric-api</p>
@@ -16,3 +21,12 @@ sitemap: false
 <p>user:TGGamesYT</p>
 <pre>&lt;div class="modrinth"&gt;user:TGGamesYT&lt;/div&gt;</pre>
 <div class="modrinth">user:TGGamesYT</div>
+
+<script>
+function copyCode() {
+  const code = document.getElementById("snippet").innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    alert("Copied!");
+  });
+}
+</script>
