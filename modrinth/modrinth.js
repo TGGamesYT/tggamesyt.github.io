@@ -10,6 +10,12 @@ async function loadModrinthCards() {
       const projectRes = await fetch(`https://api.modrinth.com/v2/project/${slug}`);
       const project = await projectRes.json();
 
+      // Get team members to find the author
+      const membersRes = await fetch(`https://api.modrinth.com/v2/project/${slug}/members`);
+      const members = await membersRes.json();
+      const owner = members.find(m => m.role === "Owner") || members[0];
+      const author = owner?.user?.username || "Unknown";
+
       // Get gallery images
       const gallery = project.gallery || [];
       const bannerImage = gallery.length > 0 ? gallery[0].url : project.icon_url;
@@ -24,7 +30,7 @@ async function loadModrinthCards() {
           <img class="modrinth-icon" src="${project.icon_url}" alt="${project.title}">
           <div class="modrinth-info">
             <h3 class="modrinth-title">${project.title}</h3>
-            <p class="modrinth-author">by ${project.author}</p>
+            <p class="modrinth-author">by ${author}</p>
           </div>
         </div>
         <p class="modrinth-description">${project.description}</p>
@@ -37,5 +43,4 @@ async function loadModrinthCards() {
   }
 }
 
-// Run after page load
 document.addEventListener("DOMContentLoaded", loadModrinthCards);
