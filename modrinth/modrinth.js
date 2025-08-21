@@ -1,3 +1,4 @@
+// DEPLOY THIS ALREADY GITHUB PLSPLSPLS
 async function getProjectOwner(slug) {
   try {
     // 1. Check project members
