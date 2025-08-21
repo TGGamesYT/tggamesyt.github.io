@@ -18,6 +18,17 @@
       }
     }
   },
+  "modrinththingy": {
+    "name": "Modrinth Project display",
+    "description": "An importable javascript lib that lets you display modrinth projects as cards",
+    "type": "JS / HTML",
+    "links": {
+      "modrinth": {
+        "text": "Showcase",
+        "url": "https://tggamesyt.dev/modrinth"
+      }
+    }
+  },
   "invtest": {
     "name": "Minecraft Inventory",
     "description": "An importable javascript lib that lets you make minecraft containers (chests, crafting guis etc)",
