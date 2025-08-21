@@ -1,16 +1,33 @@
-async function createModrinthCard(project, slug, authorOverride) {
-  // Get team members if no author override
-  let author = authorOverride;
-  if (!author) {
-    try {
-      const membersRes = await fetch(`https://api.modrinth.com/v2/project/${slug}/members`);
-      const members = await membersRes.json();
-      const owner = members.find(m => m.role === "Owner") || members[0];
-      author = owner?.user?.username || "Unknown";
-    } catch {
-      author = "Unknown";
-    }
+async function getProjectOwner(slug) {
+  try {
+    // 1. Check project members
+    const membersRes = await fetch(`https://api.modrinth.com/v3/project/${slug}/members`);
+    const members = await membersRes.json();
+
+    const owner = members.find(m => m.is_owner === true);
+    if (owner) return owner.user?.username || "Unknown";
+  } catch (err) {
+    console.warn("Failed to fetch members for", slug, err);
   }
+
+  try {
+    // 2. If no owner in members, check organization members
+    const orgRes = await fetch(`https://api.modrinth.com/v3/project/${slug}/organization`);
+    const org = await orgRes.json();
+
+    if (org && Array.isArray(org.members)) {
+      const owner = org.members.find(m => m.is_owner === true);
+      if (owner) return owner.user?.username || "Unknown";
+    }
+  } catch (err) {
+    console.warn("Failed to fetch org for", slug, err);
+  }
+
+  return "Unknown";
+}
+
+async function createModrinthCard(project, slug, authorOverride) {
+  const author = authorOverride || (await getProjectOwner(slug));
 
   const gallery = project.gallery || [];
   const bannerImage = gallery.length > 0 ? gallery[0].url : project.icon_url;
