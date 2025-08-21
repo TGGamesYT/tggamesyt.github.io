@@ -29,6 +29,17 @@
       }
     }
   },
+  "downloader": {
+    "name": "Downloader",
+    "description": "Lets you download any file (made for files that display raw text)",
+    "type": "JS / HTML",
+    "links": {
+      "modrinth": {
+        "Site",
+        "url": "https://tggamesyt.dev/downloader"
+      }
+    }
+  },
   "invtest": {
     "name": "Minecraft Inventory",
     "description": "An importable javascript lib that lets you make minecraft containers (chests, crafting guis etc)",
