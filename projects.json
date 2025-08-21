@@ -23,7 +23,7 @@
     "description": "An importable javascript lib that lets you display modrinth projects as cards",
     "type": "JS / HTML",
     "links": {
-      "modrinth": {
+      "showcase": {
         "text": "Showcase",
         "url": "https://tggamesyt.dev/modrinth"
       }
@@ -34,8 +34,8 @@
     "description": "Lets you download any file (made for files that display raw text)",
     "type": "JS / HTML",
     "links": {
-      "modrinth": {
-        "Site",
+      "site": {
+        "text: "Site",
         "url": "https://tggamesyt.dev/downloader"
       }
     }
@@ -45,7 +45,7 @@
     "description": "An importable javascript lib that lets you make minecraft containers (chests, crafting guis etc)",
     "type": "JS / HTML",
     "links": {
-      "modrinth": {
+      "showcase": {
         "text": "Showcase",
         "url": "https://tggamesyt.dev/inv"
       }
