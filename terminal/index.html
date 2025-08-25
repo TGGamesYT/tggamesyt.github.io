@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fake Terminal</title>
+<style>
+    body {
+        background: black;
+        color: #00ff00;
+        font-family: monospace;
+        margin: 0;
+        padding: 0;
+    }
+    #terminal {
+        padding: 10px;
+        height: 100vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+    #inputLine {
+        display: flex;
+    }
+    #inputLine span {
+        flex-shrink: 0;
+    }
+    #commandInput {
+        background: black;
+        color: #00ff00;
+        border: none;
+        outline: none;
+        flex: 1;
+        font-family: monospace;
+        font-size: 1em;
+    }
+</style>
+</head>
+<body>
+<div id="terminal"></div>
+<div id="inputLine">
+    <span>&gt;&nbsp;</span>
+    <input type="text" id="commandInput" autofocus />
+</div>
+
+<script>
+const terminal = document.getElementById("terminal");
+const input = document.getElementById("commandInput");
+
+const asciiCommands = ["rick", "dance", "cat"]; // example ascii.live paths
+
+function appendOutput(text) {
+    terminal.innerText += text + "\n";
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function handleCommand(cmd) {
+    const parts = cmd.trim().split(" ");
+    const main = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    switch(main) {
+        // Normal commands
+        case "help":
+            appendOutput("Commands: time, date, ip, info, clear, echo, whoami, version, ascii, dance, coffee, flip, roll, slap, sudo, boom, ghost, rainbow, danceparty, nuke, troll, cat, rick, weather, fortune, joke, magic8");
+            break;
+        case "time":
+            appendOutput(new Date().toLocaleTimeString());
+            break;
+        case "date":
+            appendOutput(new Date().toLocaleDateString());
+            break;
+        case "ip":
+            appendOutput("192.168." + Math.floor(Math.random()*255) + "." + Math.floor(Math.random()*255));
+            break;
+        case "info":
+            appendOutput(`Browser: ${navigator.userAgent}`);
+            break;
+        case "clear":
+            terminal.innerText = "";
+            break;
+        case "echo":
+            appendOutput(args.join(" "));
+            break;
+        case "whoami":
+            appendOutput("user" + Math.floor(Math.random()*1000));
+            break;
+        case "version":
+            appendOutput("FakeTerminal v1.0");
+            break;
+
+        // Fun / silly commands
+        case "dance":
+            appendOutput("💃🕺 Dancing...");
+            break;
+        case "coffee":
+            appendOutput("☕ Brewing coffee...");
+            break;
+        case "flip":
+            appendOutput(Math.random() < 0.5 ? "Heads" : "Tails");
+            break;
+        case "roll":
+            appendOutput(Math.floor(Math.random()*6)+1);
+            break;
+        case "slap":
+            appendOutput((args[0] || "someone") + " got slapped! 🤚");
+            break;
+        case "sudo":
+            appendOutput("Permission denied: You are not the root user!");
+            break;
+
+        // Secret commands
+        case "boom":
+            appendOutput("💥 BOOM! Terminal destroyed!");
+            break;
+        case "ghost":
+            appendOutput("👻 Boo!");
+            break;
+        case "rainbow":
+            appendOutput("%c✨ Rainbow mode enabled ✨", "color: magenta;");
+            break;
+        case "danceparty":
+            appendOutput("💃🕺🎉 Dancing party in terminal!");
+            break;
+        case "nuke":
+            appendOutput("🚨 ERROR 404 🚨 Terminal meltdown!");
+            break;
+        case "troll":
+            appendOutput("Did you really think this would do something?");
+            break;
+        case "cat":
+            appendOutput("😺 Meow! Here's a cat for you.");
+            break;
+        case "rick":
+            appendOutput("Playing Rick Astley in ASCII...");
+            fetchAsciiLive("rick");
+            break;
+
+        // ASCII command that curls ascii.live
+        case "ascii":
+            if(args.length > 0) {
+                fetchAsciiLive(args[0]);
+            } else {
+                fetchAsciiLive(""); // default curl ascii.live
+            }
+            break;
+
+        // Interactive / random commands
+        case "fortune":
+            const fortunes = ["You will have a great day!", "Beware of bugs in your code.", "Pizza is life.", "Randomness rules!"];
+            appendOutput(fortunes[Math.floor(Math.random()*fortunes.length)]);
+            break;
+        case "joke":
+            const jokes = ["Why did the chicken cross the road? To escape debugging.", "I would tell you a UDP joke, but you might not get it."];
+            appendOutput(jokes[Math.floor(Math.random()*jokes.length)]);
+            break;
+        case "magic8":
+            const answers = ["Yes", "No", "Maybe", "Definitely not", "Ask again later"];
+            appendOutput(answers[Math.floor(Math.random()*answers.length)]);
+            break;
+
+        default:
+            if(main) appendOutput("Command not found: " + main);
+    }
+}
+
+function fetchAsciiLive(path) {
+    const url = path ? `https://ascii.live/${path}` : `https://ascii.live/`;
+    fetch(url)
+        .then(res => res.text())
+        .then(text => appendOutput(text))
+        .catch(() => appendOutput("Failed to fetch ASCII from ascii.live/" + path));
+}
+
+input.addEventListener("keydown", function(e) {
+    if(e.key === "Enter") {
+        const cmd = input.value;
+        appendOutput("> " + cmd);
+        handleCommand(cmd);
+        input.value = "";
+    }
+});
+</script>
+</body>
+</html>
