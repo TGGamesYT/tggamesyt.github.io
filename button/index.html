@@ -98,7 +98,8 @@
         if (result) {
           location.href = result;
         } else {
-          alert("Nothing happens...");
+          document.getElementById("message").textContent = "Nothing...";
+          document.getElementById("secretInput").value = "";
         }
       });
     }
