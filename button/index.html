@@ -90,9 +90,9 @@
       document.getElementById("submitInput").addEventListener("click", async () => {
         const val = document.getElementById("secretInput").value;
 
-        const ciphertext = "sILM5+TR6FdihE0GMuFwIT7D8pQhO3sD4BdgDXOHiwk=";
-        const iv = "O/0fV5C8h1nG5Zo2gwgZpg=="; 
-        const salt = "Jt7tQCY6rP5W4YOnXyQbKg=="; 
+        const ciphertext = "YUp4hktVjUG4qDlNTw4pU58C1qmvvWOO9iJmNX5JaRNhYpjcP0DFtMWmlpM=";
+        const iv = "uwFtvcRXXnQIK4J3"; 
+        const salt = "k2woGQ1Fnu7ox3k5qlcATA=="; 
 
         const result = await decrypt(ciphertext, val, iv, salt);
         if (result) {
