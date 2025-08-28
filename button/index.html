@@ -11,6 +11,7 @@
 </head>
 <body>
   <h1 id="message">Click the button 👇</h1>
+  <div id="numberDisplay"></div>
   <button id="clickBtn">Click Me</button>
   <div id="inputBox">
     <input type="text" id="secretInput" placeholder="Enter secret...">
@@ -30,19 +31,42 @@
 
     const phrases = Array.from({length: 100}, (_, i) => `Wow this must be the last one (#${i})`);
 
-    const params = new URLSearchParams(location.search);
-    let num = parseInt(params.get("num")) || 0;
+    // Persistent state
+    const seed = 12345; // fixed seed for consistent sequence
+    const rng = mulberry32(seed);
+    let usedNumbers = JSON.parse(localStorage.getItem("usedNumbers") || "[]");
 
-    const rng = mulberry32(num);
-    const phrase = phrases[Math.floor(rng() * phrases.length)];
-    if (num > 0) document.getElementById("message").textContent = phrase;
+    // Pick the next unique number from RNG
+    function nextUniqueNumber() {
+      let candidate;
+      do {
+        candidate = Math.floor(rng() * 100000000); // 0 - 99,999,999
+      } while (usedNumbers.includes(candidate));
+      usedNumbers.push(candidate);
+      localStorage.setItem("usedNumbers", JSON.stringify(usedNumbers));
+      return candidate;
+    }
+
+    // Get current number (resume from storage or start fresh)
+    let num;
+    if (usedNumbers.length > 0) {
+      num = usedNumbers[usedNumbers.length - 1];
+    } else {
+      num = nextUniqueNumber();
+    }
+
+    // Display
+    document.getElementById("numberDisplay").textContent = `Number: ${num}`;
+    document.getElementById("message").textContent = phrases[num % phrases.length];
 
     const btn = document.getElementById("clickBtn");
     let holdTimer;
 
     btn.addEventListener("click", () => {
-      num++;
-      location.href = "?num=" + num;
+      num = nextUniqueNumber();
+      document.getElementById("numberDisplay").textContent = `Number: ${num}`;
+      document.getElementById("message").textContent = phrases[num % phrases.length];
+      checkEasterEgg(num);
     });
 
     btn.addEventListener("mousedown", () => {
@@ -71,7 +95,6 @@
 
     async function decrypt(ciphertextBase64, password, ivBase64, saltBase64) {
       try {
-        const enc = new TextEncoder();
         const ciphertext = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
         const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
         const salt = Uint8Array.from(atob(saltBase64), c => c.charCodeAt(0));
@@ -80,29 +103,38 @@
         const plaintextBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
         return new TextDecoder().decode(plaintextBuffer);
       } catch {
-        return null; // wrong password or tampered ciphertext
+        return null;
       }
     }
 
-    // --- Easter egg for 2008 ---
-    if (num === 2008) {
-      document.getElementById("inputBox").style.display = "block";
-      document.getElementById("submitInput").addEventListener("click", async () => {
-        const val = document.getElementById("secretInput").value;
+    // --- Easter eggs handler ---
+    function checkEasterEgg(n) {
+      // Special case 2008
+      if (n === 2008) {
+        document.getElementById("inputBox").style.display = "block";
+        document.getElementById("submitInput").onclick = async () => {
+          const val = document.getElementById("secretInput").value;
 
-        const ciphertext = "YUp4hktVjUG4qDlNTw4pU58C1qmvvWOO9iJmNX5JaRNhYpjcP0DFtMWmlpM=";
-        const iv = "uwFtvcRXXnQIK4J3"; 
-        const salt = "k2woGQ1Fnu7ox3k5qlcATA=="; 
+          const ciphertext = "YUp4hktVjUG4qDlNTw4pU58C1qmvvWOO9iJmNX5JaRNhYpjcP0DFtMWmlpM=";
+          const iv = "uwFtvcRXXnQIK4J3"; 
+          const salt = "k2woGQ1Fnu7ox3k5qlcATA=="; 
 
-        const result = await decrypt(ciphertext, val, iv, salt);
-        if (result) {
-          location.href = result;
-        } else {
-          document.getElementById("message").textContent = "Nothing...";
-          document.getElementById("secretInput").value = "";
-        }
-      });
+          const result = await decrypt(ciphertext, val, iv, salt);
+          if (result) {
+            location.href = result;
+          } else {
+            document.getElementById("secretInput").value = "";
+            num = nextUniqueNumber();
+            document.getElementById("numberDisplay").textContent = `Number: ${num}`;
+            document.getElementById("message").textContent = phrases[num % phrases.length];
+            checkEasterEgg(num);
+          }
+        };
+      }
     }
+
+    // Check first number right away
+    checkEasterEgg(num);
   </script>
 </body>
 </html>
