@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>File Downloader</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  input { width: 80%; padding: 8px; margin-right: 10px; }
+  button { padding: 8px 12px; }
+</style>
+</head>
+<body>
+<h1>File Downloader</h1>
+
+<input type="text" id="fileUrl" placeholder="Enter file URL here">
+<button id="downloadBtn">Download</button>
+
+<script>
+// Function to download a file given a URL
+function downloadFile(url) {
+    if (!url) return alert('Please enter a valid URL!');
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.blob();
+        })
+        .then(blob => {
+            const a = document.createElement('a');
+            const fileName = url.split('/').pop() || 'downloaded-file';
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        })
+        .catch(err => alert('Error downloading file: ' + err.message));
+}
+
+// Handle button click
+document.getElementById('downloadBtn').addEventListener('click', () => {
+    const url = document.getElementById('fileUrl').value;
+    downloadFile(url);
+});
+
+// Check query parameter ?file=...
+const params = new URLSearchParams(window.location.search);
+const fileParam = params.get('file');
+if (fileParam) {
+    const decodedUrl = decodeURIComponent(fileParam);
+    document.getElementById('fileUrl').value = decodedUrl;
+    downloadFile(decodedUrl);
+}
+</script>
+</body>
+</html>

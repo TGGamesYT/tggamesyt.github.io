@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Resizer</title>
+</head>
+<body>
+<h1>File Resizer</h1>
+
+<label for="files">Select files:</label>
+<input type="file" id="files" multiple accept=".png,.jpg,.jpeg,.mp4,.mov,.mkv"><br><br>
+
+<label for="maxSize">Max size per file (MB):</label>
+<input type="number" id="maxSize" value="2" min="0.1" step="0.1"><br><br>
+
+<button id="processBtn">Resize Files</button>
+
+<div id="output"></div>
+
+<script>
+const filesInput = document.getElementById('files');
+const maxSizeInput = document.getElementById('maxSize');
+const processBtn = document.getElementById('processBtn');
+const output = document.getElementById('output');
+
+processBtn.addEventListener('click', async () => {
+    const files = filesInput.files;
+    const maxSize = parseFloat(maxSizeInput.value) * 1024 * 1024;
+    output.innerHTML = '';
+
+    for (const file of files) {
+        if (file.type.startsWith('image/')) {
+            const resizedBlob = await resizeImage(file, maxSize);
+            displayFile(resizedBlob, file.name);
+        } else if (file.type.startsWith('video/')) {
+            const resizedBlob = await resizeVideo(file, maxSize);
+            displayFile(resizedBlob, file.name);
+        } else {
+            output.innerHTML += `<p>Unsupported file type: ${file.name}</p>`;
+        }
+    }
+});
+
+function displayFile(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.textContent = `Download ${name} (${sizeMB} MB)`;
+    output.appendChild(link);
+    output.appendChild(document.createElement('br'));
+}
+
+// Resize images
+function resizeImage(file, maxSize) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(file);
+
+        img.onload = () => {
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+            let width = img.width;
+            let height = img.height;
+            let scale = 0.9;
+
+            function attemptResize() {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => {
+                    if (blob.size <= maxSize || width < 50 || height < 50) {
+                        resolve(blob);
+                    } else {
+                        width = Math.floor(width * scale);
+                        height = Math.floor(height * scale);
+                        attemptResize();
+                    }
+                }, file.type, 0.9);
+            }
+            attemptResize();
+        };
+    });
+}
+
+// Resize videos (basic downscale)
+function resizeVideo(file, maxSize) {
+    return new Promise((resolve) => {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadedmetadata = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            let scale = 0.9;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+
+            video.currentTime = 0;
+            video.play();
+
+            function captureFrame() {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(video, 0, 0, width, height);
+                canvas.toBlob(blob => {
+                    if (blob.size <= maxSize || width < 100 || height < 100) {
+                        resolve(blob);
+                        video.pause();
+                    } else {
+                        width = Math.floor(width * scale);
+                        height = Math.floor(height * scale);
+                        captureFrame();
+                    }
+                }, 'video/webm', 0.8);
+            }
+
+            video.onseeked = captureFrame;
+            video.currentTime = 0.1;
+        };
+    });
+}
+</script>
+</body>
+</html>

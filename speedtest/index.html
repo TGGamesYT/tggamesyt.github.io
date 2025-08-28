@@ -1,0 +1,193 @@
+---
+sitemap: false
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Speed Test (doesnt work)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .wrap {
+      width: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      padding: 24px;
+    }
+    .card h1 {
+      margin-top: 0;
+      font-size: 1.8em;
+    }
+    .grid {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    .info, .results {
+      width: 48%;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+    .label {
+      font-weight: bold;
+    }
+    .value {
+      text-align: right;
+    }
+    .mono {
+      font-family: monospace;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #0078d4;
+      color: white;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: default;
+    }
+    .pill {
+      padding: 4px 8px;
+      background: #eee;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    .foot {
+      margin-top: 16px;
+      font-size: 0.85em;
+      color: #555;
+    }
+    .foot a {
+      color: #0078d4;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap card">
+    <h1>Speed Test (doesnt work, I was just trying to make it work but couldnt)</h1>
+    <p>Press a button to measure download, upload, or full speed (NDT7).</p>
+
+    <div class="grid">
+      <div class="info">
+        <div class="row"><div class="label">Device</div><div class="value" id="deviceName">—</div></div>
+        <div class="row"><div class="label">Browser</div><div class="value" id="browserName">—</div></div>
+        <div class="row"><div class="label">ISP</div><div class="value" id="isp">Detecting…</div></div>
+        <div class="row"><div class="label">Network</div><div class="value" id="netInfo">—</div></div>
+      </div>
+      <div class="results">
+        <div class="row"><div class="label">Download</div><div class="value mono" id="downVal">0.00 Mbps</div></div>
+        <div class="row"><div class="label">Upload</div><div class="value mono" id="upVal">0.00 Mbps</div></div>
+        <div class="row"><div class="label">Status</div><div class="value" id="status">Idle</div></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div>
+        <button id="downloadBtn">Download Test</button>
+        <button id="uploadBtn">Upload Test</button>
+        <button id="fullBtn">Full Test</button>
+      </div>
+      <span class="pill" id="timer">—</span>
+    </div>
+
+    <div class="foot small">
+      <div>Tip: keep this tab focused for best accuracy.</div>
+      <div>Powered by <a href="https://measurementlab.net" target="_blank">M-Lab</a> (ndt7).</div>
+    </div>
+  </div>
+
+  <!-- NDT7 client library -->
+  <script src="https://tggamesyt.dev/assets/ndt7/ndt7.min.js"></script>
+  <script>
+    (function(){
+      const $ = id => document.getElementById(id);
+      const downVal = $('downVal'), upVal = $('upVal'), statusEl = $('status'), timerEl = $('timer');
+      const downloadBtn = $('downloadBtn'), uploadBtn = $('uploadBtn'), fullBtn = $('fullBtn');
+
+      // Device/browser info
+      $('deviceName').textContent = navigator.platform || 'Unknown';
+      $('browserName').textContent = navigator.userAgent.split(") ")[0] || 'Unknown';
+      if (navigator.connection) {
+        $('netInfo').textContent = `${navigator.connection.effectiveType} (${navigator.connection.downlink || 0} Mbps est.)`;
+      }
+      fetch('https://ipapi.co/org/').then(r=>r.text()).then(txt=> $('isp').textContent = txt).catch(()=>{$('isp').textContent="—";});
+
+      // Create NDT7 client with custom worker path
+      const client = new ndt7.Client({
+        workerPath: 'https://tggamesyt.dev/assets/ndt7/'
+      });
+
+      function resetUI() {
+        downVal.textContent = '0.00 Mbps';
+        upVal.textContent = '0.00 Mbps';
+        statusEl.textContent = 'Starting…';
+        timerEl.textContent = 'Running';
+        downloadBtn.disabled = true;
+        uploadBtn.disabled = true;
+        fullBtn.disabled = true;
+      }
+
+      function finishUI() {
+        statusEl.textContent = 'Done';
+        timerEl.textContent = '✓';
+        downloadBtn.disabled = false;
+        uploadBtn.disabled = false;
+        fullBtn.disabled = false;
+      }
+
+      // Listen to events
+      client.on('download', info => {
+        if (info.MeanClientMbps) {
+          downVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
+          statusEl.textContent = 'Downloading…';
+        }
+      });
+      client.on('upload', info => {
+        if (info.MeanClientMbps) {
+          upVal.textContent = info.MeanClientMbps.toFixed(2) + ' Mbps';
+          statusEl.textContent = 'Uploading…';
+        }
+      });
+      client.on('protocol-complete', finishUI);
+
+      // Button handlers
+      downloadBtn.addEventListener('click', async () => {
+        resetUI();
+        await client.downloadTest(); // download only
+      });
+      uploadBtn.addEventListener('click', async () => {
+        resetUI();
+        await client.uploadTest(); // upload only
+      });
+      fullBtn.addEventListener('click', async () => {
+        resetUI();
+        await client.test(); // download + upload
+      });
+    })();
+  </script>
+</body>
+</html>

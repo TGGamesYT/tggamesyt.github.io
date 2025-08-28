@@ -18,6 +18,50 @@
       }
     }
   },
+  "modrinththingy": {
+    "name": "Modrinth Project display",
+    "description": "An importable javascript lib that lets you display modrinth projects as cards",
+    "type": "JS / HTML",
+    "links": {
+      "showcase": {
+        "text": "Showcase",
+        "url": "https://tggamesyt.dev/modrinth"
+      }
+    }
+  },
+  "downloader": {
+    "name": "Downloader",
+    "description": "Lets you download any file (made for files that display raw text)",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/downloader"
+      }
+    }
+  },
+  "invtest": {
+    "name": "Minecraft Inventory",
+    "description": "An importable javascript lib that lets you make minecraft containers (chests, crafting guis etc)",
+    "type": "JS / HTML",
+    "links": {
+      "showcase": {
+        "text": "Showcase",
+        "url": "https://tggamesyt.dev/inv"
+      }
+    }
+  },
+  "overlaywardrobe": {
+    "name": "Overlay Wardrobe",
+    "description": "A Minecraft Mod that lets you overlay your skin with cool pre-made overlays",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "modrinth": {
+        "text": "Modrinth",
+        "url": "https://modrinth.com/mod/overlaywardrobe"
+      }
+    }
+  },
   "versionnotifier-app": {
     "name": "Version Notifier (Mobile App)",
     "description": "A Mobile app that notifies you whenever a new version of Minecraft comes out",
