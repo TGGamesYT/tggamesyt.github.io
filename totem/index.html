@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Minecraft Totem Converter</title>
+    <title>Minecraft Totem Pack Creator</title>
     <style>
         body {
             font-family: sans-serif;
@@ -22,47 +22,65 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        .input-group {
+            margin-bottom: 15px;
+        }
         #output-canvas {
-            width: 128px; /* Scale up for better viewing */
+            width: 128px;
             height: 128px;
             image-rendering: pixelated;
             border: 2px solid #333;
             margin: 20px 0;
-            display: none; /* Hide until an image is converted */
+            display: none;
         }
-        #download-btn {
+        button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            display: none; /* Hide until an image is converted */
+            margin: 5px;
+        }
+        #pack-download-btn, #image-download-btn {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Minecraft Totem Converter</h1>
-        <p>Upload a Minecraft skin PNG.</p>
-        <input type="file" id="imageLoader" accept="image/png">
+        <h1>Minecraft Totem Pack Creator</h1>
+        <p>Enter a username or upload a skin file.</p>
+        
+        <div class="input-group">
+            <input type="text" id="username-input" placeholder="Enter Minecraft Username">
+            <button onclick="fetchSkin()">Fetch Skin</button>
+        </div>
+        
+        <p>OR</p>
+
+        <div class="input-group">
+            <input type="file" id="imageLoader" accept="image/png">
+        </div>
+
         <canvas id="myCanvas" style="display:none;"></canvas>
         <canvas id="Totem" style="display:none;"></canvas>
-        <canvas id="output-canvas"></canvas>
-        <button id="download-btn">Download Totem</button>
+        <canvas id="output-canvas" width="16" height="16"></canvas>
+
+        <button id="image-download-btn">Download Totem Image</button>
+        <button id="pack-download-btn">Download as Resource Pack</button>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
     <script>
-        // The core conversion logic, copied 1:1 from your JS
+        // Core conversion logic
         function test(img) {
             const c = document.getElementById("myCanvas");
             const ctx = c.getContext("2d");
             const d = document.getElementById("Totem");
             const dtx = d.getContext("2d");
-            
-            // Get the new output canvas
             const outputCanvas = document.getElementById("output-canvas");
             const outputCtx = outputCanvas.getContext("2d");
-
-            const downloadBtn = document.getElementById("download-btn");
-            
+        
             dtx.clearRect(0, 0, 16, 16);
             dtx.drawImage(c, 8, 8, 8, 8, 4, 1, 8, 8);
             dtx.clearRect(4, 1, 1, 1);
@@ -115,8 +133,9 @@
                 dtx.drawImage(c, 45, 31, 1, 1, 14, 9, 1, 1);
             }
         
+            // Draw head overlay
+            dtx.drawImage(c, 40, 8, 8, 8, 4, 1, 8, 8);
             if (img.height > 32) {
-                dtx.drawImage(c, 40, 8, 8, 8, 4, 1, 8, 8); // Head overlay
                 dtx.drawImage(c, 44, 36, 1, 1, 3, 8, 1, 1);
                 dtx.drawImage(c, 45, 36, 1, 1, 3, 9, 1, 1);
                 dtx.drawImage(c, 46, 36, 1, 1, 3, 10, 1, 1);
@@ -142,26 +161,23 @@
                 dtx.drawImage(c, 4, 52, 3, 2, 8, 13, 3, 2);
                 dtx.drawImage(c, 4, 63, 2, 1, 8, 15, 2, 1);
             }
-            
-            // Draw the completed totem from the 16x16 canvas 'd' onto the output canvas
-            outputCanvas.width = 16;
-            outputCanvas.height = 16;
+        
             outputCtx.drawImage(d, 0, 0);
-
             outputCanvas.style.display = 'block';
-            downloadBtn.style.display = 'block';
+            document.getElementById('image-download-btn').style.display = 'block';
+            document.getElementById('pack-download-btn').style.display = 'block';
         }
 
+        // Handle skin file upload
         document.getElementById('imageLoader').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
                     const c = document.getElementById("myCanvas");
-                    const ctx = c.getContext("2d");
                     c.width = img.width;
                     c.height = img.height;
-                    ctx.drawImage(img, 0, 0);
+                    c.getContext("2d").drawImage(img, 0, 0);
                     test(img);
                 };
                 img.src = event.target.result;
@@ -169,7 +185,31 @@
             reader.readAsDataURL(e.target.files[0]);
         });
 
-        document.getElementById('download-btn').addEventListener('click', function() {
+        // Fetch skin by username
+        function fetchSkin() {
+            const username = document.getElementById('username-input').value;
+            if (!username) {
+                alert("Please enter a Minecraft username.");
+                return;
+            }
+            const img = new Image();
+            img.onload = function() {
+                const c = document.getElementById("myCanvas");
+                c.width = img.width;
+                c.height = img.height;
+                c.getContext("2d").drawImage(img, 0, 0);
+                test(img);
+            };
+            img.onerror = function() {
+                alert("Could not find a skin for that username.");
+            };
+            // Use Minotar for direct skin image URL
+            img.src = `https://minotar.net/skin/${username}`;
+            img.crossOrigin = "anonymous";
+        }
+
+        // Download totem as a single image
+        document.getElementById('image-download-btn').addEventListener('click', function() {
             const outputCanvas = document.getElementById("output-canvas");
             const link = document.createElement('a');
             link.href = outputCanvas.toDataURL('image/png');
@@ -177,6 +217,37 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        });
+
+        // Download as a resource pack
+        document.getElementById('pack-download-btn').addEventListener('click', function() {
+            const outputCanvas = document.getElementById("output-canvas");
+            const totemDataURL = outputCanvas.toDataURL('image/png');
+            const username = document.getElementById('username-input').value || "Custom";
+            
+            const zip = new JSZip();
+            
+            // pack.mcmeta file
+            const packMcmeta = {
+                "pack": {
+                    "pack_format": 1,
+                    "supported_formats": { "min_inclusive": 1, "max_inclusive": 100 },
+                    "description": "§7Custom Java §cTotem of Undying§7 Pack!"
+                }
+            };
+            zip.file("pack.mcmeta", JSON.stringify(packMcmeta, null, 4));
+            
+            // pack.png file (using the totem image)
+            zip.file("pack.png", totemDataURL.substr(totemDataURL.indexOf(',') + 1), { base64: true });
+            
+            // totem of undying texture
+            const texturesFolder = zip.folder("assets/minecraft/textures/item");
+            texturesFolder.file("totem_of_undying.png", totemDataURL.substr(totemDataURL.indexOf(',') + 1), { base64: true });
+            
+            // Generate and download the zip file
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, `${username}-Totem.zip`);
+            });
         });
     </script>
 </body>
