@@ -2,7 +2,7 @@
   "redstone-launcher": {
     "name": "Redstone Launcher",
     "description": "An Electron application that is an all-in-one minecraft launcher with a launcher, server manager, modrinth integration, a profile manager and much more!",
-    "type": "JS / HTML",
+    "type": "JS / HTML / ELECTRON / APP",
     "links": {
       "site": {
         "text": "Website",
