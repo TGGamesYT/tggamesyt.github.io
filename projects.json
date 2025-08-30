@@ -1,4 +1,48 @@
 {
+  "totem": {
+    "name": "Minecraft Totem maker",
+    "description": "lets you convert your minecraft skin into a totem texture / resourcepack (I made this because spea.cc/totem, the OG totem maker sometimes redirects to shady/scam sites)",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/totem"
+      }
+    }
+  },
+  "ytthingy": {
+    "name": "ytmp3/4",
+    "description": "a youtube mp3/mp4 downloader (it isnt always up tho)",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/yt"
+      }
+    }
+  },
+  "clickythingy": {
+    "name": "Clicky Thing",
+    "description": "I have genuinely no idea what this is",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/button"
+      }
+    }
+  },
+  "terminal": {
+    "name": "Terminal",
+    "description": "a silly terminal thingy",
+    "type": "JS / HTML",
+    "links": {
+      "showcase": {
+        "text": "Showcase",
+        "url": "https://tggamesyt.dev/terminal"
+      }
+    }
+  },
   "amongcraft": {
     "name": "AmongCraft",
     "description": "a Minecraft mod that adds the popular game Among Us into minecraft",
