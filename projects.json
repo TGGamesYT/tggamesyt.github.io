@@ -1,4 +1,19 @@
 {
+  "redstone-launcher": {
+    "name": "Redstone Launcher",
+    "description": "An Electron application that is an all-in-one minecraft launcher with a launcher, server manager, modrinth integration, a profile manager and much more!",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Website",
+        "url": "https://tggamesyt.dev/redstone-launcher"
+      },
+      "discord": {
+        "text": "Discord",
+        "url": "https://discord.gg/rKNpjp2aCc"
+      }
+    }
+  },
   "totem": {
     "name": "Minecraft Totem maker",
     "description": "lets you convert your minecraft skin into a totem texture / resourcepack (I made this because spea.cc/totem, the OG totem maker sometimes redirects to shady/scam sites)",
