@@ -5,16 +5,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Minecraft Recipe Browser (offline JEI)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-/bQ5Dq8o6w0e6r3zj3m6YJ6NqVq3p5F/1lZJQ2XAMX6sQy6mQ7c/Gt3kqgQv0YyZ4z6fXq1zGgq4e3X8w1KkXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
   <style>
     :root{--bg:#0b0f14;--card:#0f1720;--muted:#9aa6b2;--accent:#6ee7b7}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
     body{background:linear-gradient(180deg,#071021 0%, #0b1622 100%);color:#e6eef6;padding:18px}
     .app{max-width:1140px;margin:0 auto}
-    header{display:flex;gap:12px;align-items:center}
+    header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     h1{margin:0;font-size:20px}
-    .uploader{display:flex;gap:12px;margin-top:12px}
-    .drop{flex:1;border:2px dashed rgba(255,255,255,0.06);padding:16px;border-radius:8px;background:rgba(255,255,255,0.01)}
+    .uploader{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+    .drop{flex:1;min-width:280px;border:2px dashed rgba(255,255,255,0.06);padding:16px;border-radius:8px;background:rgba(255,255,255,0.01)}
     .btn{background:var(--accent);color:#042018;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
     .two{display:grid;grid-template-columns:320px 1fr;gap:12px;margin-top:12px}
     .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px}
@@ -25,7 +25,7 @@
     .slot{width:64px;height:64px;border-radius:6px;background:#071021;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);position:relative}
     .slot img{max-width:54px;max-height:54px}
     .title{font-weight:600}
-    input[type=search]{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    input[type=search], select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
     .meta{color:var(--muted);font-size:13px}
     .note{color:var(--muted);font-size:13px;margin-top:8px}
     .small{font-size:13px;color:var(--muted)}
@@ -34,8 +34,8 @@
 <body>
   <div class="app">
     <header>
-      <h1>Minecraft Recipe Browser — upload .jar/.zip files</h1>
-      <div class="small">Supports vanilla + mod JARs (JSON recipes, assets, lang). Heuristic textures.</div>
+      <h1>Minecraft Recipe Browser</h1>
+      <div class="small">Upload jars manually or fetch vanilla client via Mojang Piston meta</div>
     </header><div class="uploader">
   <div class="drop panel" id="drop">
     <div style="display:flex;justify-content:space-between;align-items:center">
@@ -47,12 +47,18 @@
         <label class="btn">Choose files<input id="fileInput" type="file" accept=".jar,.zip" multiple style="display:none"></label>
       </div>
     </div>
-    <div class="note">After upload the app will scan for <code>data/*/recipes/*.json</code>, try to load assets for textures and languages.</div>
+    <div class="note">Scans <code>data/*/recipes/</code> and <code>data/*/recipe/</code>, loads textures/lang when found.</div>
   </div>
 
   <div style="width:280px;display:flex;flex-direction:column;gap:8px">
     <button class="btn" id="exportBtn">Export recipes JSON</button>
     <div class="panel small" id="stats">No files loaded</div>
+    <div class="panel small">
+      <div><strong>Fetch vanilla client jar</strong></div>
+      <select id="versionSelect"></select>
+      <button class="btn" id="downloadBtn">Download & Load</button>
+      <div class="note">Uses Mojang's official Piston meta + client jar</div>
+    </div>
   </div>
 </div>
 
@@ -76,17 +82,20 @@
   const stats = document.getElementById('stats');
   const exportBtn = document.getElementById('exportBtn');
   const search = document.getElementById('search');
+  const versionSelect = document.getElementById('versionSelect');
+  const downloadBtn = document.getElementById('downloadBtn');
 
   let state = {
-    files: [], // {name, zip}
-    recipes: [], // {id, namespace, path, json, source}
-    assets: {}, // path -> blobURL
-    langs: {}, // locale -> {key:val}
-    models: {}, // model jsons
+    files: [],
+    recipes: [],
+    assets: {},
+    langs: {},
+    models: {},
+    versionMeta: null,
   };
 
   function setStats(){
-    stats.innerHTML = `${state.files.length} files • ${state.recipes.length} recipes • ${Object.keys(state.assets).length} asset files`;
+    stats.innerHTML = `${state.files.length} files • ${state.recipes.length} recipes • ${Object.keys(state.assets).length} assets`;
   }
 
   async function handleFiles(fileList){
@@ -96,27 +105,24 @@
       const zip = await JSZip.loadAsync(buff);
       state.files.push({name:f.name,zip,raw:f});
 
-      // extract assets (textures, models, lang) to map (but we won't create urls for everything immediately)
       for(const path in zip.files){
         const entry = zip.files[path];
         if(entry.dir) continue;
-        // recipes
-        if(/^data\/[^\/]+\/recipes\/.*\.json$/.test(path)){
+        // recipes or recipe (support both)
+        if(/^data\/[^\/]+\/(recipes|recipe)\/.*\.json$/.test(path)){
           try{
             const jsonText = await entry.async('string');
             const json = JSON.parse(jsonText);
-            // derive id
-            const match = path.match(/^data\/([^\/]+)\/recipes\/(.+)\.json$/);
+            const match = path.match(/^data\/([^\/]+)\/(recipes|recipe)\/(.+)\.json$/);
             const namespace = match[1];
-            const recipePath = match[2];
+            const recipePath = match[3];
             const id = namespace+':'+recipePath;
             state.recipes.push({id,namespace,path:recipePath,json,source:f.name});
           }catch(e){console.warn('bad recipe',path,e)}
         }
-        // assets textures
+        // assets: textures
         if(/^assets\/[^\/]+\/textures\/.*\.(png|jpg)$/.test(path)){
           const key = path.replace(/^assets\//,'');
-          // lazy: store file entry for later blob generation
           state.assets[key] = state.assets[key] || [];
           state.assets[key].push({file:f.name,entry});
         }
@@ -128,7 +134,7 @@
             state.models[path.replace(/^assets\//,'')] = j;
           }catch(e){console.warn('model parse',path,e)}
         }
-        // langs (json and legacy .lang)
+        // langs
         if(/^assets\/[^\/]+\/lang\/.*\.(json|lang)$/.test(path)){
           const match = path.match(/^assets\/([^\/]+)\/lang\/([^\/]+)\.(json|lang)$/);
           if(match){
@@ -138,10 +144,8 @@
               const txt = await entry.async('string');
               state.langs[locale] = state.langs[locale] || {};
               if(ext==='json'){
-                const j=JSON.parse(txt);
-                Object.assign(state.langs[locale], j);
+                Object.assign(state.langs[locale], JSON.parse(txt));
               }else{
-                // parse legacy key=value lines
                 txt.split(/\r?\n/).forEach(line=>{
                   if(!line || line.startsWith('#')) return;
                   const idx=line.indexOf('=');
@@ -157,8 +161,6 @@
         }
       }
     }
-
-    // pre-create blob URLs for common texture candidates (we'll lazily create when needed)
     setStats();
     renderRecipeList();
   }
@@ -186,39 +188,29 @@
     if(recipeList.children.length===0) recipeList.innerHTML='<div class="meta">No recipes matched.</div>';
   }
 
-  async function entryBlobURL(entry){
-    // entry is JSZip object
-    const arr = await entry.async('arraybuffer');
-    const blob = new Blob([arr]);
-    return URL.createObjectURL(blob);
-  }
-
   function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+  async function entryBlobURL(entry){
+    const arr = await entry.async('arraybuffer');
+    return URL.createObjectURL(new Blob([arr]));
+  }
+
   async function findTextureForItem(itemId){
-    // itemId like modid:item_name
     const [mod,id] = (itemId||'').split(':');
     if(!id) return null;
     const candidates = [
       `minecraft/textures/item/${id}.png`,
       `${mod}/textures/item/${id}.png`,
-      `${mod}/textures/${id}.png`,
-      `${mod}/textures/block/${id}.png`,
-      `minecraft/textures/item/${id}.png`
+      `${mod}/textures/block/${id}.png`
     ];
     for(const cand of candidates){
-      const key = `assets/${cand}`;
-      if(state.assets[cand] || state.assets[key.replace(/^assets\//,'')]){
-        const arr = state.assets[cand] || state.assets[key.replace(/^assets\//,'')];
-        // pick first entry
-        try{ const url = await entryBlobURL(arr[0].entry); return url }catch(e){}
+      if(state.assets[cand]){
+        try{ return await entryBlobURL(state.assets[cand][0].entry); }catch(e){}
       }
     }
-    // fallback: search for any texture file that ends with id.png under assets
     for(const k in state.assets){
       if(k.endsWith('/'+id+'.png')){
-        const arr = state.assets[k];
-        try{ const url = await entryBlobURL(arr[0].entry); return url }catch(e){}
+        try{ return await entryBlobURL(state.assets[k][0].entry); }catch(e){}
       }
     }
     return null;
@@ -227,153 +219,84 @@
   async function showRecipe(r){
     viewer.innerHTML = '<div class="meta">Loading recipe preview...</div>';
     const json = r.json;
-    // determine type
     const type = json.type || 'crafting_shaped';
-    let title = r.id;
     let ingredients = [];
     let result = null;
 
-    if(type.endsWith('crafting_shaped') || type==='crafting_shaped'){
-      // vanilla shaped or custom using pattern + key
-      const pattern = json.pattern || json.patern || [];
+    if(type.includes('shaped')){
+      const pattern = json.pattern || [];
       const key = json.key || {};
-      // map pattern chars to ingredients
-      const grid = [];
-      const width = pattern.reduce((m,row)=>Math.max(m,row.length),0);
-      const height = pattern.length||3;
-      for(const row of pattern){
-        for(const ch of row){
-          const entry = key[ch];
-          grid.push(entry||null);
-        }
-      }
-      // flatten to 3x3 display (we'll center smaller)
-      // Convert each entry to item id
-      function parseEntry(ent){
-        if(!ent) return null;
-        if(ent.item) return ent.item;
-        if(ent.hasOwnProperty('count')&&ent.hasOwnProperty('item')) return ent.item;
-        if(Array.isArray(ent)) return ent[0].item||null;
-        return null;
-      }
-      // for pattern shorter than 3x3, center it
       let displayGrid = Array(9).fill(null);
+      const width = pattern.reduce((m,row)=>Math.max(m,row.length),0);
+      const height = pattern.length||0;
       const padLeft = Math.floor((3-width)/2);
       const padTop = Math.floor((3-height)/2);
       for(let y=0;y<height;y++){
-        for(let x=0;x<width;x++){
+        for(let x=0;x<pattern[y].length;x++){
           const ch = pattern[y][x];
-          const ent = key[ch]||null;
-          displayGrid[(y+padTop)*3 + (x+padLeft)] = parseEntry(ent);
+          const ent = key[ch];
+          if(ent){ displayGrid[(y+padTop)*3+(x+padLeft)] = ent.item||null; }
         }
       }
       ingredients = displayGrid;
-
-      // result
-      if(json.result){
-        if(typeof json.result==='object') result = (json.result.item||json.result.name||null);
-        else result = json.result;
-      }
-    }else if(type.endsWith('crafting_shapeless') || type==='crafting_shapeless'){
-      // show ingredients in any order
-      const list = json.ingredients || json.ingredient || [];
+      result = json.result?.item || json.result;
+    }else if(type.includes('shapeless')){
+      const list = json.ingredients||[];
       ingredients = Array(9).fill(null);
-      for(let i=0;i<Math.min(9,list.length);i++){
-        const ent = list[i];
-        ingredients[i] = (ent.item|| (Array.isArray(ent)&&ent[0]&&ent[0].item) || null);
-      }
-      if(json.result){ result = (json.result.item||json.result); }
-    }else if(type.endsWith('smelting') || type==='smelting'){
-      // single ingredient -> result
-      const ing = json.ingredient || (json.ingredients && json.ingredients[0]) || null;
-      let ingId = null;
-      if(ing){ if(typeof ing==='string') ingId=ing; else if(ing.item) ingId=ing.item; else if(Array.isArray(ing)&&ing[0]&&ing[0].item) ingId=ing[0].item }
-      ingredients = [ingId];
-      if(json.result){ result = (json.result.item||json.result); }
-    }else{
-      // unknown type: try to display fields
-      ingredients = [];
-      if(json.ingredients) json.ingredients.forEach(it=>ingredients.push(it.item||null));
-      if(json.result) result = json.result.item||json.result;
+      for(let i=0;i<Math.min(9,list.length);i++) ingredients[i] = list[i].item||null;
+      result = json.result?.item || json.result;
+    }else if(type.includes('smelt')){
+      const ing = json.ingredient || json.ingredients?.[0];
+      ingredients = [ing?.item||null];
+      result = json.result?.item || json.result;
     }
 
-    // Build viewer
-    const container = document.createElement('div');
-    container.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div class="title">${escapeHtml(title)}</div>
-          <div class="meta">type: ${escapeHtml(type)} • source: ${escapeHtml(r.source)}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="small">recipe JSON preview</div>
-        </div>
-      </div>
-      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:8px 0">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <div>
-          <div class="grid" id="ingGrid"></div>
-        </div>
-        <div style="min-width:220px">
-          <div style="padding:8px;background:rgba(255,255,255,0.01);border-radius:8px">
-            <div class="meta">Result</div>
-            <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
-              <div class="slot" id="resultSlot"></div>
-              <div id="resultName" class="small"></div>
-            </div>
-          </div>
-          <div style="margin-top:8px" class="meta">Raw JSON</div>
-          <pre style="max-height:240px;overflow:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:6px">${escapeHtml(JSON.stringify(json,null,2))}</pre></div>
-  </div>
-`;
-viewer.innerHTML='';
-viewer.appendChild(container);
-
-// fill ingredient grid
-const ingGrid = document.getElementById('ingGrid');
-ingGrid.innerHTML='';
-// we expect 9 slots
-for(let i=0;i<9;i++){
-  const s = document.createElement('div'); s.className='slot'; s.innerHTML='';
-  const id = ingredients[i]||null;
-  if(id){
-    const img = document.createElement('img');
-    img.alt = id;
-    // try to set image
-    findTextureForItem(id).then(url=>{
-      if(url){ img.src=url; }
-      else{ img.src='data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#0b1220"/><text x="50%" y="50%" fill="#9aa6b2" font-size="9" text-anchor="middle" dominant-baseline="central">${escapeHtml(id.split(':')[1]||id)}</text></svg>`)}
-    });
-    s.appendChild(img);
-  }else{
-    s.innerHTML='';
+    viewer.innerHTML = `<div class="title">${escapeHtml(r.id)}</div><div class="meta">type: ${escapeHtml(type)} • source: ${escapeHtml(r.source)}</div>`;
+    const grid = document.createElement('div'); grid.className='grid';
+    for(let i=0;i<9;i++){
+      const slot=document.createElement('div');slot.className='slot';
+      const id=ingredients[i];
+      if(id){ const img=document.createElement('img'); img.alt=id; findTextureForItem(id).then(u=>img.src=u||''); slot.appendChild(img);} 
+      grid.appendChild(slot);
+    }
+    viewer.appendChild(grid);
+    const resSlot=document.createElement('div');resSlot.className='slot';
+    if(result){const img=document.createElement('img'); img.alt=result; findTextureForItem(result).then(u=>img.src=u||''); resSlot.appendChild(img);} else resSlot.textContent='-';
+    viewer.appendChild(resSlot);
   }
-  ingGrid.appendChild(s);
-}
 
-// fill result
-const resultSlot = document.getElementById('resultSlot');
-const resultName = document.getElementById('resultName');
-if(result){
-  resultName.textContent = (result);
-  const img = document.createElement('img');
-  resultSlot.appendChild(img);
-  findTextureForItem(result).then(url=>{
-    if(url) img.src=url;
-    else img.src='data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="#0b1220"/><text x="50%" y="50%" fill="#9aa6b2" font-size="9" text-anchor="middle" dominant-baseline="central">${escapeHtml(result.split(':')[1]||result)}</text></svg>`)
-  });
-}else{
-  resultSlot.innerHTML='-';
-  resultName.textContent='(no result found in JSON)';
-}
+  // piston meta support
+  async function loadVersionManifest(){
+    try{
+      const res = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+      const j = await res.json();
+      state.versionMeta = j;
+      versionSelect.innerHTML = '';
+      j.versions.slice(0,50).forEach(v=>{
+        const opt=document.createElement('option'); opt.value=v.url; opt.textContent=v.id; versionSelect.appendChild(opt);
+      });
+    }catch(e){versionSelect.innerHTML='<option>Error fetching manifest</option>'}
+  }
 
-}
+  async function downloadAndLoad(){
+    const url = versionSelect.value; if(!url) return;
+    const res = await fetch(url); const j = await res.json();
+    const clientUrl = j.downloads.client.url;
+    const fileRes = await fetch(clientUrl);
+    const blob = await fileRes.blob();
+    const file = new File([blob], j.id+".jar");
+    handleFiles([file]);
+  }
 
-// file drop handlers drop.addEventListener('dragover',e=>{e.preventDefault();drop.style.borderColor='rgba(255,255,255,0.18)'}); drop.addEventListener('dragleave',e=>{drop.style.borderColor=''}); drop.addEventListener('drop',e=>{e.preventDefault();drop.style.borderColor=''; const files=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files);}); fileInput.addEventListener('change',e=>{const files=[...e.target.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files)}); search.addEventListener('input',renderRecipeList);
+  // init
+  drop.addEventListener('dragover',e=>{e.preventDefault();});
+  drop.addEventListener('drop',e=>{e.preventDefault(); const files=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files);});
+  fileInput.addEventListener('change',e=>{const files=[...e.target.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files)});
+  search.addEventListener('input',renderRecipeList);
+  exportBtn.addEventListener('click',()=>{const out=state.recipes.map(r=>({id:r.id,json:r.json,source:r.source})); const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='recipes-export.json'; a.click();});
+  downloadBtn.addEventListener('click',downloadAndLoad);
 
-exportBtn.addEventListener('click',()=>{ const out = state.recipes.map(r=>({id:r.id,json:r.json,source:r.source})); const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='recipes-export.json'; document.body.appendChild(a); a.click(); a.remove(); });
-
-})(); </script>
-
-</body>
+  loadVersionManifest();
+})();
+</script></body>
 </html>
