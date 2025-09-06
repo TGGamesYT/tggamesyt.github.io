@@ -431,83 +431,89 @@
   // --- rendering ---
   function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-  async function showRecipe(r){
+   async function showRecipe(r){
     viewer.innerHTML = '<div class="meta">Loading recipe preview...</div>';
     const json = r.json;
     const type = json.type || 'crafting_shaped';
     let ingredients = [];
     let result = null;
 
+    const renderIngredient = (ing) => {
+        if(!ing) return null;
+        if(typeof ing === 'string') return {id: ing, isTag:false};
+        if(ing.item) return {id: ing.item, isTag:false};
+        if(ing.tag) return {id: ing.tag, isTag:true};
+        if(Array.isArray(ing) && ing[0] && ing[0].item) return {id: ing[0].item, isTag:false};
+        return null;
+    };
+
     if(type && type.toLowerCase().includes('shaped')){
-      const pattern = json.pattern || [];
-      const key = json.key || {};
-      let displayGrid = Array(9).fill(null);
-      const width = pattern.reduce((m,row)=>Math.max(m,row.length),0);
-      const height = pattern.length||0;
-      const padLeft = Math.floor((3-width)/2);
-      const padTop = Math.floor((3-height)/2);
-      for(let y=0;y<height;y++){
-        for(let x=0;x<pattern[y].length;x++){
-          const ch = pattern[y][x];
-          const ent = key[ch];
-          if(ent){
-            if(typeof ent === 'string') displayGrid[(y+padTop)*3+(x+padLeft)] = ent;
-            else if(ent.item) displayGrid[(y+padTop)*3+(x+padLeft)] = ent.item;
-            else if(ent.tag) displayGrid[(y+padTop)*3+(x+padLeft)] = ent.tag;
-          }
+        const pattern = json.pattern || [];
+        const key = json.key || {};
+        let displayGrid = Array(9).fill(null);
+        const width = pattern.reduce((m,row)=>Math.max(m,row.length),0);
+        const height = pattern.length||0;
+        const padLeft = Math.floor((3-width)/2);
+        const padTop = Math.floor((3-height)/2);
+        for(let y=0;y<height;y++){
+            for(let x=0;x<pattern[y].length;x++){
+                const ch = pattern[y][x];
+                const ent = key[ch];
+                displayGrid[(y+padTop)*3+(x+padLeft)] = renderIngredient(ent);
+            }
         }
-      }
-      ingredients = displayGrid;
-      result = (json.result && (json.result.item || json.result)) || null;
+        ingredients = displayGrid;
+        result = renderIngredient(json.result);
     } else if(type && type.toLowerCase().includes('shapeless')){
-      const list = json.ingredients||[];
-      ingredients = Array(9).fill(null);
-      for(let i=0;i<Math.min(9,list.length);i++){
-        const it = list[i];
-        if(!it) continue;
-        if(typeof it === 'string') ingredients[i] = it;
-        else if(it.item) ingredients[i] = it.item;
-        else if(it.tag) ingredients[i] = it.tag;
-        else if(Array.isArray(it) && it[0] && it[0].item) ingredients[i] = it[0].item;
-      }
-      result = (json.result && (json.result.item || json.result)) || null;
-    } else if(type && type.toLowerCase().includes('smelt')){
-      const ing = json.ingredient || json.ingredients?.[0];
-      ingredients = [ (ing && (ing.item || ing.tag)) || null ];
-      result = (json.result && (json.result.item || json.result)) || null;
-    } else {
-      // generic fallback: try to extract any item fields up to 9 ingredients
-      let found = [];
-      const collect = (o)=>{
-        if(!o) return;
-        if(typeof o === 'string') found.push(o);
-        else if(Array.isArray(o)) o.forEach(collect);
-        else if(typeof o === 'object'){
-          if(o.item) found.push(o.item);
-          else for(const k in o) collect(o[k]);
+        const list = json.ingredients||[];
+        ingredients = Array(9).fill(null);
+        for(let i=0;i<Math.min(9,list.length);i++){
+            ingredients[i] = renderIngredient(list[i]);
         }
-      };
-      if(json.ingredients) collect(json.ingredients);
-      else if(json.key) collect(json.key);
-      ingredients = Array(9).fill(null);
-      for(let i=0;i<Math.min(9,found.length);i++) ingredients[i] = found[i];
-      result = (json.result && (json.result.item || json.result)) || null;
+        result = renderIngredient(json.result);
+    } else if(type && type.toLowerCase().includes('smelt')){
+        const ing = json.ingredient || json.ingredients?.[0];
+        ingredients = [ renderIngredient(ing) ];
+        result = renderIngredient(json.result);
+    } else {
+        // generic fallback
+        let found = [];
+        const collect = (o)=>{
+            if(!o) return;
+            if(typeof o === 'string') found.push({id:o,isTag:false});
+            else if(Array.isArray(o)) o.forEach(collect);
+            else if(typeof o === 'object'){
+                if(o.item) found.push({id:o.item,isTag:false});
+                else if(o.tag) found.push({id:o.tag,isTag:true});
+                else for(const k in o) collect(o[k]);
+            }
+        };
+        if(json.ingredients) collect(json.ingredients);
+        else if(json.key) collect(json.key);
+        ingredients = Array(9).fill(null);
+        for(let i=0;i<Math.min(9,found.length);i++) ingredients[i] = found[i];
+        result = renderIngredient(json.result);
     }
 
     viewer.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><div class="title">${escapeHtml(r.id)}</div><div class="meta">type: ${escapeHtml(type)} • source: ${escapeHtml(r.source)}</div></div></div>`;
     const grid = document.createElement('div'); grid.className='grid';
     for(let i=0;i<9;i++){
-      const slot=document.createElement('div');slot.className='slot';
-      const id=ingredients[i];
-      if(id){
-        const img=document.createElement('img');
-        img.alt = id;
-        // set placeholder while resolving
-        img.src = '';
-        resolveItemTexture(id).then(u=>{ if(u) img.src = u; else img.src = placeholderDataURL(id); }).catch(()=>img.src = placeholderDataURL(id));
-        slot.appendChild(img);
-      }
-      grid.appendChild(slot);
+        const slot=document.createElement('div');slot.className='slot';
+        const ing=ingredients[i];
+        if(ing){
+            const img=document.createElement('img');
+            img.alt = ing.id;
+            if(ing.isTag){
+                // tag placeholder
+                img.src = placeholderDataURL(ing.id + ' (tag)');
+                img.title = ing.id + ' (tag)';
+            } else {
+                img.src = '';
+                resolveItemTexture(ing.id).then(u=>{ if(u) img.src = u; else img.src = placeholderDataURL(ing.id); }).catch(()=>img.src = placeholderDataURL(ing.id));
+            }
+            slot.appendChild(img);
+        }
+        grid.appendChild(slot);
     }
     viewer.appendChild(grid);
 
@@ -519,13 +525,18 @@
     const resSlot=document.createElement('div');resSlot.className='slot';
     const resName=document.createElement('div'); resName.className='small';
     if(result){
-      const img=document.createElement('img'); img.alt=result; img.src='';
-      resolveItemTexture(result).then(u=>{ if(u) img.src=u; else img.src = placeholderDataURL(result); }).catch(()=>img.src = placeholderDataURL(result));
-      resSlot.appendChild(img);
-      resName.textContent = result;
+        const img=document.createElement('img'); img.alt=result.id; img.src='';
+        if(result.isTag){
+            img.src = placeholderDataURL(result.id + ' (tag)');
+            img.title = result.id + ' (tag)';
+        } else {
+            resolveItemTexture(result.id).then(u=>{ if(u) img.src=u; else img.src = placeholderDataURL(result.id); }).catch(()=>img.src = placeholderDataURL(result.id));
+        }
+        resSlot.appendChild(img);
+        resName.textContent = result.id + (result.isTag?' (tag)':'');
     } else {
-      resSlot.textContent='-';
-      resName.textContent='(no result)';
+        resSlot.textContent='-';
+        resName.textContent='(no result)';
     }
     resBox.appendChild(resSlot); resBox.appendChild(resName);
     container.appendChild(resBox);
@@ -537,7 +548,7 @@
     container.appendChild(raw);
 
     viewer.appendChild(container);
-  }
+   }
 
   function placeholderDataURL(text){
     // small SVG with text for fallback
