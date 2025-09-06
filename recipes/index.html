@@ -75,8 +75,9 @@
       </div>
     </div>
   </div>
+
 <script>
-(async function() {
+(async function(){
   const drop = document.getElementById('drop');
   const fileInput = document.getElementById('fileInput');
   const recipeList = document.getElementById('recipeList');
@@ -87,183 +88,545 @@
   const versionSelect = document.getElementById('versionSelect');
   const downloadBtn = document.getElementById('downloadBtn');
 
-  const state = {
+  let state = {
     files: [],
     recipes: [],
-    assets: {},
-    langs: {},
-    models: {},
+    assets: {},   // keys: '<namespace>/textures/...' or '<namespace>/models/...'
+    langs: {},    // locale -> map
+    models: {},   // keys: '<namespace>/models/...json' (without leading 'assets/')
     versionMeta: null,
-    textureCache: {},
-    assetBlobCache: {}
+    textureCache: {}, // itemId -> blobURL
+    assetBlobCache: {}, // asset key -> blobURL
   };
 
-  function setStats() {
+  function setStats(){
     stats.innerHTML = `${state.files.length} files • ${state.recipes.length} recipes • ${Object.keys(state.assets).length} assets`;
   }
 
-  async function handleFiles(fileList) {
+  // --- file handling & scanning ---
+  async function handleFiles(fileList){
     recipeList.innerHTML = '<div class="meta">Scanning...</div>';
-    for (const f of fileList) {
-      try {
+    for(const f of fileList){
+      try{
         const buff = await f.arrayBuffer();
         const zip = await JSZip.loadAsync(buff);
-        state.files.push({ name: f.name, zip, raw: f });
+        state.files.push({name:f.name,zip,raw:f});
 
-        for (const path in zip.files) {
+        for(const path in zip.files){
           const entry = zip.files[path];
-          if (entry.dir) continue;
-          const normalized = path.replace(/\\/g, '/');
+          if(entry.dir) continue;
 
-          // Recipes
-          if (/^data\/[^\/]+\/(recipes|recipe)\/.*\.json$/.test(normalized)) {
-            try {
+          // normalize path (use forward slashes)
+          const normalized = path.replace(/\\/g,'/');
+
+          // recipes or recipe (support both)
+          if(/^data\/[^\/]+\/(recipes|recipe)\/.*\.json$/.test(normalized)){
+            try{
               const jsonText = await entry.async('string');
               const json = JSON.parse(jsonText);
               const match = normalized.match(/^data\/([^\/]+)\/(recipes|recipe)\/(.+)\.json$/);
               const namespace = match[1];
               const recipePath = match[3];
-              const id = namespace + ':' + recipePath;
+              const id = namespace+':'+recipePath;
 
+              // gather ingredients + result for search index (robust to common patterns)
               let ingredients = [], result = null;
-
-              // gather ingredients and result
-              const collect = (o) => {
-                if (!o || typeof o !== 'object') return;
-                for (const k in o) {
-                  if (k === 'item' && typeof o[k] === 'string') ingredients.push(o[k]);
-                  else if (typeof o[k] === 'object') collect(o[k]);
-                  else if (Array.isArray(o[k])) o[k].forEach(collect);
+              try{
+                if(json.key || json.pattern){
+                  Object.values(json.key||{}).forEach(val=>{
+                    if(!val) return;
+                    if(typeof val === 'string'){ ingredients.push(val); }
+                    if(val.item) ingredients.push(val.item);
+                    if(val.tag) ingredients.push(val.tag);
+                    if(Array.isArray(val)) val.forEach(v=>v.item && ingredients.push(v.item));
+                  });
+                  result = (json.result && (json.result.item || json.result)) || null;
+                } else if(json.ingredients){
+                  json.ingredients.forEach(val=>{
+                    if(!val) return;
+                    if(val.item) ingredients.push(val.item);
+                    else if(val.tag) ingredients.push(val.tag);
+                    else if(typeof val === 'string') ingredients.push(val);
+                    else if(Array.isArray(val)) val.forEach(v=>v.item && ingredients.push(v.item));
+                  });
+                  result = (json.result && (json.result.item || json.result)) || null;
+                } else if(json.ingredient){
+                  const ing = json.ingredient;
+                  if(ing.item) ingredients.push(ing.item);
+                  else if(ing.tag) ingredients.push(ing.tag);
+                  result = (json.result && (json.result.item || json.result)) || null;
+                } else {
+                  // fallback: try to find any 'item' fields in json
+                  const collect = (o)=>{
+                    if(!o || typeof o !== 'object') return;
+                    for(const k in o){
+                      if(k==='item' && typeof o[k]==='string') ingredients.push(o[k]);
+                      else if(typeof o[k]==='object') collect(o[k]);
+                      else if(Array.isArray(o[k])) o[k].forEach(collect);
+                    }
+                  };
+                  collect(json);
+                  result = (json.result && (json.result.item || json.result)) || null;
                 }
-              };
-              try {
-                if (json.key || json.pattern) {
-                  Object.values(json.key || {}).forEach(val => {
-                    if (!val) return;
-                    if (typeof val === 'string') ingredients.push(val);
-                    if (val.item) ingredients.push(val.item);
-                    if (val.tag) ingredients.push(val.tag);
-                    if (Array.isArray(val)) val.forEach(v => v.item && ingredients.push(v.item));
-                  });
-                  result = (json.result && (json.result.item || json.result)) || null;
-                } else if (json.ingredients) {
-                  json.ingredients.forEach(val => {
-                    if (!val) return;
-                    if (val.item) ingredients.push(val.item);
-                    else if (val.tag) ingredients.push(val.tag);
-                    else if (typeof val === 'string') ingredients.push(val);
-                    else if (Array.isArray(val)) val.forEach(v => v.item && ingredients.push(v.item));
-                  });
-                  result = (json.result && (json.result.item || json.result)) || null;
-                } else collect(json);
-              } catch (e) { }
+              }catch(e){ /* ignore */ }
 
-              state.recipes.push({ id, namespace, path: recipePath, json, source: f.name, ingredients: ingredients.filter(Boolean), result });
-            } catch (e) { console.warn('bad recipe', normalized, e); }
+              state.recipes.push({
+                id,
+                namespace,
+                path:recipePath,
+                json,
+                source: f.name,
+                ingredients: ingredients.filter(Boolean),
+                result: result
+              });
+            }catch(e){ console.warn('bad recipe',normalized,e); }
           }
 
-          // Assets
-          if (/^assets\/[^\/]+\/textures\/.*\.(png|jpg|jpeg)$/i.test(normalized)) {
-            const key = normalized.replace(/^assets\//, '');
+          // assets: textures (store without 'assets/' prefix)
+          if(/^assets\/[^\/]+\/textures\/.*\.(png|jpg|jpeg)$/i.test(normalized)){
+            const key = normalized.replace(/^assets\//,''); // e.g. 'minecraft/textures/item/stone.png'
             state.assets[key] = state.assets[key] || [];
-            state.assets[key].push({ file: f.name, entry });
+            state.assets[key].push({file:f.name,entry});
           }
 
-          // Models
-          if (/^assets\/[^\/]+\/models\/.*\.json$/i.test(normalized)) {
-            try {
+          // models (store without 'assets/' prefix)
+          if(/^assets\/[^\/]+\/models\/.*\.json$/i.test(normalized)){
+            try{
               const txt = await entry.async('string');
               const j = JSON.parse(txt);
-              const key = normalized.replace(/^assets\//, '');
+              const key = normalized.replace(/^assets\//,''); // e.g. 'minecraft/models/item/stone.json'
               state.models[key] = j;
-            } catch (e) { console.warn('model parse', normalized, e); }
+            }catch(e){ console.warn('model parse',normalized,e); }
           }
 
-          // Langs
-          if (/^assets\/[^\/]+\/lang\/.*\.(json|lang)$/i.test(normalized)) {
+          // lang files
+          if(/^assets\/[^\/]+\/lang\/.*\.(json|lang)$/i.test(normalized)){
             const match = normalized.match(/^assets\/([^\/]+)\/lang\/([^\/]+)\.(json|lang)$/i);
-            if (match) {
+            if(match){
               const locale = match[2];
               const ext = match[3];
-              try {
+              try{
                 const txt = await entry.async('string');
                 state.langs[locale] = state.langs[locale] || {};
-                if (ext.toLowerCase() === 'json') Object.assign(state.langs[locale], JSON.parse(txt));
-                else txt.split(/\r?\n/).forEach(line => {
-                  if (!line || line.startsWith('#')) return;
-                  const idx = line.indexOf('=');
-                  if (idx > 0) state.langs[locale][line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
-                });
-              } catch (e) { console.warn('lang parse', normalized, e); }
+                if(ext.toLowerCase()==='json'){
+                  Object.assign(state.langs[locale], JSON.parse(txt));
+                } else {
+                  txt.split(/\r?\n/).forEach(line=>{
+                    if(!line || line.startsWith('#')) return;
+                    const idx=line.indexOf('=');
+                    if(idx>0){
+                      const k=line.slice(0,idx).trim();
+                      const v=line.slice(idx+1).trim();
+                      state.langs[locale][k]=v;
+                    }
+                  });
+                }
+              }catch(e){ console.warn('lang parse',normalized,e); }
             }
           }
-        }
-      } catch (e) {
+        } // for path
+      }catch(e){
         console.error('Failed to read file', f.name, e);
       }
-    }
+    } // for fileList
+
     setStats();
     buildRecipeIndex();
     renderRecipeList();
   }
 
-  function buildRecipeIndex() {
-    for (const r of state.recipes) {
+  // --- search indexing & helpers ---
+  // We create a small index on each recipe for faster matching & include translated names if present
+  function buildRecipeIndex(){
+    for(const r of state.recipes){
+      // ensure ingredients/result present (they were collected on parsing)
       r._searchText = (r.id || '') + ' ';
-      if (r.result) r._searchText += r.result + ' ';
-      if (r.ingredients) r._searchText += r.ingredients.join(' ') + ' ';
+      if(r.result) r._searchText += r.result + ' ';
+      if(r.ingredients && r.ingredients.length) r._searchText += r.ingredients.join(' ') + ' ';
+      // try to add translated names (look for the common keys: item.<namespace>.<id> or block... )
+      try{
+        const addTranslated = (id)=>{
+          if(!id) return;
+          const [ns,name] = id.split(':');
+          if(!ns || !name) return;
+          const keyItem = `item.${ns}.${name}`;
+          const keyBlock = `block.${ns}.${name}`;
+          for(const locale in state.langs){
+            if(state.langs[locale][keyItem]) r._searchText += state.langs[locale][keyItem] + ' ';
+            if(state.langs[locale][keyBlock]) r._searchText += state.langs[locale][keyBlock] + ' ';
+            // also try legacy keys: '<ns>.name' - less reliable, but cheap
+            const candidate = `${ns}.${name}`;
+            if(state.langs[locale][candidate]) r._searchText += state.langs[locale][candidate] + ' ';
+          }
+        };
+        if(r.result) addTranslated(r.result);
+        if(r.ingredients) r.ingredients.forEach(addTranslated);
+      }catch(e){}
       r._searchText = r._searchText.toLowerCase();
     }
   }
 
-  function matchesSearch(r, q) {
-    q = q.trim().toLowerCase();
-    if (!q) return true;
-    if (r._searchText && r._searchText.includes(q)) return true;
-    try { if (JSON.stringify(r.json).toLowerCase().includes(q)) return true; } catch (e) { }
+  function matchesSearch(r,q){
+    q=q.trim().toLowerCase();
+    if(!q) return true;
+    if(r._searchText && r._searchText.includes(q)) return true;
+    // fallback raw JSON search
+    try{ if(JSON.stringify(r.json).toLowerCase().includes(q)) return true; }catch(e){}
     return false;
   }
 
-  async function entryBlobURL(entry) {
-    try {
+  // --- asset blob caching ---
+  async function entryBlobURL(entry){
+    // entry is a JSZip file object
+    try{
       const arr = await entry.async('arraybuffer');
-      return URL.createObjectURL(new Blob([arr]));
-    } catch (e) { console.warn('entryBlobURL failed', e); return null; }
+      const blob = new Blob([arr]);
+      return URL.createObjectURL(blob);
+    }catch(e){
+      console.warn('entryBlobURL failed', e);
+      return null;
+    }
   }
 
-  async function getAssetBlobURLByKey(key) {
-    if (state.assetBlobCache[key]) return state.assetBlobCache[key];
+  async function getAssetBlobURLByKey(key){
+    // key like 'minecraft/textures/item/stone.png'
+    if(state.assetBlobCache[key]) return state.assetBlobCache[key];
     const arr = state.assets[key];
-    if (!arr || !arr.length) return null;
+    if(!arr || !arr.length) return null;
     const url = await entryBlobURL(arr[0].entry);
     state.assetBlobCache[key] = url;
     return url;
   }
 
-  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // --- model -> texture resolution ---
+  function normalizeModelKey(possible){
+    // accept 'minecraft:item/handheld' or 'item/handheld' etc and turn into a model key stored in state.models
+    if(!possible) return null;
+    // remove quotes/spaces
+    let s = String(possible).trim();
+    // if contains namespace with colon
+    let ns = 'minecraft';
+    if(s.includes(':')){
+      const parts = s.split(':');
+      ns = parts[0] || 'minecraft';
+      s = parts.slice(1).join(':');
+    }
+    // if path doesn't contain '/', it's probably like 'handheld' -> item/handheld
+    if(!s.includes('/')){
+      // ambiguous, prefer item
+      s = 'item/' + s;
+    }
+    // construct key: '<ns>/models/<s>.json'
+    let key = `${ns}/models/${s}.json`;
+    return key;
+  }
 
-  // Basic event wiring
-  drop.addEventListener('dragover', e => e.preventDefault());
-  drop.addEventListener('drop', e => {
-    e.preventDefault();
-    const files = [...e.dataTransfer.files].filter(f => f.name.endsWith('.jar') || f.name.endsWith('.zip'));
-    if (files.length) handleFiles(files);
-  });
-  fileInput.addEventListener('change', e => {
-    const files = [...e.target.files].filter(f => f.name.endsWith('.jar') || f.name.endsWith('.zip'));
-    if (files.length) handleFiles(files);
-  });
-  search.addEventListener('input', renderRecipeList);
-  exportBtn.addEventListener('click', () => {
-    const out = state.recipes.map(r => ({ id: r.id, json: r.json, source: r.source, ingredients: r.ingredients, result: r.result }));
-    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'recipes-export.json'; a.click();
-  });
+  async function resolveItemTexture(itemId){
+    if(!itemId) return null;
+    if(state.textureCache[itemId]) return state.textureCache[itemId];
 
-  // Startup
-  renderRecipeList();
+    const [mod, id] = itemId.includes(':') ? itemId.split(':') : ['minecraft', itemId];
+    // possible model keys to try
+    const tryKeys = [
+      `${mod}/models/item/${id}.json`,
+      `minecraft/models/item/${id}.json`,
+      `${mod}/models/item/${id}.json`, // duplicate safe
+    ];
+
+    let model = null;
+    for(const k of tryKeys){
+      if(state.models[k]){ model = state.models[k]; break; }
+    }
+    // if not found, try some fallback: maybe model is in 'models/item/<id>.json' without namespace entry (unlikely)
+    if(!model){
+      const keyFallback = `minecraft/models/item/${id}.json`;
+      model = state.models[keyFallback] || null;
+    }
+
+    // helper to find texture value from a model object
+    const findTextureFromModelObj = (m)=>{
+      if(!m || typeof m !== 'object') return null;
+      if(m.textures){
+        // prefer common keys
+        const prefer = ['layer0','texture','particle','layer1'];
+        for(const p of prefer){
+          if(m.textures[p]) return m.textures[p];
+        }
+        // otherwise first texture entry
+        for(const k in m.textures) return m.textures[k];
+      }
+      return null;
+    };
+
+    // follow parent chain if needed
+    const seenParents = new Set();
+    let texRef = null;
+    let cur = model;
+    while(cur && !texRef){
+      texRef = findTextureFromModelObj(cur);
+      if(texRef) break;
+      if(cur.parent){
+        // compute parent key
+        let parent = cur.parent;
+        // parent may be 'item/handheld' or 'minecraft:item/handheld', etc.
+        const parentKey = normalizeModelKey(parent);
+        if(!parentKey || seenParents.has(parentKey)) break;
+        seenParents.add(parentKey);
+        cur = state.models[parentKey] || null;
+      } else break;
+    }
+
+    // If we have a texture reference (like 'item/stone_pickaxe' or 'minecraft:item/stone_pickaxe')
+    if(texRef){
+      // normalize: remove namespace prefix if present
+      if(typeof texRef !== 'string') texRef = String(texRef);
+      let tx = texRef;
+      if(tx.includes(':')){
+        tx = tx.split(':')[1];
+      }
+      // ensure starts with textures/ and append .png if needed
+      if(!tx.startsWith('textures/')){
+        // tx might be like 'item/stone_pickaxe' or 'item/stone_pickaxe'
+        tx = 'textures/' + tx;
+      }
+      if(!tx.endsWith('.png')) tx = tx + '.png';
+      const candidates = [
+        `${mod}/${tx}`,            // e.g. 'mod/textures/item/stone.png'
+        `minecraft/${tx}`         // fallback to minecraft namespace
+      ];
+      for(const cand of candidates){
+        if(state.assets[cand]){
+          const url = await getAssetBlobURLByKey(cand);
+          if(url){ state.textureCache[itemId] = url; return url; }
+        }
+      }
+    }
+
+    // fallback: search by filename ending with id.png anywhere
+    const filename = id + '.png';
+    for(const key in state.assets){
+      if(key.toLowerCase().endsWith('/' + filename.toLowerCase())){
+        const url = await getAssetBlobURLByKey(key);
+        if(url){ state.textureCache[itemId] = url; return url; }
+      }
+    }
+
+    // last fallback: try 'textures/item/<id>.png' without namespace
+    const fallbackPaths = [
+      `${mod}/textures/item/${id}.png`,
+      `minecraft/textures/item/${id}.png`,
+      `${mod}/textures/${id}.png`
+    ];
+    for(const fp of fallbackPaths){
+      if(state.assets[fp]){
+        const url = await getAssetBlobURLByKey(fp);
+        if(url){ state.textureCache[itemId] = url; return url; }
+      }
+    }
+
+    // not found -> null
+    return null;
+  }
+
+  // --- rendering ---
+  function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  async function showRecipe(r){
+    viewer.innerHTML = '<div class="meta">Loading recipe preview...</div>';
+    const json = r.json;
+    const type = json.type || 'crafting_shaped';
+    let ingredients = [];
+    let result = null;
+
+    if(type && type.toLowerCase().includes('shaped')){
+      const pattern = json.pattern || [];
+      const key = json.key || {};
+      let displayGrid = Array(9).fill(null);
+      const width = pattern.reduce((m,row)=>Math.max(m,row.length),0);
+      const height = pattern.length||0;
+      const padLeft = Math.floor((3-width)/2);
+      const padTop = Math.floor((3-height)/2);
+      for(let y=0;y<height;y++){
+        for(let x=0;x<pattern[y].length;x++){
+          const ch = pattern[y][x];
+          const ent = key[ch];
+          if(ent){
+            if(typeof ent === 'string') displayGrid[(y+padTop)*3+(x+padLeft)] = ent;
+            else if(ent.item) displayGrid[(y+padTop)*3+(x+padLeft)] = ent.item;
+            else if(ent.tag) displayGrid[(y+padTop)*3+(x+padLeft)] = ent.tag;
+          }
+        }
+      }
+      ingredients = displayGrid;
+      result = (json.result && (json.result.item || json.result)) || null;
+    } else if(type && type.toLowerCase().includes('shapeless')){
+      const list = json.ingredients||[];
+      ingredients = Array(9).fill(null);
+      for(let i=0;i<Math.min(9,list.length);i++){
+        const it = list[i];
+        if(!it) continue;
+        if(typeof it === 'string') ingredients[i] = it;
+        else if(it.item) ingredients[i] = it.item;
+        else if(it.tag) ingredients[i] = it.tag;
+        else if(Array.isArray(it) && it[0] && it[0].item) ingredients[i] = it[0].item;
+      }
+      result = (json.result && (json.result.item || json.result)) || null;
+    } else if(type && type.toLowerCase().includes('smelt')){
+      const ing = json.ingredient || json.ingredients?.[0];
+      ingredients = [ (ing && (ing.item || ing.tag)) || null ];
+      result = (json.result && (json.result.item || json.result)) || null;
+    } else {
+      // generic fallback: try to extract any item fields up to 9 ingredients
+      let found = [];
+      const collect = (o)=>{
+        if(!o) return;
+        if(typeof o === 'string') found.push(o);
+        else if(Array.isArray(o)) o.forEach(collect);
+        else if(typeof o === 'object'){
+          if(o.item) found.push(o.item);
+          else for(const k in o) collect(o[k]);
+        }
+      };
+      if(json.ingredients) collect(json.ingredients);
+      else if(json.key) collect(json.key);
+      ingredients = Array(9).fill(null);
+      for(let i=0;i<Math.min(9,found.length);i++) ingredients[i] = found[i];
+      result = (json.result && (json.result.item || json.result)) || null;
+    }
+
+    viewer.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><div class="title">${escapeHtml(r.id)}</div><div class="meta">type: ${escapeHtml(type)} • source: ${escapeHtml(r.source)}</div></div></div>`;
+    const grid = document.createElement('div'); grid.className='grid';
+    for(let i=0;i<9;i++){
+      const slot=document.createElement('div');slot.className='slot';
+      const id=ingredients[i];
+      if(id){
+        const img=document.createElement('img');
+        img.alt = id;
+        // set placeholder while resolving
+        img.src = '';
+        resolveItemTexture(id).then(u=>{ if(u) img.src = u; else img.src = placeholderDataURL(id); }).catch(()=>img.src = placeholderDataURL(id));
+        slot.appendChild(img);
+      }
+      grid.appendChild(slot);
+    }
+    viewer.appendChild(grid);
+
+    // result slot
+    const container = document.createElement('div');
+    container.style.marginTop = '12px';
+    container.innerHTML = `<div class="meta">Result</div>`;
+    const resBox = document.createElement('div'); resBox.style.display='flex'; resBox.style.alignItems='center'; resBox.style.gap='12px'; resBox.style.marginTop='8px';
+    const resSlot=document.createElement('div');resSlot.className='slot';
+    const resName=document.createElement('div'); resName.className='small';
+    if(result){
+      const img=document.createElement('img'); img.alt=result; img.src='';
+      resolveItemTexture(result).then(u=>{ if(u) img.src=u; else img.src = placeholderDataURL(result); }).catch(()=>img.src = placeholderDataURL(result));
+      resSlot.appendChild(img);
+      resName.textContent = result;
+    } else {
+      resSlot.textContent='-';
+      resName.textContent='(no result)';
+    }
+    resBox.appendChild(resSlot); resBox.appendChild(resName);
+    container.appendChild(resBox);
+
+    // raw JSON (collapsible)
+    const raw = document.createElement('details');
+    raw.style.marginTop = '12px';
+    raw.innerHTML = `<summary class="meta">Raw JSON</summary><pre>${escapeHtml(JSON.stringify(json,null,2))}</pre>`;
+    container.appendChild(raw);
+
+    viewer.appendChild(container);
+  }
+
+  function placeholderDataURL(text){
+    // small SVG with text for fallback
+    const label = (text||'').split(':').pop();
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='#071021'/><text x='50%' y='50%' fill='#9aa6b2' font-size='9' text-anchor='middle' dominant-baseline='middle'>${escapeHtml(label)}</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+
+  // --- piston meta support ---
+  async function loadVersionManifest(){
+    try{
+      const res = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+      const j = await res.json();
+      state.versionMeta = j;
+      versionSelect.innerHTML = '';
+      // show recent 100 entries to choose from (or less)
+      const list = j.versions.slice(0,200);
+      list.forEach(v=>{
+        const opt=document.createElement('option'); opt.value=v.url; opt.textContent=v.id; versionSelect.appendChild(opt);
+      });
+    }catch(e){
+      versionSelect.innerHTML = '<option>Error fetching manifest</option>';
+      console.warn('Failed to fetch piston manifest', e);
+    }
+  }
+
+  async function downloadAndLoad(){
+    try{
+      const url = versionSelect.value; if(!url) return;
+      const res = await fetch(url); if(!res.ok) throw new Error('version metadata fetch failed');
+      const j = await res.json();
+      const clientUrl = j.downloads && j.downloads.client && j.downloads.client.url;
+      if(!clientUrl) throw new Error('client URL not found in version metadata');
+      const fileRes = await fetch(clientUrl);
+      if(!fileRes.ok) throw new Error('failed to download client jar');
+      const blob = await fileRes.blob();
+      const file = new File([blob], (j.id || 'client') + ".jar");
+      await handleFiles([file]);
+    }catch(e){
+      alert('Download failed: ' + (e.message||e));
+      console.error(e);
+    }
+  }
+
+  // --- UI and events ---
+  function renderRecipeList(){
+    recipeList.innerHTML = '';
+    const q = (search.value || '').trim().toLowerCase();
+    const sorted = state.recipes.slice().sort((a,b)=>a.id.localeCompare(b.id));
+    for(const r of sorted){
+      if(!matchesSearch(r,q)) continue;
+      const div = document.createElement('div');
+      div.className='recipe-item';
+      // show small icons if available (try result texture)
+      const left = document.createElement('span');
+      left.style.marginRight='8px';
+      left.style.display='inline-block';
+      left.style.verticalAlign='middle';
+      left.style.width='20px';
+      left.style.height='20px';
+      if(r.result){
+        const img = document.createElement('img');
+        img.alt = r.result;
+        img.style.width='20px'; img.style.height='20px'; img.style.objectFit='contain';
+        // attempt to resolve quickly (non-blocking)
+        resolveItemTexture(r.result).then(u=>{ if(u) img.src=u; else img.src = placeholderDataURL(r.result); }).catch(()=>img.src=placeholderDataURL(r.result));
+        left.appendChild(img);
+      }
+      div.appendChild(left);
+      const content = document.createElement('span');
+      content.innerHTML = `<div class="title">${escapeHtml(r.id)}</div><div class="meta">source: ${escapeHtml(r.source)}</div>`;
+      div.appendChild(content);
+      div.onclick = ()=>showRecipe(r);
+      recipeList.appendChild(div);
+    }
+    if(recipeList.children.length===0) recipeList.innerHTML='<div class="meta">No recipes matched.</div>';
+  }
+
+  // wire events
+  drop.addEventListener('dragover',e=>{e.preventDefault();});
+  drop.addEventListener('drop',e=>{e.preventDefault(); const files=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files);});
+  fileInput.addEventListener('change',e=>{const files=[...e.target.files].filter(f=>f.name.endsWith('.jar')||f.name.endsWith('.zip')); if(files.length) handleFiles(files);});
+  search.addEventListener('input',renderRecipeList);
+  exportBtn.addEventListener('click',()=>{const out=state.recipes.map(r=>({id:r.id,json:r.json,source:r.source,ingredients:r.ingredients,result:r.result})); const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='recipes-export.json'; a.click();});
+  downloadBtn.addEventListener('click',downloadAndLoad);
+
+  // load piston manifest on startup
+  loadVersionManifest();
 })();
 </script>
-
 </body>
 </html>
