@@ -544,7 +544,7 @@ if(/^data\/[^\/]+\/tags\/items\/.*\.json$/i.test(normalized)){
             img.alt = ing.id;
             if(ing.isTag){
   const tagName = ing.id.startsWith('#') ? ing.id.slice(1) : ing.id;
-  const values = state.tags?.[tagName] || [];
+  const values = (state.tags && state.tags[tagName]) || [];
   if(values.length){
     // Show first item for now
     resolveItemTexture(values[0]).then(u=>{
