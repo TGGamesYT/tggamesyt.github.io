@@ -254,34 +254,57 @@ if(/^data\/[^\/]+\/tags\/items\/.*\.json$/i.test(normalized)){
   // --- search indexing & helpers ---
   // We create a small index on each recipe for faster matching & include translated names if present
   function buildRecipeIndex(){
-    for(const r of state.recipes){
-      // ensure ingredients/result present (they were collected on parsing)
-      r._searchText = (r.id || '') + ' ';
-      if(r.result) r._searchText += r.result + ' ';
-      if(r.ingredients && r.ingredients.length) r._searchText += r.ingredients.join(' ') + ' ';
-      // try to add translated names (look for the common keys: item.<namespace>.<id> or block... )
-      try{
-        const addTranslated = (id)=>{
-          if(!id) return;
-          const [ns,name] = id.split(':');
-          if(!ns || !name) return;
-          const keyItem = `item.${ns}.${name}`;
-          const keyBlock = `block.${ns}.${name}`;
-          for(const locale in state.langs){
-            if(state.langs[locale][keyItem]) r._searchText += state.langs[locale][keyItem] + ' ';
-            if(state.langs[locale][keyBlock]) r._searchText += state.langs[locale][keyBlock] + ' ';
-            // also try legacy keys: '<ns>.name' - less reliable, but cheap
-            const candidate = `${ns}.${name}`;
-            if(state.langs[locale][candidate]) r._searchText += state.langs[locale][candidate] + ' ';
+  for(const r of state.recipes){
+    r._searchText = (r.id || '') + ' ';
+    if(r.result) r._searchText += r.result + ' ';
+    if(r.ingredients && r.ingredients.length){
+      for(const ing of r.ingredients){
+        if(ing.startsWith('#')) {
+          // expand tag
+          const tagName = ing.replace(/^#/,'');
+          r._searchText += ing + ' ';
+          if(state.tags && state.tags[tagName]) {
+            r._searchText += state.tags[tagName].join(' ') + ' ';
           }
-        };
-        if(r.result) addTranslated(r.result);
-        if(r.ingredients) r.ingredients.forEach(addTranslated);
-      }catch(e){}
-      r._searchText = r._searchText.toLowerCase();
+        } else {
+          r._searchText += ing + ' ';
+        }
+      }
     }
-  }
 
+    try {
+      const addTranslated = (id)=>{
+        if(!id) return;
+        const [ns,name] = id.split(':');
+        if(!ns || !name) return;
+        const keyItem = `item.${ns}.${name}`;
+        const keyBlock = `block.${ns}.${name}`;
+        for(const locale in state.langs){
+          if(state.langs[locale][keyItem]) r._searchText += state.langs[locale][keyItem] + ' ';
+          if(state.langs[locale][keyBlock]) r._searchText += state.langs[locale][keyBlock] + ' ';
+          const candidate = `${ns}.${name}`;
+          if(state.langs[locale][candidate]) r._searchText += state.langs[locale][candidate] + ' ';
+        }
+      };
+      if(r.result) addTranslated(r.result);
+
+      if(r.ingredients){
+        for(const ing of r.ingredients){
+          if(ing.startsWith('#')) {
+            const tagName = ing.replace(/^#/,'');
+            if(state.tags && state.tags[tagName]) {
+              state.tags[tagName].forEach(addTranslated);
+            }
+          } else {
+            addTranslated(ing);
+          }
+        }
+      }
+    } catch(e){}
+
+    r._searchText = r._searchText.toLowerCase();
+  }
+  }
   function matchesSearch(r,q){
     q=q.trim().toLowerCase();
     if(!q) return true;
