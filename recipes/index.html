@@ -511,7 +511,7 @@ if(/^data\/[^\/]+\/tags\/items\/.*\.json$/i.test(normalized)){
         }
         result = renderIngredient(json.result);
     } else if(type && type.toLowerCase().includes('smelt')){
-        const ing = json.ingredient || json.ingredients?.[0];
+        const ing = json.ingredient || (json.ingredients && json.ingredients[0]);
         ingredients = [ renderIngredient(ing) ];
         result = renderIngredient(json.result);
     } else {
