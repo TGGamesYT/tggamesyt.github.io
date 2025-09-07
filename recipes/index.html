@@ -520,13 +520,18 @@ if(/^data\/[^\/]+\/tags\/items\/.*\.json$/i.test(normalized)){
             const img=document.createElement('img');
             img.alt = ing.id;
             if(ing.isTag){
-                // tag placeholder
-                img.src = placeholderDataURL(ing.id + ' (tag)');
-                img.title = ing.id + ' (tag)';
-            } else {
-                img.src = '';
-                resolveItemTexture(ing.id).then(u=>{ if(u) img.src = u; else img.src = placeholderDataURL(ing.id); }).catch(()=>img.src = placeholderDataURL(ing.id));
-            }
+  const tagName = ing.id.startsWith('#') ? ing.id.slice(1) : ing.id;
+  const values = state.tags?.[tagName] || [];
+  if(values.length){
+    // Show first item for now
+    resolveItemTexture(values[0]).then(u=>{
+      if(u) img.src = u; else img.src = placeholderDataURL(values[0]);
+    });
+    img.title = ing.id + " → " + values.join(', ');
+  } else {
+    img.src = placeholderDataURL(ing.id + ' (empty tag)');
+    img.title = ing.id + " (empty)";
+  }
             slot.appendChild(img);
         }
         grid.appendChild(slot);
