@@ -182,6 +182,22 @@
             }catch(e){ console.warn('bad recipe',normalized,e); }
           }
 
+          // tags (items only for now)
+if(/^data\/[^\/]+\/tags\/items\/.*\.json$/i.test(normalized)){
+  try {
+    const txt = await entry.async('string');
+    const j = JSON.parse(txt);
+    const match = normalized.match(/^data\/([^\/]+)\/tags\/items\/(.+)\.json$/i);
+    if(match){
+      const namespace = match[1];
+      const tagPath = match[2]; // e.g. planks
+      const id = namespace + ':' + tagPath;
+      state.tags = state.tags || {};
+      state.tags[id] = j.values || [];
+    }
+  } catch(e){ console.warn('tag parse', normalized, e); }
+}
+
           // assets: textures (store without 'assets/' prefix)
           if(/^assets\/[^\/]+\/textures\/.*\.(png|jpg|jpeg)$/i.test(normalized)){
             const key = normalized.replace(/^assets\//,''); // e.g. 'minecraft/textures/item/stone.png'
