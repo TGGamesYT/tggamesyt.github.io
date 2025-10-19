@@ -30,6 +30,15 @@ input, select{margin:4px 0; padding:4px; width:100%; max-width:400px;}
 <div id="mainDiv" style="display:none">
   <h2>Documents</h2>
   <div id="docsList"></div>
+  <div id="createDocDiv" style="margin-top:20px;">
+  <h3>Create New Document</h3>
+  <input type="text" id="newDocTitle" placeholder="Document Title"><br>
+  <textarea id="newDocContent" placeholder="Document Content"></textarea><br>
+  <input type="text" id="newDocPerms" placeholder="Permissions (e.g., read:user1,user2;edit:group1,group2)">
+  <button id="createDocBtn">Create Document</button>
+  <div id="createDocStatus"></div>
+</div>
+
   <div id="editorDiv" style="display:none">
     <div class="doc-title" id="docTitle"></div>
     <textarea id="docContent"></textarea><br>
@@ -169,6 +178,28 @@ document.getElementById("createGroupBtn").onclick = async ()=>{
   const data = await res.json();
   document.getElementById("groupStatus").textContent = data.ok?"Group created":(data.error||"Error");
 };
+  document.getElementById("createDocBtn").onclick = async () => {
+  const title = document.getElementById("newDocTitle").value;
+  const content = document.getElementById("newDocContent").value;
+  const permsInput = document.getElementById("newDocPerms").value.split(";").map(p => p.trim()).filter(Boolean);
+  
+  const permissions = {};
+  permsInput.forEach(p => {
+    const [perm, vals] = p.split(":");
+    if (perm && vals) permissions[perm] = vals.split(",").map(v=>v.trim()).filter(Boolean);
+  });
+
+  const res = await fetch(WORKER_BASE+"/docs", {
+    method:"POST",
+    headers: {"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body: JSON.stringify({ title, content, permissions })
+  });
+
+  const data = await res.json();
+  document.getElementById("createDocStatus").textContent = data.ok ? "Document created!" : (data.error || "Error");
+  if(data.ok) loadDocs(); // refresh document list
+};
+
 </script>
 </body>
 </html>
