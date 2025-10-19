@@ -1,95 +1,76 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shared Doc</title>
-  <style>
-    body { font-family: system-ui, Arial; padding: 18px; max-width: 900px; margin: auto; }
-    textarea { width: 100%; height: 400px; font-family: monospace; font-size: 13px; }
-    .muted { color: #666; font-size: 13px; }
-    .ip { font-weight: 700; }
-    .btn { padding: 8px 12px; border-radius: 6px; border: 1px solid #888; background: #f3f3f3; cursor: pointer; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Shared Document</title>
+<style>
+  body{font-family:system-ui,Arial;max-width:900px;margin:28px auto;padding:0 12px}
+  textarea{width:100%;height:360px;font-family:monospace;font-size:13px}
+  .muted{color:#666;font-size:13px}
+  .btn{padding:8px 12px;border-radius:6px;border:1px solid #888;background:#f3f3f3;cursor:pointer}
+</style>
 </head>
 <body>
   <h1>Shared Document</h1>
   <div id="status" class="muted">Checking...</div>
 
-  <div id="notWhitelisted" style="display:none; margin-top: 16px;">
-    <p>You are <strong>not</strong> whitelisted. Your public IP is <span id="clientIp" class="ip"></span>.</p>
-    <p class="muted">If you want write access, add your IP to the whitelist in the Worker (exact IP).</p>
-    <p class="muted">You can still read a public view if the server allows it (this setup doesn't).</p>
+  <div id="notAllowed" style="display:none;margin-top:12px">
+    <p>You are <strong>not</strong> whitelisted. Your public IP is <span id="clientIp" style="font-weight:700"></span>.</p>
+    <p class="muted">Add that IP to the worker WHITELIST (exact IP) to be able to edit.</p>
   </div>
 
-  <div id="editorArea" style="display:none; margin-top: 16px;">
-    <p class="muted">You are whitelisted — you can edit and save the document.</p>
-    <textarea id="docArea">{ }</textarea>
-    <div style="margin-top:8px;">
-      <button id="saveBtn" class="btn">Save</button>
-      <span id="saveStatus" class="muted" style="margin-left:12px"></span>
-    </div>
+  <div id="editorArea" style="display:none;margin-top:12px">
+    <p class="muted">You are whitelisted — edit below and press Save.</p>
+    <textarea id="docArea">{ }</textarea><br/>
+    <button id="saveBtn" class="btn">Save</button>
+    <span id="saveStatus" class="muted" style="margin-left:12px"></span>
   </div>
 
 <script>
-const WORKER_BASE = "https://ideas.tgdoescode.workers.dev/"; // <-- change this
+const WORKER_BASE = "https://ideas.tgdoescode.workers.dev"; // your worker
 
 async function init() {
-  const statusEl = document.getElementById("status");
+  const status = document.getElementById("status");
   try {
-    const who = await fetch(WORKER_BASE + "/whoami", { credentials: "omit" }).then(r => r.json());
-    if (who.whitelisted) {
-      statusEl.textContent = `Your IP ${who.ip} is whitelisted. Loading document...`;
-      showEditor(who.ip);
-    } else {
-      statusEl.textContent = "Not whitelisted.";
-      document.getElementById("clientIp").textContent = who.ip || "(unknown)";
-      document.getElementById("notWhitelisted").style.display = "block";
+    const res = await fetch(WORKER_BASE + "/doc", { method: "GET", credentials: "omit" });
+    // if fetch itself fails, it's network/CORS or wrong URL
+    const payload = await res.json();
+    if (!payload.allowed) {
+      status.textContent = "Not whitelisted.";
+      document.getElementById("clientIp").textContent = payload.ip || "(unknown)";
+      document.getElementById("notAllowed").style.display = "block";
+      return;
     }
-  } catch (e) {
-    statusEl.textContent = "Error contacting worker: " + e.message;
+
+    status.textContent = `Whitelisted (IP: ${payload.ip}). Document loaded.`;
+    document.getElementById("editorArea").style.display = "block";
+    document.getElementById("docArea").value = payload.content || "";
+    document.getElementById("saveBtn").onclick = saveDoc;
+  } catch (err) {
+    status.textContent = "Error contacting worker: " + err.message;
+    console.error(err);
   }
 }
 
-async function showEditor(ip) {
-  document.getElementById("editorArea").style.display = "block";
-  // fetch doc
+async function saveDoc() {
+  const s = document.getElementById("saveStatus");
+  s.textContent = "Saving...";
   try {
-    const r = await fetch(WORKER_BASE + "/read");
-    if (r.status === 200) {
-      const text = await r.text();
-      // pretty-format if JSON
-      try {
-        const parsed = JSON.parse(text);
-        document.getElementById("docArea").value = JSON.stringify(parsed, null, 2);
-      } catch (e) {
-        document.getElementById("docArea").value = text;
-      }
+    const body = document.getElementById("docArea").value;
+    const res = await fetch(WORKER_BASE + "/doc", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body
+    });
+    if (res.ok) {
+      s.textContent = "Saved.";
     } else {
-      document.getElementById("docArea").value = "Error reading doc: " + r.status;
+      s.textContent = "Save failed: " + res.status;
     }
-  } catch (e) {
-    document.getElementById("docArea").value = "Fetch error: " + e.message;
+  } catch (err) {
+    s.textContent = "Save error: " + err.message;
   }
-
-  document.getElementById("saveBtn").addEventListener("click", async () => {
-    const txt = document.getElementById("docArea").value;
-    document.getElementById("saveStatus").textContent = "Saving...";
-    try {
-      const res = await fetch(WORKER_BASE + "/write", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: txt
-      });
-      if (res.ok) {
-        document.getElementById("saveStatus").textContent = "Saved.";
-      } else {
-        document.getElementById("saveStatus").textContent = "Save failed: " + res.status;
-      }
-    } catch (e) {
-      document.getElementById("saveStatus").textContent = "Save error: " + e.message;
-    }
-  });
 }
 
 init();
