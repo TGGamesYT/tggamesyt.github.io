@@ -39,30 +39,46 @@ em,i{font-style:italic}
 const WORKER_BASE = "https://docs.tgdoescode.workers.dev";
 let token = localStorage.getItem("sessionId") || "";
 
-// Auto-login if session exists
-if(token){
-  document.getElementById("loginDiv").style.display="none";
-  document.getElementById("mainDiv").style.display="block";
-  loadDocs();
-}
-
-document.getElementById("loginBtn").onclick = async ()=>{
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const res = await fetch(WORKER_BASE+"/login", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username,password})
+// Try auto-login if session exists
+async function tryAutoLogin() {
+  if(!token) return;
+  const res = await fetch(WORKER_BASE+"/docs", {
+    headers: {"Authorization": "Bearer "+token}
   });
   const data = await res.json();
   if(data.ok){
-    token = data.sessionId; // <-- use sessionId from Worker
-    localStorage.setItem("sessionId", token);
     document.getElementById("loginDiv").style.display="none";
     document.getElementById("mainDiv").style.display="block";
     loadDocs();
   } else {
-    document.getElementById("loginStatus").textContent = data.error;
+    localStorage.removeItem("sessionId");
+    token = "";
+  }
+}
+tryAutoLogin();
+
+document.getElementById("loginBtn").onclick = async ()=> {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  document.getElementById("loginStatus").textContent = "Logging in...";
+  try {
+    const res = await fetch(WORKER_BASE+"/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.ok){
+      token = data.sessionId;
+      localStorage.setItem("sessionId", token);
+      document.getElementById("loginDiv").style.display="none";
+      document.getElementById("mainDiv").style.display="block";
+      loadDocs();
+    } else {
+      document.getElementById("loginStatus").textContent = data.error;
+    }
+  } catch(e) {
+    document.getElementById("loginStatus").textContent = "Error connecting to server";
   }
 };
 
@@ -71,12 +87,21 @@ async function loadDocs(){
   const data = await res.json();
   const listDiv = document.getElementById("docsList");
   listDiv.innerHTML = "";
-  if(!data.ok){ listDiv.textContent = data.error; return; }
-  data.docs.forEach(doc=>{
+  if(!data.ok){
+    listDiv.textContent = data.error;
+    if(data.error === "Unauthorized") {
+      localStorage.removeItem("sessionId");
+      token = "";
+      document.getElementById("loginDiv").style.display="block";
+      document.getElementById("mainDiv").style.display="none";
+    }
+    return;
+  }
+  data.docs.forEach(doc => {
     const d = document.createElement("div");
     d.textContent = doc.title;
     d.className = "doc-title";
-    d.onclick = ()=>editDoc(doc.id, doc.title);
+    d.onclick = () => editDoc(doc.id, doc.title);
     listDiv.appendChild(d);
   });
 }
