@@ -214,6 +214,222 @@ document.getElementById("createGroupBtn").onclick = async ()=>{
 };
 
 // LOAD SUPERADMIN PANEL
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Shared Docs</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:system-ui,Arial;max-width:900px;margin:28px auto;padding:0 12px}
+textarea{width:100%;height:200px;font-family:monospace;font-size:13px}
+button{padding:8px 12px;border-radius:6px;border:1px solid #888;background:#f3f3f3;cursor:pointer;margin-top:4px}
+.doc-title{font-weight:bold;margin-top:12px; cursor:pointer;}
+.doc-content{border:1px solid #ccc;padding:8px;margin-bottom:12px}
+h1,h2,h3,h4,h5,h6{margin-top:1em;margin-bottom:.5em}
+strong,b{font-weight:bold}
+em,i{font-style:italic}
+hr{margin:20px 0}
+input, select{margin:4px 0; padding:4px; width:100%; max-width:400px;}
+.panel{border:1px solid #ccc; padding:8px; margin-top:8px; display:none;}
+</style>
+</head>
+<body>
+<h1>Shared Documents</h1>
+
+<div id="loginDiv">
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <div id="loginStatus"></div>
+</div>
+
+<div id="mainDiv" style="display:none">
+  <h2>Documents</h2>
+  <div id="docsList"></div>
+
+  <button id="toggleCreateDocBtn">Create New Document</button>
+  <div id="createDocPanel" class="panel">
+    <input type="text" id="newDocTitle" placeholder="Document Title"><br>
+    <textarea id="newDocContent" placeholder="Document Content"></textarea><br>
+    <input type="text" id="newDocPerms" placeholder="Permissions (e.g., read:user1,user2;edit:group1,group2)"><br>
+    <button id="createDocBtn">Create Document</button>
+    <div id="createDocStatus"></div>
+  </div>
+
+  <div id="editorDiv" style="display:none">
+    <div class="doc-title" id="docTitle"></div>
+    <textarea id="docContent"></textarea><br>
+    <button id="saveBtn">Save</button>
+    <div id="saveStatus"></div>
+  </div>
+
+  <div id="superadminDiv" style="display:none">
+    <hr>
+    <h2>Superadmin Dashboard</h2>
+
+    <button id="toggleUserDivBtn">Create User</button>
+    <div id="createUserPanel" class="panel">
+      <input type="text" id="newUsername" placeholder="Username"><br>
+      <input type="password" id="newPassword" placeholder="Password"><br>
+      <select id="newRole">
+        <option value="user">User</option>
+        <option value="superadmin">Superadmin</option>
+      </select><br>
+      <input type="text" id="newGroups" placeholder="Groups (comma separated)"><br>
+      <button id="createUserBtn">Create User</button>
+      <div id="userStatus"></div>
+    </div>
+
+    <button id="toggleGroupDivBtn">Create Group</button>
+    <div id="createGroupPanel" class="panel">
+      <input type="text" id="newGroupName" placeholder="Group Name"><br>
+      <input type="text" id="newGroupPerms" placeholder="Permissions (comma separated, e.g., read:doc1,edit:doc2)"><br>
+      <button id="createGroupBtn">Create Group</button>
+      <div id="groupStatus"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER_BASE = "https://docs.tgdoescode.workers.dev";
+let token = localStorage.getItem("sessionId") || "";
+
+// Auto-login if session exists
+if(token){
+  document.getElementById("loginDiv").style.display="none";
+  document.getElementById("mainDiv").style.display="block";
+  loadDocs();
+  loadSuperadmin();
+}
+
+// LOGIN
+document.getElementById("loginBtn").onclick = async ()=> {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const res = await fetch(WORKER_BASE+"/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username,password})
+  });
+  const data = await res.json();
+  if(data.ok){
+    token = data.sessionId;
+    localStorage.setItem("sessionId", token);
+    document.getElementById("loginDiv").style.display="none";
+    document.getElementById("mainDiv").style.display="block";
+    loadDocs();
+    loadSuperadmin();
+  } else {
+    document.getElementById("loginStatus").textContent = data.error;
+  }
+};
+
+// LOAD DOCS
+async function loadDocs(){
+  const res = await fetch(WORKER_BASE+"/docs", {headers:{"Authorization":"Bearer "+token}});
+  const data = await res.json();
+  const listDiv = document.getElementById("docsList");
+  listDiv.innerHTML = "";
+  if(!data.ok){ listDiv.textContent = data.error; return; }
+  data.docs.forEach(doc=>{
+    const d = document.createElement("div");
+    d.textContent = doc.title;
+    d.className = "doc-title";
+    d.onclick = ()=>editDoc(doc.id, doc.title);
+    listDiv.appendChild(d);
+  });
+}
+
+// EDIT DOC
+async function editDoc(id,title){
+  const res = await fetch(WORKER_BASE+"/docs/"+id,{headers:{"Authorization":"Bearer "+token}});
+  const data = await res.json();
+  if(!data.ok){ alert(data.error); return; }
+  document.getElementById("editorDiv").style.display="block";
+  document.getElementById("docTitle").textContent = title;
+  document.getElementById("docContent").value = data.doc.content;
+  document.getElementById("saveBtn").onclick = async ()=>{
+    const content = document.getElementById("docContent").value;
+    const res2 = await fetch(WORKER_BASE+"/docs/"+id,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify({content})
+    });
+    const d2 = await res2.json();
+    document.getElementById("saveStatus").textContent = d2.ok?"Saved":"Error: "+(d2.error||"unknown");
+  }
+}
+
+// TOGGLE PANELS
+document.getElementById("toggleCreateDocBtn").onclick = ()=>{
+  const p = document.getElementById("createDocPanel");
+  p.style.display = p.style.display==="none"?"block":"none";
+};
+document.getElementById("toggleUserDivBtn").onclick = ()=>{
+  const p = document.getElementById("createUserPanel");
+  p.style.display = p.style.display==="none"?"block":"none";
+};
+document.getElementById("toggleGroupDivBtn").onclick = ()=>{
+  const p = document.getElementById("createGroupPanel");
+  p.style.display = p.style.display==="none"?"block":"none";
+};
+
+// CREATE DOC
+document.getElementById("createDocBtn").onclick = async ()=>{
+  const title = document.getElementById("newDocTitle").value;
+  const content = document.getElementById("newDocContent").value;
+  const permsInput = document.getElementById("newDocPerms").value.split(";").map(p => p.trim()).filter(Boolean);
+  const permissions = {};
+  permsInput.forEach(p=>{
+    const [perm, vals] = p.split(":");
+    if(perm && vals) permissions[perm] = vals.split(",").map(v=>v.trim()).filter(Boolean);
+  });
+  const res = await fetch(WORKER_BASE+"/docs", {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body:JSON.stringify({title,content,permissions})
+  });
+  const data = await res.json();
+  document.getElementById("createDocStatus").textContent = data.ok?"Document created!":(data.error||"Error");
+  if(data.ok) loadDocs();
+};
+
+// CREATE USER
+document.getElementById("createUserBtn").onclick = async ()=>{
+  const username = document.getElementById("newUsername").value;
+  const password = document.getElementById("newPassword").value;
+  const role = document.getElementById("newRole").value;
+  const groups = document.getElementById("newGroups").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const res = await fetch(WORKER_BASE+"/users", {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body:JSON.stringify({username,password,role,groups})
+  });
+  const data = await res.json();
+  document.getElementById("userStatus").textContent = data.ok?"User created":(data.error||"Error");
+};
+
+// CREATE GROUP
+document.getElementById("createGroupBtn").onclick = async ()=>{
+  const name = document.getElementById("newGroupName").value;
+  const permsInput = document.getElementById("newGroupPerms").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const permissions = {};
+  permsInput.forEach(p=>{
+    const [perm, docId] = p.split(":");
+    if(!permissions[perm]) permissions[perm]=[];
+    permissions[perm].push(docId);
+  });
+  const res = await fetch(WORKER_BASE+"/groups", {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body:JSON.stringify({name,permissions})
+  });
+  const data = await res.json();
+  document.getElementById("groupStatus").textContent = data.ok?"Group created":(data.error||"Error");
+};
+
+// LOAD SUPERADMIN PANEL
 async function loadSuperadmin(){
   const res = await fetch(WORKER_BASE+"/users",{headers:{"Authorization":"Bearer "+token}});
   const data = await res.json();
@@ -221,6 +437,10 @@ async function loadSuperadmin(){
     document.getElementById("superadminDiv").style.display="block";
   }
 }
+</script>
+</body>
+</html>
+
 </script>
 </body>
 </html>
