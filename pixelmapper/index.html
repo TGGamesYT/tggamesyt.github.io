@@ -2,18 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pixel Mapper Tool</title>
+<title>Pixel Mapper Tool - Multiple Quads</title>
 <style>
-  body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 20px; }
-  canvas { border: 1px solid #333; margin: 10px; }
-  .container { display: flex; gap: 20px; }
-  .controls { margin: 10px; }
-  .point { position: absolute; width: 8px; height: 8px; background: red; border-radius: 50%; pointer-events: none; transform: translate(-4px,-4px); }
+body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 20px; }
+canvas { border: 1px solid #333; margin: 10px; }
+.container { display: flex; gap: 20px; }
+.controls { margin: 10px; }
+button { margin: 2px; }
+.mapping-item { margin: 5px 0; }
+.point { position: absolute; width: 8px; height: 8px; background: red; border-radius: 50%; pointer-events: none; transform: translate(-4px,-4px); }
 </style>
 </head>
 <body>
 
-<h1>Pixel Mapper Tool</h1>
+<h1>Pixel Mapper Tool - Multiple Quads</h1>
 
 <div class="controls">
   <label>Upload Source: <input type="file" id="sourceFile"></label>
@@ -23,12 +25,22 @@
 <div class="container">
   <div>
     <h3>Source</h3>
-    <div style="position: relative;"><canvas id="sourceCanvas" width="256" height="256"></canvas></div>
+    <canvas id="sourceCanvas" width="256" height="256"></canvas>
   </div>
   <div>
     <h3>Target</h3>
-    <div style="position: relative;"><canvas id="targetCanvas" width="256" height="256"></canvas></div>
+    <canvas id="targetCanvas" width="256" height="256"></canvas>
   </div>
+</div>
+
+<div class="controls">
+  <button id="addMapping">Add Mapping</button>
+  <button id="deleteMapping">Delete Current Mapping</button>
+</div>
+
+<div>
+  <h3>Mappings</h3>
+  <select id="mappingList" size="5" style="width:200px;"></select>
 </div>
 
 <h3>Result Preview</h3>
@@ -49,117 +61,159 @@ const resultCtx = resultCanvas.getContext('2d');
 let srcImg = new Image();
 let tgtImg = new Image();
 
-let srcPoints = [];
-let tgtPoints = [];
+// Mapping structure: array of {srcPoints: [[x,y],...], tgtPoints: [[x,y],...]}
+let mappings = [];
+let currentMapping = null;
 
-function drawPoint(canvas, points) {
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(canvas === srcCanvas) ctx.drawImage(srcImg,0,0,canvas.width,canvas.height);
-  else ctx.drawImage(tgtImg,0,0,canvas.width,canvas.height);
-  ctx.fillStyle = 'red';
-  points.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p[0], p[1], 5, 0, Math.PI*2);
-    ctx.fill();
-  });
-}
-
-// Load images
 document.getElementById('sourceFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if(!file) return;
   srcImg.src = URL.createObjectURL(file);
-  srcImg.onload = () => drawPoint(srcCanvas, srcPoints);
+  srcImg.onload = () => updateCanvas();
 });
 document.getElementById('targetFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if(!file) return;
   tgtImg.src = URL.createObjectURL(file);
-  tgtImg.onload = () => drawPoint(tgtCanvas, tgtPoints);
+  tgtImg.onload = () => updateCanvas();
 });
 
-// Click handling
-function handleClick(canvas, points) {
+function updateCanvas(){
+  srcCtx.clearRect(0,0,srcCanvas.width,srcCanvas.height);
+  tgtCtx.clearRect(0,0,tgtCanvas.width,tgtCanvas.height);
+  resultCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
+  if(srcImg.src) srcCtx.drawImage(srcImg,0,0,srcCanvas.width,srcCanvas.height);
+  if(tgtImg.src) tgtCtx.drawImage(tgtImg,0,0,tgtCanvas.width,tgtCanvas.height);
+  updateResult();
+  drawMappingPoints();
+}
+
+function drawMappingPoints(){
+  updateCanvas(); // draw images first
+  mappings.forEach((map, idx)=>{
+    const color = (idx===currentMapping)?'lime':'red';
+    [srcCanvas,tgtCanvas].forEach((c,i)=>{
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = color;
+      const pts = (i===0)?map.srcPoints:map.tgtPoints;
+      pts.forEach(p=>{
+        ctx.beginPath();
+        ctx.arc(p[0],p[1],5,0,Math.PI*2);
+        ctx.fill();
+      });
+    });
+  });
+}
+
+// Mouse clicks
+function canvasClick(canvas){
   return function(e){
-    if(points.length >= 4) return;
+    if(currentMapping===null) return;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width/rect.width);
     const y = (e.clientY - rect.top) * (canvas.height/rect.height);
-    points.push([x,y]);
-    drawPoint(canvas, points);
-    if(srcPoints.length===4 && tgtPoints.length===4) updateResult();
+    let pointsArray = (canvas===srcCanvas)?mappings[currentMapping].srcPoints:mappings[currentMapping].tgtPoints;
+    if(pointsArray.length>=4) return;
+    pointsArray.push([x,y]);
+    drawMappingPoints();
+    updateResult();
   }
 }
-srcCanvas.addEventListener('click', handleClick(srcCanvas, srcPoints));
-tgtCanvas.addEventListener('click', handleClick(tgtCanvas, tgtPoints));
+srcCanvas.addEventListener('click', canvasClick(srcCanvas));
+tgtCanvas.addEventListener('click', canvasClick(tgtCanvas));
 
-// Helper: compute perspective transform
-function getTransformMatrix(srcPts, dstPts){
-  const A = [];
-  for(let i=0;i<4;i++){
-    const [x,y]=srcPts[i];
-    const [X,Y]=dstPts[i];
-    A.push([x,y,1,0,0,0,-X*x,-X*y,-X]);
-    A.push([0,0,0,x,y,1,-Y*x,-Y*y,-Y]);
+// Add/delete mapping
+document.getElementById('addMapping').addEventListener('click', ()=>{
+  mappings.push({srcPoints:[], tgtPoints:[]});
+  currentMapping = mappings.length-1;
+  updateMappingList();
+});
+document.getElementById('deleteMapping').addEventListener('click', ()=>{
+  if(currentMapping!==null){
+    mappings.splice(currentMapping,1);
+    currentMapping = (mappings.length>0)?0:null;
+    updateMappingList();
+    drawMappingPoints();
+    updateResult();
   }
-  // Solve Ax=0
-  const a = numeric.svd(A);
-  const h = a.V.map(r=>r[8]);
-  return [
-    [h[0],h[1],h[2]],
-    [h[3],h[4],h[5]],
-    [h[6],h[7],h[8]]
-  ];
+});
+
+const mappingList = document.getElementById('mappingList');
+function updateMappingList(){
+  mappingList.innerHTML='';
+  mappings.forEach((m,i)=>{
+    const opt = document.createElement('option');
+    opt.value=i; opt.text=`Mapping ${i+1}`;
+    if(i===currentMapping) opt.selected=true;
+    mappingList.appendChild(opt);
+  });
+}
+mappingList.addEventListener('change', ()=>{ currentMapping = parseInt(mappingList.value); drawMappingPoints(); });
+
+// Helper: point-in-quad using barycentric coords
+function pointInQuad(px,py,quad){
+  const [[x0,y0],[x1,y1],[x2,y2],[x3,y3]] = quad;
+  const minX = Math.min(x0,x1,x2,x3), maxX=Math.max(x0,x1,x2,x3);
+  const minY = Math.min(y0,y1,y2,y3), maxY=Math.max(y0,y1,y2,y3);
+  return px>=minX && px<=maxX && py>=minY && py<=maxY;
 }
 
-// Numeric.js for SVD
-// Include minimal numeric.js SVD
-// We will just cheat: precompute small helper
-// For simplicity in this demo, use a simple bilinear approx instead
-function mapPoint(x,y){
-  // bilinear mapping based on quads
-  const u = x/srcCanvas.width;
-  const v = y/srcCanvas.height;
-  const p0=tgtPoints[0], p1=tgtPoints[1], p2=tgtPoints[2], p3=tgtPoints[3];
-  const X = p0[0]*(1-u)*(1-v)+p1[0]*u*(1-v)+p3[0]*(1-u)*v+p2[0]*u*v;
-  const Y = p0[1]*(1-u)*(1-v)+p1[1]*u*(1-v)+p3[1]*(1-u)*v+p2[1]*u*v;
+// Bilinear mapping
+function mapBilinear(x,y,srcQuad,dstQuad){
+  const u = (x - srcQuad[0][0]) / (srcQuad[1][0]-srcQuad[0][0]||1);
+  const v = (y - srcQuad[0][1]) / (srcQuad[3][1]-srcQuad[0][1]||1);
+  const X = dstQuad[0][0]*(1-u)*(1-v)+dstQuad[1][0]*u*(1-v)+dstQuad[3][0]*(1-u)*v+dstQuad[2][0]*u*v;
+  const Y = dstQuad[0][1]*(1-u)*(1-v)+dstQuad[1][1]*u*(1-v)+dstQuad[3][1]*(1-u)*v+dstQuad[2][1]*u*v;
   return [X,Y];
 }
 
-// Update result canvas
+// Update result
 function updateResult(){
+  if(!tgtImg.src) return;
   resultCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
   resultCtx.drawImage(tgtImg,0,0,resultCanvas.width,resultCanvas.height);
-  const srcData = srcCtx.getImageData(0,0,srcCanvas.width,srcCanvas.height);
   const resData = resultCtx.getImageData(0,0,resultCanvas.width,resultCanvas.height);
-  for(let y=0;y<srcCanvas.height;y++){
-    for(let x=0;x<srcCanvas.width;x++){
-      const idx = (y*srcCanvas.width+x)*4;
-      const alpha = srcData.data[idx+3]/255;
-      if(alpha===0) continue;
-      const [X,Y]=mapPoint(x,y);
-      const ix = Math.floor(X), iy=Math.floor(Y);
-      if(ix<0||iy<0||ix>=resultCanvas.width||iy>=resultCanvas.height) continue;
-      const ridx = (iy*resultCanvas.width+ix)*4;
-      resData.data[ridx+0]=srcData.data[idx+0];
-      resData.data[ridx+1]=srcData.data[idx+1];
-      resData.data[ridx+2]=srcData.data[idx+2];
-      resData.data[ridx+3]=srcData.data[idx+3];
+  const srcData = srcCtx.getImageData(0,0,srcCanvas.width,srcCanvas.height);
+  mappings.forEach(map=>{
+    if(map.srcPoints.length<4 || map.tgtPoints.length<4) return;
+    for(let y=0;y<srcCanvas.height;y++){
+      for(let x=0;x<srcCanvas.width;x++){
+        if(!pointInQuad(x,y,map.srcPoints)) continue;
+        const idx = (y*srcCanvas.width+x)*4;
+        const alpha = srcData.data[idx+3]/255;
+        if(alpha===0) continue;
+        const [X,Y]=mapBilinear(x,y,map.srcPoints,map.tgtPoints);
+        const ix = Math.floor(X), iy=Math.floor(Y);
+        if(ix<0||iy<0||ix>=resultCanvas.width||iy>=resultCanvas.height) continue;
+        const ridx = (iy*resultCanvas.width+ix)*4;
+        resData.data[ridx+0]=srcData.data[idx+0];
+        resData.data[ridx+1]=srcData.data[idx+1];
+        resData.data[ridx+2]=srcData.data[idx+2];
+        resData.data[ridx+3]=srcData.data[idx+3];
+      }
     }
-  }
+  });
   resultCtx.putImageData(resData,0,0);
 }
 
-// Generate JS code
+// Generate JS
 document.getElementById('generateJS').addEventListener('click',()=>{
-  let code = `function mapPoint(x,y){\n`;
-  code += `  const u = x/${srcCanvas.width};\n`;
-  code += `  const v = y/${srcCanvas.height};\n`;
-  code += `  const p0=[${tgtPoints[0]}], p1=[${tgtPoints[1]}], p2=[${tgtPoints[2]}], p3=[${tgtPoints[3]}];\n`;
-  code += `  const X = p0[0]*(1-u)*(1-v)+p1[0]*u*(1-v)+p3[0]*(1-u)*v+p2[0]*u*v;\n`;
-  code += `  const Y = p0[1]*(1-u)*(1-v)+p1[1]*u*(1-v)+p3[1]*(1-u)*v+p2[1]*u*v;\n`;
-  code += `  return [X,Y];\n}\n`;
+  let code='';
+  mappings.forEach((map,i)=>{
+    if(map.srcPoints.length<4 || map.tgtPoints.length<4) return;
+    code+=`// Mapping ${i+1}\n`;
+    code+=`const src${i}=${JSON.stringify(map.srcPoints)};\n`;
+    code+=`const tgt${i}=${JSON.stringify(map.tgtPoints)};\n`;
+  });
+  code+=`
+function mapPoint(x,y,mapping){
+  const src=mapping.src, dst=mapping.dst;
+  const u=(x-src[0][0])/(src[1][0]-src[0][0]||1);
+  const v=(y-src[0][1])/(src[3][1]-src[0][1]||1);
+  const X=dst[0][0]*(1-u)*(1-v)+dst[1][0]*u*(1-v)+dst[3][0]*(1-u)*v+dst[2][0]*u*v;
+  const Y=dst[0][1]*(1-u)*(1-v)+dst[1][1]*u*(1-v)+dst[3][1]*(1-u)*v+dst[2][1]*u*v;
+  return [X,Y];
+}\n`;
   document.getElementById('jsCode').textContent = code;
 });
 
