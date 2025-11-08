@@ -8,40 +8,100 @@ echo "Installing dependencies..."
 pkg update -y && pkg upgrade -y
 pkg install -y curl wget jq openjdk-17 openjdk-21
 
-# Ask user for Minecraft version
-read -p "Enter Minecraft version: " MINECRAFT_VERSION
+# --- Ask for version ---
+read -p "Enter Minecraft version (e.g. 1.21.1): " MINECRAFT_VERSION
 
-# Define Java versions
-declare -A JAVA_VERSIONS
-JAVA_VERSIONS=(
-  ["1.17.1"]="17" ["1.17.2"]="17" ["1.18"]="17"
-  ["1.18.1"]="17" ["1.18.2"]="17" ["1.19"]="17"
-  ["1.19.1"]="17" ["1.19.2"]="17" ["1.19.3"]="17"
-  ["1.19.4"]="17" ["1.20"]="17" ["1.20.1"]="17"
-  ["1.20.2"]="17" ["1.20.3"]="17" ["1.20.4"]="17"
-  ["1.21"]="21" ["1.21.1"]="21" ["1.21.2"]="21"
-  ["1.21.3"]="21" ["1.21.4"]="21" ["1.21.5"]="21"
-  ["1.21.6"]="21" ["1.21.7"]="21" ["1.21.8"]="21"
-)
+# --- Ask for distribution (Paper or Vanilla) ---
+read -p "Use Paper or Vanilla server? [P/v]: " SERVER_TYPE
+SERVER_TYPE=${SERVER_TYPE:-P} # default to Paper
+SERVER_TYPE=$(echo "$SERVER_TYPE" | tr '[:upper:]' '[:lower:]')
 
-# Determine Java version
-JAVA_VERSION=${JAVA_VERSIONS[$MINECRAFT_VERSION]}
-if [[ -z "$JAVA_VERSION" ]]; then
-  echo "Unsupported Minecraft version! Switching to custom mode."
-  read -p "Enter the URL for the custom server jar: " CUSTOM_JAR_URL
-  read -p "Enter Java version (17 or 21): " JAVA_VERSION
-  if [[ "$JAVA_VERSION" != "17" && "$JAVA_VERSION" != "21" ]]; then
-    echo "Termux does not support this Java version. Exiting."
-    exit 1
+# --- Function to determine Java version using Mojang metadata ---
+get_java_version() {
+  local version=$1
+  local manifest_url="https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+
+  echo "Fetching Mojang version manifest..."
+  local version_url=$(curl -s "$manifest_url" | jq -r --arg ver "$version" '.versions[] | select(.id == $ver) | .url')
+
+  if [[ -z "$version_url" || "$version_url" == "null" ]]; then
+    echo "❌ Version $version not found in Mojang manifest."
+    return 1
   fi
-  wget -O server.jar "$CUSTOM_JAR_URL"
-else
-  LATEST_BUILD=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds" | jq '.builds | last | .build')
-  SERVER_URL="https://api.papermc.io/v2/projects/paper/versions/$MINECRAFT_VERSION/builds/$LATEST_BUILD/downloads/paper-$MINECRAFT_VERSION-$LATEST_BUILD.jar"
-  wget -O server.jar "$SERVER_URL"
+
+  echo "Fetching version data for $version..."
+  local java_ver=$(curl -s "$version_url" | jq -r '.javaVersion.majorVersion // empty')
+
+  if [[ -z "$java_ver" ]]; then
+    echo "⚠️  Java version not found in version data, defaulting to 17."
+    java_ver=17
+  fi
+
+  echo "$java_ver"
+}
+
+# --- Function to fetch Paper server jar ---
+get_paper_jar() {
+  local version=$1
+  echo "Checking for Paper build for version $version..."
+  local paper_api="https://api.papermc.io/v2/projects/paper/versions/$version"
+  local paper_json=$(curl -s "$paper_api")
+
+  local builds=$(echo "$paper_json" | jq '.builds | length' 2>/dev/null)
+  if [[ -z "$builds" || "$builds" == "0" ]]; then
+    echo "⚠️  No Paper builds found for $version."
+    return 1
+  fi
+
+  local latest_build=$(echo "$paper_json" | jq '.builds | last')
+  local server_url="https://api.papermc.io/v2/projects/paper/versions/$version/builds/$latest_build/downloads/paper-$version-$latest_build.jar"
+
+  echo "✅ Found Paper build #$latest_build"
+  wget -O server.jar "$server_url"
+  return 0
+}
+
+# --- Function to fetch Vanilla server jar ---
+get_vanilla_jar() {
+  local version=$1
+  echo "Fetching Vanilla server for version $version..."
+  local manifest_url="https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+
+  local version_url=$(curl -s "$manifest_url" | jq -r --arg ver "$version" '.versions[] | select(.id == $ver) | .url')
+  if [[ -z "$version_url" || "$version_url" == "null" ]]; then
+    echo "❌ Version $version not found in Mojang manifest."
+    return 1
+  fi
+
+  local server_url=$(curl -s "$version_url" | jq -r '.downloads.server.url // empty')
+  if [[ -z "$server_url" ]]; then
+    echo "❌ Could not find server jar URL for version $version."
+    return 1
+  fi
+
+  echo "✅ Downloading Vanilla server..."
+  wget -O server.jar "$server_url"
+  return 0
+}
+
+# --- Determine required Java version ---
+JAVA_VERSION=$(get_java_version "$MINECRAFT_VERSION") || exit 1
+if [[ "$JAVA_VERSION" != "17" && "$JAVA_VERSION" != "21" ]]; then
+  echo "⚠️  Java $JAVA_VERSION required, but Termux only supports 17 or 21."
+  read -p "Use closest supported version (17 or 21)? " JAVA_VERSION
 fi
 
-# Set Java environment
+# --- Download server jar ---
+if [[ "$SERVER_TYPE" == "p" ]]; then
+  if ! get_paper_jar "$MINECRAFT_VERSION"; then
+    echo "Falling back to Vanilla server..."
+    get_vanilla_jar "$MINECRAFT_VERSION" || exit 1
+  fi
+else
+  get_vanilla_jar "$MINECRAFT_VERSION" || exit 1
+fi
+
+# --- Set Java environment ---
 export JAVA_HOME="/data/data/com.termux/files/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
 export PATH=$JAVA_HOME/bin:$PATH
 
