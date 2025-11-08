@@ -21,22 +21,23 @@ get_java_version() {
   local version=$1
   local manifest_url="https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 
-  echo "Fetching Mojang version manifest..."
+  echo "Fetching Mojang version manifest..." >&2
   local version_url=$(curl -s "$manifest_url" | jq -r --arg ver "$version" '.versions[] | select(.id == $ver) | .url')
 
   if [[ -z "$version_url" || "$version_url" == "null" ]]; then
-    echo "❌ Version $version not found in Mojang manifest."
+    echo "❌ Version $version not found in Mojang manifest." >&2
     return 1
   fi
 
-  echo "Fetching version data for $version..."
+  echo "Fetching version data for $version..." >&2
   local java_ver=$(curl -s "$version_url" | jq -r '.javaVersion.majorVersion // empty')
 
   if [[ -z "$java_ver" ]]; then
-    echo "⚠️  Java version not found in version data, defaulting to 17."
+    echo "⚠️  Java version not found, defaulting to 17." >&2
     java_ver=17
   fi
 
+  # Output only the version number to stdout
   echo "$java_ver"
 }
 
@@ -86,7 +87,6 @@ get_vanilla_jar() {
 
 # --- Determine required Java version ---
 JAVA_VERSION=$(get_java_version "$MINECRAFT_VERSION") || exit 1
-# Normalize to numbers to avoid string mismatch issues
 JAVA_VERSION_NUM=$((JAVA_VERSION + 0))
 
 if (( JAVA_VERSION_NUM != 17 && JAVA_VERSION_NUM != 21 )); then
