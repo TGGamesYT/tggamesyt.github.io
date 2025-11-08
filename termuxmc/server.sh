@@ -86,7 +86,7 @@ get_vanilla_jar() {
 
 # --- Determine required Java version ---
 JAVA_VERSION=$(get_java_version "$MINECRAFT_VERSION") || exit 1
-if [[ "$JAVA_VERSION" != "17" && "$JAVA_VERSION" != "21" ]]; then
+if [[ "$JAVA_VERSION" != 17 && "$JAVA_VERSION" != 21 ]]; then
   echo "⚠️  Java $JAVA_VERSION required, but Termux only supports 17 or 21."
   read -p "Use closest supported version (17 or 21): " JAVA_VERSION
 else
