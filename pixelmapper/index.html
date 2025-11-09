@@ -2,236 +2,240 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pixel Mapper Tool (Perspective-Correct)</title>
+<title>Perspective Pixel Mapper</title>
 <style>
-body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 20px; }
-canvas { border: 1px solid #333; margin: 10px; image-rendering: pixelated; }
-.container { display: flex; gap: 20px; }
-button { margin: 4px; }
+  body { font-family: sans-serif; text-align: center; background: #202020; color: white; }
+  canvas { border: 2px solid #444; margin: 10px; image-rendering: pixelated; }
+  .container { display: flex; justify-content: center; align-items: start; gap: 20px; }
+  button { margin: 8px; padding: 5px 10px; }
 </style>
 </head>
 <body>
 
-<h1>Pixel Mapper Tool (Perspective-Correct)</h1>
-
-<div>
-  <label>Upload Source: <input type="file" id="srcFile"></label>
-  <label>Upload Target: <input type="file" id="tgtFile"></label>
-</div>
+<h2>Perspective Pixel Mapper</h2>
+<input type="file" id="imgUpload" accept="image/*"><br>
+<button id="addMapping">New Mapping</button>
+<button id="applyMapping">Apply Mapping</button>
 
 <div class="container">
   <div>
-    <h3>Source</h3>
+    <h3>Source (click 4 points)</h3>
     <canvas id="srcCanvas" width="256" height="256"></canvas>
   </div>
   <div>
-    <h3>Target</h3>
-    <canvas id="tgtCanvas" width="256" height="256"></canvas>
+    <h3>Destination (click 4 points)</h3>
+    <canvas id="dstCanvas" width="256" height="256"></canvas>
   </div>
 </div>
 
-<button id="addMapping">Add Mapping</button>
-<select id="mappingList" size="5" style="width:200px"></select>
-
-<h3>Result</h3>
-<canvas id="resCanvas" width="256" height="256"></canvas>
-
-<button id="export">Generate JS Code</button>
-<pre id="output" style="background:#eee;padding:10px;width:90%;max-width:700px;"></pre>
-
 <script>
-const srcCanvas=document.getElementById('srcCanvas'), srcCtx=srcCanvas.getContext('2d');
-const tgtCanvas=document.getElementById('tgtCanvas'), tgtCtx=tgtCanvas.getContext('2d');
-const resCanvas=document.getElementById('resCanvas'), resCtx=resCanvas.getContext('2d');
+// Setup
+const srcCanvas = document.getElementById("srcCanvas");
+const dstCanvas = document.getElementById("dstCanvas");
+const srcCtx = srcCanvas.getContext("2d");
+const dstCtx = dstCanvas.getContext("2d");
 
-let srcImg=new Image(), tgtImg=new Image();
-let mappings=[]; let current=-1;
+let srcImg = new Image();
+let mapping = { src: [], dst: [] };
 
-document.getElementById('srcFile').onchange=e=>{
-  const f=e.target.files[0]; if(!f)return;
-  srcImg.src=URL.createObjectURL(f); srcImg.onload=()=>draw();
-};
-document.getElementById('tgtFile').onchange=e=>{
-  const f=e.target.files[0]; if(!f)return;
-  tgtImg.src=URL.createObjectURL(f); tgtImg.onload=()=>draw();
-};
-
-document.getElementById('addMapping').onclick=()=>{
-  mappings.push({src:[],tgt:[]}); current=mappings.length-1;
-  updateList(); draw();
+// Upload image
+document.getElementById("imgUpload").onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  srcImg.src = URL.createObjectURL(f);
+  srcImg.onload = () => srcCtx.drawImage(srcImg, 0, 0, srcCanvas.width, srcCanvas.height);
 };
 
-document.getElementById('mappingList').onchange=e=>{
-  current=parseInt(e.target.value); draw();
-};
-
-function updateList(){
-  const list=document.getElementById('mappingList');
-  list.innerHTML='';
-  mappings.forEach((m,i)=>{
-    const opt=document.createElement('option');
-    opt.text=`Mapping ${i+1}`; opt.value=i;
-    if(i===current)opt.selected=true;
-    list.appendChild(opt);
-  });
-}
-
-srcCanvas.onclick=e=>addPoint(e,true);
-tgtCanvas.onclick=e=>addPoint(e,false);
-
-function addPoint(e,isSrc){
-  if(current<0)return;
-  const rect=e.target.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*e.target.width/rect.width;
-  const y=(e.clientY-rect.top)*e.target.height/rect.height;
-  const arr=isSrc?mappings[current].src:mappings[current].tgt;
-  if(arr.length>=4)return;
-  arr.push([x,y]);
+// Add new mapping
+document.getElementById("addMapping").onclick = () => {
+  mapping = { src: [], dst: [] };
   draw();
-  if(mappings[current].src.length===4 && mappings[current].tgt.length===4) render();
+};
+
+// Add click listeners
+srcCanvas.addEventListener("click", e => addPoint(e, true));
+dstCanvas.addEventListener("click", e => addPoint(e, false));
+
+function addPoint(e, isSrc) {
+  const rect = e.target.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * e.target.width / rect.width;
+  const y = (e.clientY - rect.top) * e.target.height / rect.height;
+  const pts = isSrc ? mapping.src : mapping.dst;
+  if (pts.length >= 4) return;
+  pts.push([x, y]);
+  draw();
 }
 
-function draw(){
-  srcCtx.clearRect(0,0,256,256);
-  tgtCtx.clearRect(0,0,256,256);
-  if(srcImg.src)srcCtx.drawImage(srcImg,0,0,256,256);
-  if(tgtImg.src)tgtCtx.drawImage(tgtImg,0,0,256,256);
-  mappings.forEach((m,i)=>{
-    const color=(i===current)?'yellow':'red';
-    drawQuad(srcCtx,m.src,color);
-    drawQuad(tgtCtx,m.tgt,color);
-  });
+// Draw points and lines
+function draw() {
+  srcCtx.clearRect(0, 0, srcCanvas.width, srcCanvas.height);
+  dstCtx.clearRect(0, 0, dstCanvas.width, dstCanvas.height);
+  if (srcImg.src) srcCtx.drawImage(srcImg, 0, 0, srcCanvas.width, srcCanvas.height);
+  drawPoints(srcCtx, mapping.src, "lime");
+  drawPoints(dstCtx, mapping.dst, "yellow");
 }
 
-function drawQuad(ctx,pts,color){
-  if(pts.length===0)return;
-  ctx.fillStyle=color;
-  pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],4,0,2*Math.PI);ctx.fill();});
-  if(pts.length===4){
-    ctx.strokeStyle=color;ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
-    for(let i=1;i<4;i++)ctx.lineTo(pts[i][0],pts[i][1]);
-    ctx.closePath();ctx.stroke();
+function drawPoints(ctx, pts, color) {
+  if (pts.length === 0) return;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  for (let p of pts) {
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (pts.length === 4) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < 4; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.stroke();
   }
 }
 
-// compute 3x3 homography matrix
-function getHomography(src,tgt){
-  const A=[];
-  for(let i=0;i<4;i++){
-    const [x,y]=src[i], [X,Y]=tgt[i];
-    A.push([-x,-y,-1,0,0,0,x*X,y*X,X]);
-    A.push([0,0,0,-x,-y,-1,x*Y,y*Y,Y]);
+// Warp application
+document.getElementById("applyMapping").onclick = () => {
+  if (mapping.src.length < 4 || mapping.dst.length < 4) {
+    alert("Select 4 points on each canvas first!");
+    return;
   }
-  // Solve A*h=0
-  const svd=numeric.svd(A);
-  const h=svd.V[8];
-  return [[h[0],h[1],h[2]],[h[3],h[4],h[5]],[h[6],h[7],h[8]]];
+  applyWarp();
+};
+
+function applyWarp() {
+  const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+  const dstData = dstCtx.getImageData(0, 0, dstCanvas.width, dstCanvas.height);
+
+  const H = computeHomography(mapping.src, mapping.dst);
+  const invH = invert3x3(H);
+
+  // Only process bounding box of destination area
+  const minX = Math.min(...mapping.dst.map(p => p[0]));
+  const maxX = Math.max(...mapping.dst.map(p => p[0]));
+  const minY = Math.min(...mapping.dst.map(p => p[1]));
+  const maxY = Math.max(...mapping.dst.map(p => p[1]));
+
+  for (let y = Math.floor(minY); y <= Math.ceil(maxY); y++) {
+    for (let x = Math.floor(minX); x <= Math.ceil(maxX); x++) {
+      if (!pointInPolygon(x, y, mapping.dst)) continue;
+      const [sx, sy] = applyH(invH, x, y);
+      const ix = Math.floor(sx), iy = Math.floor(sy);
+      if (ix < 0 || iy < 0 || ix >= srcCanvas.width || iy >= srcCanvas.height) continue;
+
+      const sIndex = (iy * srcCanvas.width + ix) * 4;
+      const dIndex = (y * dstCanvas.width + x) * 4;
+      const a = srcData.data[sIndex + 3];
+      if (a === 0) continue; // Skip transparent pixels
+
+      dstData.data[dIndex + 0] = srcData.data[sIndex + 0];
+      dstData.data[dIndex + 1] = srcData.data[sIndex + 1];
+      dstData.data[dIndex + 2] = srcData.data[sIndex + 2];
+      dstData.data[dIndex + 3] = srcData.data[sIndex + 3];
+    }
+  }
+
+  dstCtx.putImageData(dstData, 0, 0);
 }
 
-// point-in-polygon
-function inPoly(x,y,pts){
-  let inside=false;
-  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
-    const intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
-    if(intersect)inside=!inside;
+// Perspective math
+function computeHomography(src, dst) {
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i], [X, Y] = dst[i];
+    A.push([-x, -y, -1, 0, 0, 0, x * X, y * X, X]);
+    A.push([0, 0, 0, -x, -y, -1, x * Y, y * Y, Y]);
+  }
+  // Solve Ah=0 using SVD via numeric.js-like trick
+  const {v} = numericSVD(A);
+  const h = v[v.length - 1];
+  return [
+    [h[0], h[1], h[2]],
+    [h[3], h[4], h[5]],
+    [h[6], h[7], h[8]],
+  ];
+}
+
+function applyH(H, x, y) {
+  const X = H[0][0] * x + H[0][1] * y + H[0][2];
+  const Y = H[1][0] * x + H[1][1] * y + H[1][2];
+  const Z = H[2][0] * x + H[2][1] * y + H[2][2];
+  return [X / Z, Y / Z];
+}
+
+function invert3x3(m) {
+  const a = m.flat();
+  const det =
+    a[0] * (a[4] * a[8] - a[5] * a[7]) -
+    a[1] * (a[3] * a[8] - a[5] * a[6]) +
+    a[2] * (a[3] * a[7] - a[4] * a[6]);
+  const inv = [
+    (a[4] * a[8] - a[5] * a[7]) / det,
+    (a[2] * a[7] - a[1] * a[8]) / det,
+    (a[1] * a[5] - a[2] * a[4]) / det,
+    (a[5] * a[6] - a[3] * a[8]) / det,
+    (a[0] * a[8] - a[2] * a[6]) / det,
+    (a[2] * a[3] - a[0] * a[5]) / det,
+    (a[3] * a[7] - a[4] * a[6]) / det,
+    (a[1] * a[6] - a[0] * a[7]) / det,
+    (a[0] * a[4] - a[1] * a[3]) / det,
+  ];
+  return [
+    [inv[0], inv[1], inv[2]],
+    [inv[3], inv[4], inv[5]],
+    [inv[6], inv[7], inv[8]],
+  ];
+}
+
+function pointInPolygon(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i][0], yi = pts[i][1];
+    const xj = pts[j][0], yj = pts[j][1];
+    const intersect = (yi > y) != (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
   }
   return inside;
 }
 
-// apply perspective transform
-function applyH(H,x,y){
-  const X=H[0][0]*x+H[0][1]*y+H[0][2];
-  const Y=H[1][0]*x+H[1][1]*y+H[1][2];
-  const Z=H[2][0]*x+H[2][1]*y+H[2][2];
-  return [X/Z,Y/Z];
+// lightweight numeric SVD (for small 8x9 matrix)
+function numericSVD(A) {
+  const AT = A[0].map((_, i) => A.map(r => r[i]));
+  const ATA = AT.map(r => AT[0].map((_, j) => r.reduce((s, v, k) => s + v * A[k][j], 0)));
+  const {vectors} = jacobiEigen(ATA);
+  return {v: vectors};
 }
 
-function render(){
-  if(!srcImg.src||!tgtImg.src)return;
-  resCtx.clearRect(0,0,256,256);
-  resCtx.drawImage(tgtImg,0,0,256,256);
-  const srcData=srcCtx.getImageData(0,0,256,256);
-  const dstData=resCtx.getImageData(0,0,256,256);
-  mappings.forEach(m=>{
-    if(m.src.length<4||m.tgt.length<4)return;
-    const H=getHomography(m.src,m.tgt);
-    for(let y=0;y<256;y++){
-      for(let x=0;x<256;x++){
-        if(!inPoly(x,y,m.src))continue;
-        const idx=(y*256+x)*4;
-        const a=srcData.data[idx+3];
-        if(a===0)continue;
-        const [X,Y]=applyH(H,x,y);
-        const ix=Math.round(X),iy=Math.round(Y);
-        if(ix<0||iy<0||ix>=256||iy>=256)continue;
-        const id=(iy*256+ix)*4;
-        dstData.data[id+0]=srcData.data[idx+0];
-        dstData.data[id+1]=srcData.data[idx+1];
-        dstData.data[id+2]=srcData.data[idx+2];
-        dstData.data[id+3]=srcData.data[idx+3];
-      }
+function jacobiEigen(A) {
+  const n = A.length;
+  let V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+  for (let iter = 0; iter < 50; iter++) {
+    let p = 0, q = 1, max = 0;
+    for (let i = 0; i < n; i++)
+      for (let j = i + 1; j < n; j++)
+        if (Math.abs(A[i][j]) > max) (max = Math.abs(A[i][j])), (p = i), (q = j);
+    if (max < 1e-8) break;
+    const theta = 0.5 * Math.atan2(2 * A[p][q], A[q][q] - A[p][p]);
+    const c = Math.cos(theta), s = Math.sin(theta);
+    for (let i = 0; i < n; i++) {
+      const aip = A[i][p], aiq = A[i][q];
+      A[i][p] = c * aip - s * aiq;
+      A[i][q] = s * aip + c * aiq;
     }
-  });
-  resCtx.putImageData(dstData,0,0);
-}
-
-// --- minimal numeric.svd implementation (for matrix solve) ---
-const numeric={
-  svd:function(A){
-    // minimal SVD via Eigen decomposition of AᵀA
-    const AT=A[0].map((_,i)=>A.map(r=>r[i]));
-    const ATA=AT.map(r=>AT[0].map((_,j)=>r.reduce((s,v,k)=>s+v*A[k][j],0)));
-    const {values,vectors}=eig(ATA);
-    const V=vectors;
-    const S=values.map(Math.sqrt);
-    return {V,S};
-  }
-};
-
-// simple eigen decomposition (Jacobi)
-function eig(M){
-  const n=M.length;
-  let V=Array.from({length:n},(_,i)=>Array.from({length:n},(__,j)=>i===j?1:0));
-  let A=M.map(r=>r.slice());
-  for(let iter=0;iter<50;iter++){
-    // find largest offdiag
-    let p=0,q=1,max=0;
-    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
-      const val=Math.abs(A[i][j]);if(val>max){max=val;p=i;q=j;}
+    for (let i = 0; i < n; i++) {
+      const api = A[p][i], aqi = A[q][i];
+      A[p][i] = c * api - s * aqi;
+      A[q][i] = s * api + c * aqi;
     }
-    if(max<1e-10)break;
-    const theta=0.5*Math.atan2(2*A[p][q],A[q][q]-A[p][p]);
-    const c=Math.cos(theta),s=Math.sin(theta);
-    for(let i=0;i<n;i++){
-      const api=A[p][i],aqi=A[q][i];
-      A[p][i]=c*api-s*aqi;
-      A[q][i]=s*api+c*aqi;
-    }
-    for(let i=0;i<n;i++){
-      const aip=A[i][p],aiq=A[i][q];
-      A[i][p]=c*aip-s*aiq;
-      A[i][q]=s*aip+c*aiq;
-    }
-    for(let i=0;i<n;i++){
-      const vip=V[i][p],viq=V[i][q];
-      V[i][p]=c*vip-s*viq;
-      V[i][q]=s*vip+c*viq;
+    for (let i = 0; i < n; i++) {
+      const vip = V[i][p], viq = V[i][q];
+      V[i][p] = c * vip - s * viq;
+      V[i][q] = s * vip + c * viq;
     }
   }
-  const values=A.map((r,i)=>r[i]);
-  return {values,vectors:V};
+  return {vectors: V};
 }
-
-document.getElementById('export').onclick=()=>{
-  let js="// Perspective mappings\n";
-  mappings.forEach((m,i)=>{
-    js+=`const src${i}=${JSON.stringify(m.src)};\nconst tgt${i}=${JSON.stringify(m.tgt)};\n`;
-  });
-  js+="\n// Use a 3x3 homography transform per mapping\n";
-  document.getElementById('output').textContent=js;
-};
 </script>
+
 </body>
 </html>
