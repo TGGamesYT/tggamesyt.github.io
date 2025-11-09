@@ -2,223 +2,236 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pixel Mapper Tool - Multiple Quads Fixed</title>
+<title>Pixel Mapper Tool (Perspective-Correct)</title>
 <style>
 body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 20px; }
-canvas { border: 1px solid #333; margin: 10px; }
+canvas { border: 1px solid #333; margin: 10px; image-rendering: pixelated; }
 .container { display: flex; gap: 20px; }
-.controls { margin: 10px; }
-button { margin: 2px; }
+button { margin: 4px; }
 </style>
 </head>
 <body>
 
-<h1>Pixel Mapper Tool - Multiple Quads Fixed</h1>
+<h1>Pixel Mapper Tool (Perspective-Correct)</h1>
 
-<div class="controls">
-  <label>Upload Source: <input type="file" id="sourceFile"></label>
-  <label>Upload Target: <input type="file" id="targetFile"></label>
+<div>
+  <label>Upload Source: <input type="file" id="srcFile"></label>
+  <label>Upload Target: <input type="file" id="tgtFile"></label>
 </div>
 
 <div class="container">
   <div>
     <h3>Source</h3>
-    <canvas id="sourceCanvas" width="256" height="256"></canvas>
+    <canvas id="srcCanvas" width="256" height="256"></canvas>
   </div>
   <div>
     <h3>Target</h3>
-    <canvas id="targetCanvas" width="256" height="256"></canvas>
+    <canvas id="tgtCanvas" width="256" height="256"></canvas>
   </div>
 </div>
 
-<div class="controls">
-  <button id="addMapping">Add Mapping</button>
-  <button id="deleteMapping">Delete Current Mapping</button>
-</div>
+<button id="addMapping">Add Mapping</button>
+<select id="mappingList" size="5" style="width:200px"></select>
 
-<div>
-  <h3>Mappings</h3>
-  <select id="mappingList" size="5" style="width:200px;"></select>
-</div>
+<h3>Result</h3>
+<canvas id="resCanvas" width="256" height="256"></canvas>
 
-<h3>Result Preview</h3>
-<canvas id="resultCanvas" width="256" height="256"></canvas>
-
-<button id="generateJS">Generate JS Mapping Function</button>
-<pre id="jsCode" style="width: 90%; max-width: 700px; background: #eee; padding: 10px;"></pre>
+<button id="export">Generate JS Code</button>
+<pre id="output" style="background:#eee;padding:10px;width:90%;max-width:700px;"></pre>
 
 <script>
-// Globals
-const srcCanvas = document.getElementById('sourceCanvas');
-const srcCtx = srcCanvas.getContext('2d');
-const tgtCanvas = document.getElementById('targetCanvas');
-const tgtCtx = tgtCanvas.getContext('2d');
-const resultCanvas = document.getElementById('resultCanvas');
-const resultCtx = resultCanvas.getContext('2d');
+const srcCanvas=document.getElementById('srcCanvas'), srcCtx=srcCanvas.getContext('2d');
+const tgtCanvas=document.getElementById('tgtCanvas'), tgtCtx=tgtCanvas.getContext('2d');
+const resCanvas=document.getElementById('resCanvas'), resCtx=resCanvas.getContext('2d');
 
-let srcImg = new Image();
-let tgtImg = new Image();
+let srcImg=new Image(), tgtImg=new Image();
+let mappings=[]; let current=-1;
 
-let mappings = [];
-let currentMapping = null;
+document.getElementById('srcFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  srcImg.src=URL.createObjectURL(f); srcImg.onload=()=>draw();
+};
+document.getElementById('tgtFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  tgtImg.src=URL.createObjectURL(f); tgtImg.onload=()=>draw();
+};
 
-// Upload images
-document.getElementById('sourceFile').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if(!file) return;
-  srcImg.src = URL.createObjectURL(file);
-  srcImg.onload = () => drawAll();
-});
-document.getElementById('targetFile').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if(!file) return;
-  tgtImg.src = URL.createObjectURL(file);
-  tgtImg.onload = () => drawAll();
-});
+document.getElementById('addMapping').onclick=()=>{
+  mappings.push({src:[],tgt:[]}); current=mappings.length-1;
+  updateList(); draw();
+};
 
-// Add/Delete mappings
-document.getElementById('addMapping').addEventListener('click', ()=>{
-  mappings.push({srcPoints:[], tgtPoints:[]});
-  currentMapping = mappings.length-1;
-  updateMappingList();
-  drawAll();
-});
-document.getElementById('deleteMapping').addEventListener('click', ()=>{
-  if(currentMapping===null) return;
-  mappings.splice(currentMapping,1);
-  currentMapping = (mappings.length>0)?0:null;
-  updateMappingList();
-  drawAll();
-});
+document.getElementById('mappingList').onchange=e=>{
+  current=parseInt(e.target.value); draw();
+};
 
-// Mapping list selection
-const mappingList = document.getElementById('mappingList');
-function updateMappingList(){
-  mappingList.innerHTML='';
+function updateList(){
+  const list=document.getElementById('mappingList');
+  list.innerHTML='';
   mappings.forEach((m,i)=>{
-    const opt = document.createElement('option');
-    opt.value=i; opt.text=`Mapping ${i+1}`;
-    if(i===currentMapping) opt.selected=true;
-    mappingList.appendChild(opt);
+    const opt=document.createElement('option');
+    opt.text=`Mapping ${i+1}`; opt.value=i;
+    if(i===current)opt.selected=true;
+    list.appendChild(opt);
   });
 }
-mappingList.addEventListener('change', ()=>{ currentMapping=parseInt(mappingList.value); drawAll(); });
 
-// Canvas click handler
-function canvasClickHandler(canvas, isSource){
-  return function(e){
-    if(currentMapping===null) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width/rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height/rect.height);
-    const pts = isSource?mappings[currentMapping].srcPoints:mappings[currentMapping].tgtPoints;
-    if(pts.length>=4) return;
-    pts.push([x,y]);
-    drawAll();
-    drawResult();
+srcCanvas.onclick=e=>addPoint(e,true);
+tgtCanvas.onclick=e=>addPoint(e,false);
+
+function addPoint(e,isSrc){
+  if(current<0)return;
+  const rect=e.target.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*e.target.width/rect.width;
+  const y=(e.clientY-rect.top)*e.target.height/rect.height;
+  const arr=isSrc?mappings[current].src:mappings[current].tgt;
+  if(arr.length>=4)return;
+  arr.push([x,y]);
+  draw();
+  if(mappings[current].src.length===4 && mappings[current].tgt.length===4) render();
+}
+
+function draw(){
+  srcCtx.clearRect(0,0,256,256);
+  tgtCtx.clearRect(0,0,256,256);
+  if(srcImg.src)srcCtx.drawImage(srcImg,0,0,256,256);
+  if(tgtImg.src)tgtCtx.drawImage(tgtImg,0,0,256,256);
+  mappings.forEach((m,i)=>{
+    const color=(i===current)?'yellow':'red';
+    drawQuad(srcCtx,m.src,color);
+    drawQuad(tgtCtx,m.tgt,color);
+  });
+}
+
+function drawQuad(ctx,pts,color){
+  if(pts.length===0)return;
+  ctx.fillStyle=color;
+  pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],4,0,2*Math.PI);ctx.fill();});
+  if(pts.length===4){
+    ctx.strokeStyle=color;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<4;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.closePath();ctx.stroke();
   }
 }
-srcCanvas.addEventListener('click', canvasClickHandler(srcCanvas,true));
-tgtCanvas.addEventListener('click', canvasClickHandler(tgtCanvas,false));
 
-// Draw images + mapping points + quad lines
-function drawCanvas(canvas, ctx, img, points){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(img.src) ctx.drawImage(img,0,0,canvas.width,canvas.height);
-  if(points.length>0){
-    ctx.fillStyle='red';
-    points.forEach(p=>{
-      ctx.beginPath();
-      ctx.arc(p[0],p[1],5,0,2*Math.PI);
-      ctx.fill();
-    });
-    if(points.length===4){
-      ctx.strokeStyle='yellow';
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.moveTo(points[0][0],points[0][1]);
-      for(let i=1;i<4;i++) ctx.lineTo(points[i][0],points[i][1]);
-      ctx.closePath();
-      ctx.stroke();
-    }
+// compute 3x3 homography matrix
+function getHomography(src,tgt){
+  const A=[];
+  for(let i=0;i<4;i++){
+    const [x,y]=src[i], [X,Y]=tgt[i];
+    A.push([-x,-y,-1,0,0,0,x*X,y*X,X]);
+    A.push([0,0,0,-x,-y,-1,x*Y,y*Y,Y]);
   }
+  // Solve A*h=0
+  const svd=numeric.svd(A);
+  const h=svd.V[8];
+  return [[h[0],h[1],h[2]],[h[3],h[4],h[5]],[h[6],h[7],h[8]]];
 }
 
-// Draw all canvases
-function drawAll(){
-  drawCanvas(srcCanvas, srcCtx, srcImg, (currentMapping!==null)?mappings[currentMapping].srcPoints:[]);
-  drawCanvas(tgtCanvas, tgtCtx, tgtImg, (currentMapping!==null)?mappings[currentMapping].tgtPoints:[]);
-  drawResult();
+// point-in-polygon
+function inPoly(x,y,pts){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    const intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
 }
 
-// Point in quad check
-function pointInQuad(px,py,quad){
-  if(quad.length<4) return false;
-  const xs = quad.map(p=>p[0]);
-  const ys = quad.map(p=>p[1]);
-  return px>=Math.min(...xs) && px<=Math.max(...xs) && py>=Math.min(...ys) && py<=Math.max(...ys);
+// apply perspective transform
+function applyH(H,x,y){
+  const X=H[0][0]*x+H[0][1]*y+H[0][2];
+  const Y=H[1][0]*x+H[1][1]*y+H[1][2];
+  const Z=H[2][0]*x+H[2][1]*y+H[2][2];
+  return [X/Z,Y/Z];
 }
 
-// Bilinear mapping
-function mapBilinear(x,y,srcQuad,dstQuad){
-  const u = (x - srcQuad[0][0]) / (srcQuad[1][0]-srcQuad[0][0]||1);
-  const v = (y - srcQuad[0][1]) / (srcQuad[3][1]-srcQuad[0][1]||1);
-  const X = dstQuad[0][0]*(1-u)*(1-v)+dstQuad[1][0]*u*(1-v)+dstQuad[3][0]*(1-u)*v+dstQuad[2][0]*u*v;
-  const Y = dstQuad[0][1]*(1-u)*(1-v)+dstQuad[1][1]*u*(1-v)+dstQuad[3][1]*(1-u)*v+dstQuad[2][1]*u*v;
-  return [X,Y];
-}
-
-// Draw result canvas
-function drawResult(){
-  if(!tgtImg.src) return;
-  resultCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
-  resultCtx.drawImage(tgtImg,0,0,resultCanvas.width,resultCanvas.height);
-  const resData = resultCtx.getImageData(0,0,resultCanvas.width,resultCanvas.height);
-  const srcData = srcCtx.getImageData(0,0,srcCanvas.width,srcCanvas.height);
-  mappings.forEach(map=>{
-    if(map.srcPoints.length<4 || map.tgtPoints.length<4) return;
-    for(let y=0;y<srcCanvas.height;y++){
-      for(let x=0;x<srcCanvas.width;x++){
-        if(!pointInQuad(x,y,map.srcPoints)) continue;
-        const idx = (y*srcCanvas.width+x)*4;
-        const alpha = srcData.data[idx+3]/255;
-        if(alpha===0) continue;
-        const [X,Y]=mapBilinear(x,y,map.srcPoints,map.tgtPoints);
-        const ix=Math.floor(X), iy=Math.floor(Y);
-        if(ix<0||iy<0||ix>=resultCanvas.width||iy>=resultCanvas.height) continue;
-        const ridx = (iy*resultCanvas.width+ix)*4;
-        resData.data[ridx+0]=srcData.data[idx+0];
-        resData.data[ridx+1]=srcData.data[idx+1];
-        resData.data[ridx+2]=srcData.data[idx+2];
-        resData.data[ridx+3]=srcData.data[idx+3];
+function render(){
+  if(!srcImg.src||!tgtImg.src)return;
+  resCtx.clearRect(0,0,256,256);
+  resCtx.drawImage(tgtImg,0,0,256,256);
+  const srcData=srcCtx.getImageData(0,0,256,256);
+  const dstData=resCtx.getImageData(0,0,256,256);
+  mappings.forEach(m=>{
+    if(m.src.length<4||m.tgt.length<4)return;
+    const H=getHomography(m.src,m.tgt);
+    for(let y=0;y<256;y++){
+      for(let x=0;x<256;x++){
+        if(!inPoly(x,y,m.src))continue;
+        const idx=(y*256+x)*4;
+        const a=srcData.data[idx+3];
+        if(a===0)continue;
+        const [X,Y]=applyH(H,x,y);
+        const ix=Math.round(X),iy=Math.round(Y);
+        if(ix<0||iy<0||ix>=256||iy>=256)continue;
+        const id=(iy*256+ix)*4;
+        dstData.data[id+0]=srcData.data[idx+0];
+        dstData.data[id+1]=srcData.data[idx+1];
+        dstData.data[id+2]=srcData.data[idx+2];
+        dstData.data[id+3]=srcData.data[idx+3];
       }
     }
   });
-  resultCtx.putImageData(resData,0,0);
+  resCtx.putImageData(dstData,0,0);
 }
 
-// Generate JS
-document.getElementById('generateJS').addEventListener('click',()=>{
-  let code='';
-  mappings.forEach((map,i)=>{
-    if(map.srcPoints.length<4 || map.tgtPoints.length<4) return;
-    code+=`// Mapping ${i+1}\n`;
-    code+=`const src${i}=${JSON.stringify(map.srcPoints)};\n`;
-    code+=`const tgt${i}=${JSON.stringify(map.tgtPoints)};\n`;
+// --- minimal numeric.svd implementation (for matrix solve) ---
+const numeric={
+  svd:function(A){
+    // minimal SVD via Eigen decomposition of AᵀA
+    const AT=A[0].map((_,i)=>A.map(r=>r[i]));
+    const ATA=AT.map(r=>AT[0].map((_,j)=>r.reduce((s,v,k)=>s+v*A[k][j],0)));
+    const {values,vectors}=eig(ATA);
+    const V=vectors;
+    const S=values.map(Math.sqrt);
+    return {V,S};
+  }
+};
+
+// simple eigen decomposition (Jacobi)
+function eig(M){
+  const n=M.length;
+  let V=Array.from({length:n},(_,i)=>Array.from({length:n},(__,j)=>i===j?1:0));
+  let A=M.map(r=>r.slice());
+  for(let iter=0;iter<50;iter++){
+    // find largest offdiag
+    let p=0,q=1,max=0;
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+      const val=Math.abs(A[i][j]);if(val>max){max=val;p=i;q=j;}
+    }
+    if(max<1e-10)break;
+    const theta=0.5*Math.atan2(2*A[p][q],A[q][q]-A[p][p]);
+    const c=Math.cos(theta),s=Math.sin(theta);
+    for(let i=0;i<n;i++){
+      const api=A[p][i],aqi=A[q][i];
+      A[p][i]=c*api-s*aqi;
+      A[q][i]=s*api+c*aqi;
+    }
+    for(let i=0;i<n;i++){
+      const aip=A[i][p],aiq=A[i][q];
+      A[i][p]=c*aip-s*aiq;
+      A[i][q]=s*aip+c*aiq;
+    }
+    for(let i=0;i<n;i++){
+      const vip=V[i][p],viq=V[i][q];
+      V[i][p]=c*vip-s*viq;
+      V[i][q]=s*vip+c*viq;
+    }
+  }
+  const values=A.map((r,i)=>r[i]);
+  return {values,vectors:V};
+}
+
+document.getElementById('export').onclick=()=>{
+  let js="// Perspective mappings\n";
+  mappings.forEach((m,i)=>{
+    js+=`const src${i}=${JSON.stringify(m.src)};\nconst tgt${i}=${JSON.stringify(m.tgt)};\n`;
   });
-  code+=`
-function mapPoint(x,y,mapping){
-  const src=mapping.src, dst=mapping.dst;
-  const u=(x-src[0][0])/(src[1][0]-src[0][0]||1);
-  const v=(y-src[0][1])/(src[3][1]-src[0][1]||1);
-  const X=dst[0][0]*(1-u)*(1-v)+dst[1][0]*u*(1-v)+dst[3][0]*(1-u)*v+dst[2][0]*u*v;
-  const Y=dst[0][1]*(1-u)*(1-v)+dst[1][1]*u*(1-v)+dst[3][1]*(1-u)*v+dst[2][1]*u*v;
-  return [X,Y];
-}\n`;
-  document.getElementById('jsCode').textContent = code;
-});
-
+  js+="\n// Use a 3x3 homography transform per mapping\n";
+  document.getElementById('output').textContent=js;
+};
 </script>
-
 </body>
 </html>
