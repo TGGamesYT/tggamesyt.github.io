@@ -2,20 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pixel Mapper Tool - Multiple Quads</title>
+<title>Pixel Mapper Tool - Multiple Quads Fixed</title>
 <style>
 body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 20px; }
 canvas { border: 1px solid #333; margin: 10px; }
 .container { display: flex; gap: 20px; }
 .controls { margin: 10px; }
 button { margin: 2px; }
-.mapping-item { margin: 5px 0; }
-.point { position: absolute; width: 8px; height: 8px; background: red; border-radius: 50%; pointer-events: none; transform: translate(-4px,-4px); }
 </style>
 </head>
 <body>
 
-<h1>Pixel Mapper Tool - Multiple Quads</h1>
+<h1>Pixel Mapper Tool - Multiple Quads Fixed</h1>
 
 <div class="controls">
   <label>Upload Source: <input type="file" id="sourceFile"></label>
@@ -61,83 +59,39 @@ const resultCtx = resultCanvas.getContext('2d');
 let srcImg = new Image();
 let tgtImg = new Image();
 
-// Mapping structure: array of {srcPoints: [[x,y],...], tgtPoints: [[x,y],...]}
 let mappings = [];
 let currentMapping = null;
 
+// Upload images
 document.getElementById('sourceFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if(!file) return;
   srcImg.src = URL.createObjectURL(file);
-  srcImg.onload = () => updateCanvas();
+  srcImg.onload = () => drawAll();
 });
 document.getElementById('targetFile').addEventListener('change', e => {
   const file = e.target.files[0];
   if(!file) return;
   tgtImg.src = URL.createObjectURL(file);
-  tgtImg.onload = () => updateCanvas();
+  tgtImg.onload = () => drawAll();
 });
 
-function updateCanvas(){
-  srcCtx.clearRect(0,0,srcCanvas.width,srcCanvas.height);
-  tgtCtx.clearRect(0,0,tgtCanvas.width,tgtCanvas.height);
-  resultCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
-  if(srcImg.src) srcCtx.drawImage(srcImg,0,0,srcCanvas.width,srcCanvas.height);
-  if(tgtImg.src) tgtCtx.drawImage(tgtImg,0,0,tgtCanvas.width,tgtCanvas.height);
-  updateResult();
-  drawMappingPoints();
-}
-
-function drawMappingPoints(){
-  updateCanvas(); // draw images first
-  mappings.forEach((map, idx)=>{
-    const color = (idx===currentMapping)?'lime':'red';
-    [srcCanvas,tgtCanvas].forEach((c,i)=>{
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = color;
-      const pts = (i===0)?map.srcPoints:map.tgtPoints;
-      pts.forEach(p=>{
-        ctx.beginPath();
-        ctx.arc(p[0],p[1],5,0,Math.PI*2);
-        ctx.fill();
-      });
-    });
-  });
-}
-
-// Mouse clicks
-function canvasClick(canvas){
-  return function(e){
-    if(currentMapping===null) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width/rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height/rect.height);
-    let pointsArray = (canvas===srcCanvas)?mappings[currentMapping].srcPoints:mappings[currentMapping].tgtPoints;
-    if(pointsArray.length>=4) return;
-    pointsArray.push([x,y]);
-    drawMappingPoints();
-    updateResult();
-  }
-}
-srcCanvas.addEventListener('click', canvasClick(srcCanvas));
-tgtCanvas.addEventListener('click', canvasClick(tgtCanvas));
-
-// Add/delete mapping
+// Add/Delete mappings
 document.getElementById('addMapping').addEventListener('click', ()=>{
   mappings.push({srcPoints:[], tgtPoints:[]});
   currentMapping = mappings.length-1;
   updateMappingList();
+  drawAll();
 });
 document.getElementById('deleteMapping').addEventListener('click', ()=>{
-  if(currentMapping!==null){
-    mappings.splice(currentMapping,1);
-    currentMapping = (mappings.length>0)?0:null;
-    updateMappingList();
-    drawMappingPoints();
-    updateResult();
-  }
+  if(currentMapping===null) return;
+  mappings.splice(currentMapping,1);
+  currentMapping = (mappings.length>0)?0:null;
+  updateMappingList();
+  drawAll();
 });
 
+// Mapping list selection
 const mappingList = document.getElementById('mappingList');
 function updateMappingList(){
   mappingList.innerHTML='';
@@ -148,14 +102,61 @@ function updateMappingList(){
     mappingList.appendChild(opt);
   });
 }
-mappingList.addEventListener('change', ()=>{ currentMapping = parseInt(mappingList.value); drawMappingPoints(); });
+mappingList.addEventListener('change', ()=>{ currentMapping=parseInt(mappingList.value); drawAll(); });
 
-// Helper: point-in-quad using barycentric coords
+// Canvas click handler
+function canvasClickHandler(canvas, isSource){
+  return function(e){
+    if(currentMapping===null) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width/rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height/rect.height);
+    const pts = isSource?mappings[currentMapping].srcPoints:mappings[currentMapping].tgtPoints;
+    if(pts.length>=4) return;
+    pts.push([x,y]);
+    drawAll();
+    drawResult();
+  }
+}
+srcCanvas.addEventListener('click', canvasClickHandler(srcCanvas,true));
+tgtCanvas.addEventListener('click', canvasClickHandler(tgtCanvas,false));
+
+// Draw images + mapping points + quad lines
+function drawCanvas(canvas, ctx, img, points){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(img.src) ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  if(points.length>0){
+    ctx.fillStyle='red';
+    points.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p[0],p[1],5,0,2*Math.PI);
+      ctx.fill();
+    });
+    if(points.length===4){
+      ctx.strokeStyle='yellow';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0],points[0][1]);
+      for(let i=1;i<4;i++) ctx.lineTo(points[i][0],points[i][1]);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+}
+
+// Draw all canvases
+function drawAll(){
+  drawCanvas(srcCanvas, srcCtx, srcImg, (currentMapping!==null)?mappings[currentMapping].srcPoints:[]);
+  drawCanvas(tgtCanvas, tgtCtx, tgtImg, (currentMapping!==null)?mappings[currentMapping].tgtPoints:[]);
+  drawResult();
+}
+
+// Point in quad check
 function pointInQuad(px,py,quad){
-  const [[x0,y0],[x1,y1],[x2,y2],[x3,y3]] = quad;
-  const minX = Math.min(x0,x1,x2,x3), maxX=Math.max(x0,x1,x2,x3);
-  const minY = Math.min(y0,y1,y2,y3), maxY=Math.max(y0,y1,y2,y3);
-  return px>=minX && px<=maxX && py>=minY && py<=maxY;
+  if(quad.length<4) return false;
+  const xs = quad.map(p=>p[0]);
+  const ys = quad.map(p=>p[1]);
+  return px>=Math.min(...xs) && px<=Math.max(...xs) && py>=Math.min(...ys) && py<=Math.max(...ys);
 }
 
 // Bilinear mapping
@@ -167,8 +168,8 @@ function mapBilinear(x,y,srcQuad,dstQuad){
   return [X,Y];
 }
 
-// Update result
-function updateResult(){
+// Draw result canvas
+function drawResult(){
   if(!tgtImg.src) return;
   resultCtx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
   resultCtx.drawImage(tgtImg,0,0,resultCanvas.width,resultCanvas.height);
@@ -183,7 +184,7 @@ function updateResult(){
         const alpha = srcData.data[idx+3]/255;
         if(alpha===0) continue;
         const [X,Y]=mapBilinear(x,y,map.srcPoints,map.tgtPoints);
-        const ix = Math.floor(X), iy=Math.floor(Y);
+        const ix=Math.floor(X), iy=Math.floor(Y);
         if(ix<0||iy<0||ix>=resultCanvas.width||iy>=resultCanvas.height) continue;
         const ridx = (iy*resultCanvas.width+ix)*4;
         resData.data[ridx+0]=srcData.data[idx+0];
