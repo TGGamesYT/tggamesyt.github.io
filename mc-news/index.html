@@ -1,0 +1,196 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft News & Patch Notes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #2c2c2c;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    main {
+      padding: 2rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .news-item {
+      background: #2a2a2a;
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.2s;
+    }
+    .news-item:hover {
+      background: #333;
+    }
+    .news-item img {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    .news-item h2 {
+      margin-top: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .news-item p {
+      margin: 0.3rem 0;
+      color: #ccc;
+    }
+    .date {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+    .detail-view {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      overflow-y: auto;
+      padding: 2rem;
+      display: none;
+    }
+    .detail-view.active {
+      display: block;
+    }
+    .close-btn {
+      background: #444;
+      border: none;
+      padding: 0.5rem 1rem;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+    .close-btn:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Minecraft News & Patch Notes</h1>
+    <div class="toggle">
+      <label for="marketplaceToggle">Show Marketplace</label>
+      <input type="checkbox" id="marketplaceToggle" />
+    </div>
+  </header>
+  <main id="newsContainer"></main>  <div class="detail-view" id="detailView">
+    <button class="close-btn" id="closeDetail">Close</button>
+    <div id="detailContent"></div>
+  </div>  <script>
+    const newsURL = 'https://launchercontent.mojang.com/v2/news.json';
+    const patchNotesURL = 'https://launchercontent.mojang.com/v2/javaPatchNotes.json';
+
+    const newsContainer = document.getElementById('newsContainer');
+    const marketplaceToggle = document.getElementById('marketplaceToggle');
+    const detailView = document.getElementById('detailView');
+    const detailContent = document.getElementById('detailContent');
+    const closeDetail = document.getElementById('closeDetail');
+
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    function parseDate(dateStr) {
+      return dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00Z');
+    }
+
+    function renderNews(newsList) {
+      newsContainer.innerHTML = '';
+      for (const entry of newsList) {
+        const item = document.createElement('div');
+        item.className = 'news-item';
+        const imgUrl = entry.image?.url || entry.newsPageImage?.url || entry.playPageImage?.url;
+        const fullImg = imgUrl ? 'https://launchercontent.mojang.com' + imgUrl : '';
+
+        item.innerHTML = `
+          ${fullImg ? `<img src="${fullImg}" alt="${entry.title}">` : ''}
+          <h2>${entry.title}</h2>
+          <p class="date">${new Date(entry.date).toLocaleString()}</p>
+          <p>${entry.shortText || entry.text || ''}</p>
+        `;
+
+        item.addEventListener('click', () => openDetail(entry));
+        newsContainer.appendChild(item);
+      }
+    }
+
+    async function openDetail(entry) {
+      let bodyHTML = '';
+      if (entry.contentPath || entry.id) {
+        try {
+          const url = entry.contentPath
+            ? `https://launchercontent.mojang.com/v2/${entry.contentPath}`
+            : `https://launchercontent.mojang.com/v2/javaPatchNotes/${entry.id}.json`;
+          const detailData = await fetchJSON(url);
+          bodyHTML = detailData.body || entry.articleBody || '';
+        } catch (e) {
+          console.error('Failed to fetch detail', e);
+        }
+      }
+
+      const imgUrl = entry.image?.url || entry.newsPageImage?.url || entry.playPageImage?.url;
+      const fullImg = imgUrl ? 'https://launchercontent.mojang.com' + imgUrl : '';
+
+      detailContent.innerHTML = `
+        <h1>${entry.title}</h1>
+        ${fullImg ? `<img src="${fullImg}" alt="${entry.title}" style="max-width:100%;border-radius:10px;">` : ''}
+        <p class="date">${new Date(entry.date).toLocaleString()}</p>
+        <div>${bodyHTML}</div>
+      `;
+      detailView.classList.add('active');
+    }
+
+    closeDetail.addEventListener('click', () => {
+      detailView.classList.remove('active');
+    });
+
+    async function loadNews() {
+      const [newsData, patchData] = await Promise.all([
+        fetchJSON(newsURL),
+        fetchJSON(patchNotesURL)
+      ]);
+
+      const allEntries = [];
+
+      if (Array.isArray(newsData.entries)) {
+        for (const n of newsData.entries) {
+          if (!marketplaceToggle.checked && n.tag == null) continue; // skip marketplace
+          allEntries.push({ ...n, source: 'news' });
+        }
+      }
+
+      if (Array.isArray(patchData.entries)) {
+        for (const p of patchData.entries) {
+          allEntries.push({ ...p, source: 'patch' });
+        }
+      }
+
+      allEntries.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+      renderNews(allEntries);
+    }
+
+    marketplaceToggle.addEventListener('change', loadNews);
+
+    loadNews();
+  </script></body>
+</html>
