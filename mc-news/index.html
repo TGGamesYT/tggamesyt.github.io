@@ -13,12 +13,11 @@
     }
     header {
       background-color: #2c2c2c;
-      padding: 1rem 2rem;
+      padding: 1rem;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
     }
     header h1 {
       margin: 0;
@@ -27,26 +26,27 @@
     .filters {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
-      align-items: center;
+      gap: 0.5rem;
     }
     .filter-group {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.3rem;
       background: #333;
-      padding: 0.5rem 1rem;
+      padding: 0.3rem 0.5rem;
       border-radius: 8px;
+      font-size: 0.85rem;
     }
     main {
-      padding: 2rem;
+      padding: 1rem;
       display: grid;
       gap: 1rem;
     }
     .news-item {
       background: #2a2a2a;
       border-radius: 10px;
-      padding: 1rem;
+      padding: 0.8rem;
       display: flex;
       flex-direction: column;
       transition: background 0.2s;
@@ -61,13 +61,15 @@
     .news-item h2 {
       margin-top: 0.5rem;
       margin-bottom: 0.3rem;
+      font-size: 1.2rem;
     }
     .news-item p {
-      margin: 0.3rem 0;
+      margin: 0.2rem 0;
       color: #ccc;
+      font-size: 0.9rem;
     }
     .date {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #aaa;
     }
     .detail-view {
@@ -75,11 +77,17 @@
       inset: 0;
       background: rgba(0,0,0,0.95);
       overflow-y: auto;
-      padding: 2rem;
+      padding: 1rem;
       display: none;
+      box-sizing: border-box;
     }
     .detail-view.active {
       display: block;
+    }
+    .detail-content img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-bottom: 1rem;
     }
     .close-btn {
       background: #444;
@@ -92,6 +100,33 @@
     }
     .close-btn:hover {
       background: #666;
+    }
+    .detail-meta {
+      margin: 0.5rem 0;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+    .detail-meta a {
+      color: #61dafb;
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      header {
+        padding: 0.5rem;
+      }
+      main {
+        padding: 0.5rem;
+      }
+      .news-item h2 {
+        font-size: 1rem;
+      }
+      .news-item p, .detail-meta {
+        font-size: 0.8rem;
+      }
+      .filter-group {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+      }
     }
   </style>
 </head>
@@ -119,7 +154,7 @@
   </header>
   <main id="newsContainer"></main>  <div class="detail-view" id="detailView">
     <button class="close-btn" id="closeDetail">Close</button>
-    <div id="detailContent"></div>
+    <div class="detail-content" id="detailContent"></div>
   </div>  <script>
     const newsURL = 'https://launchercontent.mojang.com/v2/news.json';
     const patchNotesURL = 'https://launchercontent.mojang.com/v2/javaPatchNotes.json';
@@ -162,14 +197,14 @@
     }
 
     async function openDetail(entry) {
-      let bodyHTML = '';
+      let bodyHTML = entry.articleBody || '';
       if (entry.contentPath || entry.id) {
         try {
           const url = entry.contentPath
             ? `https://launchercontent.mojang.com/v2/${entry.contentPath}`
             : `https://launchercontent.mojang.com/v2/javaPatchNotes/${entry.id}.json`;
           const detailData = await fetchJSON(url);
-          bodyHTML = detailData.body || entry.articleBody || '';
+          bodyHTML = detailData.body || bodyHTML;
         } catch (e) {
           console.error('Failed to fetch detail', e);
         }
@@ -177,12 +212,20 @@
 
       const imgUrl = entry.image?.url || entry.newsPageImage?.url || entry.playPageImage?.url;
       const fullImg = imgUrl ? 'https://launchercontent.mojang.com' + imgUrl : '';
+      const readMore = entry.readMoreLink ? `<p class="detail-meta"><a href="${entry.readMoreLink}" target="_blank">Read more</a></p>` : '';
+      const category = entry.category ? `<p class="detail-meta">Category: ${entry.category}</p>` : '';
+      const tags = entry.tag ? `<p class="detail-meta">Tag: ${entry.tag}</p>` : '';
+      const types = entry.newsType ? `<p class="detail-meta">Type: ${entry.newsType.join(', ')}</p>` : '';
 
       detailContent.innerHTML = `
         <h1>${entry.title}</h1>
-        ${fullImg ? `<img src="${fullImg}" alt="${entry.title}" style="max-width:100%;border-radius:10px;">` : ''}
+        ${fullImg ? `<img src="${fullImg}" alt="${entry.title}">` : ''}
         <p class="date">${new Date(entry.date).toLocaleString()}</p>
+        ${category}
+        ${tags}
+        ${types}
         <div>${bodyHTML}</div>
+        ${readMore}
       `;
       detailView.classList.add('active');
     }
