@@ -15,17 +15,28 @@
       background-color: #2c2c2c;
       padding: 1rem 2rem;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      gap: 1rem;
     }
     header h1 {
       margin: 0;
       font-size: 1.5rem;
     }
-    .toggle {
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+    .filter-group {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      background: #333;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
     }
     main {
       padding: 2rem;
@@ -87,9 +98,23 @@
 <body>
   <header>
     <h1>Minecraft News & Patch Notes</h1>
-    <div class="toggle">
-      <label for="marketplaceToggle">Show Marketplace</label>
-      <input type="checkbox" id="marketplaceToggle" />
+    <div class="filters">
+      <div class="filter-group">
+        <label for="marketplaceToggle">Show Marketplace</label>
+        <input type="checkbox" id="marketplaceToggle" />
+      </div>
+      <div class="filter-group">
+        <label>Types:</label>
+        <label><input type="checkbox" class="typeToggle" value="Java" checked> Java</label>
+        <label><input type="checkbox" class="typeToggle" value="Bedrock" checked> Bedrock</label>
+        <label><input type="checkbox" class="typeToggle" value="Dungeons" checked> Dungeons</label>
+        <label><input type="checkbox" class="typeToggle" value="Legends" checked> Legends</label>
+        <label><input type="checkbox" class="typeToggle" value="News page" checked> News page</label>
+      </div>
+      <div class="filter-group">
+        <label for="patchToggle">Show Patch Notes</label>
+        <input type="checkbox" id="patchToggle" checked />
+      </div>
     </div>
   </header>
   <main id="newsContainer"></main>  <div class="detail-view" id="detailView">
@@ -101,9 +126,11 @@
 
     const newsContainer = document.getElementById('newsContainer');
     const marketplaceToggle = document.getElementById('marketplaceToggle');
+    const patchToggle = document.getElementById('patchToggle');
     const detailView = document.getElementById('detailView');
     const detailContent = document.getElementById('detailContent');
     const closeDetail = document.getElementById('closeDetail');
+    const typeToggles = document.querySelectorAll('.typeToggle');
 
     async function fetchJSON(url) {
       const res = await fetch(url);
@@ -171,15 +198,19 @@
       ]);
 
       const allEntries = [];
+      const selectedTypes = Array.from(typeToggles).filter(t => t.checked).map(t => t.value);
 
       if (Array.isArray(newsData.entries)) {
         for (const n of newsData.entries) {
-          if (!marketplaceToggle.checked && n.tag == null) continue; // skip marketplace
+          const hasType = !n.newsType || n.newsType.some(t => selectedTypes.includes(t));
+          const isMarketplace = /marketplace/i.test(n.title || '');
+          if (!hasType) continue;
+          if (!marketplaceToggle.checked && (n.tag == null || isMarketplace)) continue;
           allEntries.push({ ...n, source: 'news' });
         }
       }
 
-      if (Array.isArray(patchData.entries)) {
+      if (patchToggle.checked && Array.isArray(patchData.entries)) {
         for (const p of patchData.entries) {
           allEntries.push({ ...p, source: 'patch' });
         }
@@ -190,6 +221,8 @@
     }
 
     marketplaceToggle.addEventListener('change', loadNews);
+    patchToggle.addEventListener('change', loadNews);
+    typeToggles.forEach(t => t.addEventListener('change', loadNews));
 
     loadNews();
   </script></body>
