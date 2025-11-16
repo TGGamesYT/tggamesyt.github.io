@@ -88,6 +88,7 @@ dashboard_user = admin
 dashboard_pwd = admin
 vhost_http_port = 8081
 vhost_https_port = 8443
+token = redston
 EOF
 
 # -----------------------------
