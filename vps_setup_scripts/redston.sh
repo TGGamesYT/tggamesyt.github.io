@@ -261,8 +261,6 @@ npm install express node-fetch bcryptjs body-parser dotenv
 
 echo "{}" > data.json
 
-cd ..
-
 # -----------------------------
 # CREATE START SCRIPT
 # -----------------------------
@@ -270,7 +268,7 @@ echo "[*] Creating start.sh..."
 
 cat <<EOF > start.sh
 #!/bin/bash
-pm2 start frps --name frps -- ./frps -c ./frps.ini
+pm2 start ./frps --name frps -- -c ./frps.ini
 pm2 start api/server.js --name frp-api
 pm2 save
 EOF
