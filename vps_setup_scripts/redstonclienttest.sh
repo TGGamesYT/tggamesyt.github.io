@@ -96,7 +96,7 @@ cat <<FRPC_EOF > frpc.ini
 [common]
 server_addr = $FRP_SERVER
 server_port = 7000
-token = frp_secret
+token = redston
 
 [${SUBDOMAIN}]
 type = tcp
