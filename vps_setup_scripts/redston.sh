@@ -96,8 +96,6 @@ EOF
 echo "[*] Setting up Node.js API server..."
 
 mkdir -p api
-cd api
-
 cat <<'EOF' > api/server.js
 require('dotenv').config()
 const express = require('express')
