@@ -98,12 +98,7 @@ echo "[*] Setting up Node.js API server..."
 mkdir -p api
 cd api
 
-cat <<'EOF' > server.js
-YOUR_NODE_SERVER_CODE_WILL_BE_INSERTED_HERE
-EOF
-
-# Insert the provided server code into server.js
-sed -i "s|YOUR_NODE_SERVER_CODE_WILL_BE_INSERTED_HERE|$(sed 's/\\/\\\\/g' <<< "$(cat <<'JS'
+cat <<'EOF' > api/server.js
 require('dotenv').config()
 const express = require('express')
 const fetch = require('node-fetch')
@@ -261,8 +256,7 @@ app.post('/check',(req,res)=>{
 })
 
 app.listen(process.env.PORT,()=>console.log(`FRP API running on port ${process.env.PORT}`))
-JS
-)")"| sed 's/|/\\|/g')
+EOF
 
 npm init -y
 npm install express node-fetch bcryptjs body-parser dotenv
