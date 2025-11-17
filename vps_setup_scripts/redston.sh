@@ -108,8 +108,8 @@ const bodyParser = require('body-parser')
 
 const DATA_FILE = path.join(__dirname, 'data.json')
 
-// Load persistent data
-let data = { subdomains: {} }
+// Load or initialize data
+let data = { users: {}, connections: {} }
 if (fs.existsSync(DATA_FILE)) {
   data = JSON.parse(fs.readFileSync(DATA_FILE))
 }
@@ -118,149 +118,327 @@ function saveData() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
 }
 
-function randPort() {
-  const min=20000, max=30000
-  for (let i=0;i<50;i++) {
-    const p=Math.floor(Math.random()*(max-min+1))+min
-    if (!Object.values(data.subdomains).some(s=>s.remotePort===p)) return p
-  }
-  for (let p=min;p<=max;p++) if (!Object.values(data.subdomains).some(s=>s.remotePort===p)) return p
-  return null
-}
-
-const app = express()
-app.use(bodyParser.json())
-
 const VPS_IP = process.env.VPS_IP
-const DOMAIN = process.env.BASE_DOMAIN
+const BASE_DOMAIN = process.env.BASE_DOMAIN
 const FRP_SERVER_ADDR = process.env.FRP_SERVER_ADDR
 const CF_TOKEN = process.env.CLOUDFLARE_TOKEN
 const CF_ZONE = process.env.CLOUDFLARE_ZONE_ID
 
+//----------------------------------------
+// Cloudflare API helpers
+//----------------------------------------
+
 async function createARecord(name, ip) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
-    method:'POST',
-    headers:{
+  const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
+    method: 'POST',
+    headers: {
       'Authorization': `Bearer ${CF_TOKEN}`,
-      'Content-Type':'application/json'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      type:'A',
-      name:`${name}.${DOMAIN}`,
+      type: "A",
+      name: `${name}.${BASE_DOMAIN}`,
       content: ip,
-      ttl:1,
-      proxied:false
+      ttl: 1,
+      proxied: false
     })
   })
-  const j = await res.json()
-  if(!j.success) throw new Error(JSON.stringify(j.errors))
+  const j = await r.json()
+  if (!j.success) throw new Error(JSON.stringify(j.errors))
   return j.result.id
 }
 
 async function createSRVRecord(name, port) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
-    method:'POST',
-    headers:{
+  const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
+    method: 'POST',
+    headers: {
       'Authorization': `Bearer ${CF_TOKEN}`,
-      'Content-Type':'application/json'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      type:'SRV',
-      name:`_minecraft._tcp.${name}.${DOMAIN}`,
-      data:{
+      type: "SRV",
+      name: `_minecraft._tcp.${name}.${BASE_DOMAIN}`,
+      data: {
         service: "_minecraft",
         proto: "_tcp",
-        name: `${name}.${DOMAIN}`,
+        name: `${name}.${BASE_DOMAIN}`,
         priority: 0,
         weight: 5,
         port: port,
-        target: `${name}.${DOMAIN}`
+        target: `${name}.${BASE_DOMAIN}`
       }
     })
   })
-  const j = await res.json()
-  if(!j.success) throw new Error(JSON.stringify(j.errors))
+  const j = await r.json()
+  if (!j.success) throw new Error(JSON.stringify(j.errors))
   return j.result.id
 }
 
-async function deleteRecord(recordId) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${recordId}`, {
-    method:'DELETE',
-    headers:{
+async function deleteRecord(id) {
+  if (!id) return
+  const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${id}`, {
+    method: 'DELETE',
+    headers: {
       'Authorization': `Bearer ${CF_TOKEN}`
     }
   })
-  const j = await res.json()
-  if(!j.success) throw new Error(JSON.stringify(j.errors))
+  const j = await r.json()
+  if (!j.success) throw new Error(JSON.stringify(j.errors))
 }
 
-app.post('/register', async (req,res)=>{
-  try{
-    const { username, password, local_port, subdomain } = req.body
-    if(!username||!password||!subdomain) return res.status(400).json({error:"missing_fields"})
-    const name = subdomain.toLowerCase()
+//----------------------------------------
+// Random port allocator
+//----------------------------------------
 
-    const existing = data.subdomains[name]
-    if(existing){
-      const match = await bcrypt.compare(password, existing.passwordHash)
-      if(!match) return res.status(403).json({error:'subdomain_taken_wrong_password'})
-      return res.json({ ok:true, remote_port: existing.remotePort, frp_server: FRP_SERVER_ADDR })
+function allocatePort() {
+  const min = 20000, max = 30000
+  const used = Object.values(data.connections).map(c => c.serverport)
+
+  for (let i = 0; i < 60; i++) {
+    const p = Math.floor(Math.random() * (max - min + 1)) + min
+    if (!used.includes(p)) return p
+  }
+
+  for (let p = min; p <= max; p++) {
+    if (!used.includes(p)) return p
+  }
+  return null
+}
+
+//----------------------------------------
+// Express
+//----------------------------------------
+
+const app = express()
+app.use(bodyParser.json())
+
+//----------------------------------------
+// USER ENDPOINTS
+//----------------------------------------
+
+// Create account
+app.post('/createUser', async (req, res) => {
+  const { username, password } = req.body
+  if (!username || !password) return res.status(400).json({ error: "missing_fields" })
+
+  if (data.users[username])
+    return res.status(409).json({ error: "username_taken" })
+
+  data.users[username] = {
+    passwordHash: await bcrypt.hash(password, 10)
+  }
+
+  saveData()
+  return res.json({ ok: true })
+})
+
+app.post('/deleteUser', async (req, res) => {
+  const { username, password } = req.body
+  if (!username || !password) return res.status(400).json({ error: "missing_fields" })
+
+  const user = data.users[username]
+  if (!user) return res.status(404).json({ error: "user_not_found" })
+
+  if (!await bcrypt.compare(password, user.passwordHash))
+    return res.status(403).json({ error: "wrong_password" })
+
+  // Delete all tunnels belonging to this user
+  for (const id of Object.keys(data.connections)) {
+    const c = data.connections[id]
+    if (c.username === username) {
+
+      if (c.hasdomain) {
+        await deleteRecord(c.cloudflareA)
+        await deleteRecord(c.cloudflareSRV)
+      }
+
+      delete data.connections[id]
+    }
+  }
+
+  delete data.users[username]
+  saveData()
+  return res.json({ ok: true })
+})
+
+// Check username availability
+app.post('/checkUser', (req, res) => {
+  const { username } = req.body
+  if (!username) return res.status(400).json({ error: "missing_username" })
+
+  return res.json({ ok: true, taken: !!data.users[username] })
+})
+
+//----------------------------------------
+// TUNNEL ENDPOINTS
+//----------------------------------------
+
+// Check subdomain availability
+app.post('/checkSubdomain', (req, res) => {
+  const { subdomain } = req.body
+  if (!subdomain) return res.status(400).json({ error: "missing_subdomain" })
+
+  const exists = Object.values(data.connections).some(c => c.publicdomain === `${subdomain}.${BASE_DOMAIN}`)
+  return res.json({ ok: true, taken: exists })
+})
+
+
+// Create tunnel
+app.post('/createTunnel', async (req, res) => {
+  try {
+    const { username, password, identifier, localport, hasdomain, subdomain } = req.body
+
+    if (!username || !password || !identifier || !localport)
+      return res.status(400).json({ error: "missing_fields" })
+
+    // Authenticate user
+    const user = data.users[username]
+    if (!user) return res.status(404).json({ error: "user_not_found" })
+    if (!await bcrypt.compare(password, user.passwordHash))
+      return res.status(403).json({ error: "wrong_password" })
+
+    if (data.connections[identifier])
+      return res.status(409).json({ error: "identifier_taken" })
+
+    const port = allocatePort()
+    if (!port) return res.status(500).json({ error: "no_ports_available" })
+
+    let domain = ""
+    let cfA = ""
+    let cfSRV = ""
+
+    if (hasdomain) {
+      if (!subdomain) return res.status(400).json({ error: "missing_subdomain" })
+
+      const taken = Object.values(data.connections)
+        .some(c => c.publicdomain === `${subdomain}.${BASE_DOMAIN}`)
+
+      if (taken) return res.status(409).json({ error: "subdomain_taken" })
+
+      domain = `${subdomain}.${BASE_DOMAIN}`
+
+      cfA = await createARecord(subdomain, VPS_IP)
+      cfSRV = await createSRVRecord(subdomain, port)
     }
 
-    const passwordHash = await bcrypt.hash(password,10)
-    const remotePort = randPort()
-    if(!remotePort) return res.status(500).json({error:'no_ports_available'})
+    data.connections[identifier] = {
+      username,
+      clientport: localport,
+      serverport: port,
+      hasdomain,
+      publicip: `${VPS_IP}:${port}`,
+      publicdomain: hasdomain ? domain : "",
+      cloudflareA: cfA,
+      cloudflareSRV: cfSRV
+    }
 
-    const aRecordId = await createARecord(name,VPS_IP)
-    const srvRecordId = await createSRVRecord(name,remotePort)
-
-    data.subdomains[name] = { username, passwordHash, remotePort, aRecordId, srvRecordId }
     saveData()
 
-    return res.json({ ok:true, remote_port: remotePort, frp_server: FRP_SERVER_ADDR })
-  }catch(e){
+    return res.json({
+      ok: true,
+      public_ip: `${VPS_IP}:${port}`,
+      public_domain: hasdomain ? domain : "",
+      frp_server: FRP_SERVER_ADDR
+    })
+
+  } catch (e) {
     console.error(e)
-    return res.status(500).json({error:'internal',details:e.message})
+    return res.status(500).json({ error: "internal", details: e.message })
   }
 })
 
-app.post('/release', async (req,res)=>{
-  try{
-    const { username, password, subdomain } = req.body
-    if(!username||!password||!subdomain) return res.status(400).json({error:'missing_fields'})
-    const name = subdomain.toLowerCase()
-    const record = data.subdomains[name]
-    if(!record) return res.status(404).json({error:'subdomain_not_found'})
-    if(record.username !== username) return res.status(403).json({error:'not_owner'})
-    const match = await bcrypt.compare(password, record.passwordHash)
-    if(!match) return res.status(403).json({error:'wrong_password'})
 
-    await deleteRecord(record.aRecordId)
-    await deleteRecord(record.srvRecordId)
+// Delete tunnel
+app.post('/deleteTunnel', async (req, res) => {
+  const { username, password, identifier } = req.body
+  if (!username || !password || !identifier)
+    return res.status(400).json({ error: "missing_fields" })
 
-    delete data.subdomains[name]
-    saveData()
-    return res.json({ok:true})
-  }catch(e){
-    console.error(e)
-    return res.status(500).json({error:'internal',details:e.message})
+  const user = data.users[username]
+  if (!user) return res.status(404).json({ error: "user_not_found" })
+  if (!await bcrypt.compare(password, user.passwordHash))
+    return res.status(403).json({ error: "wrong_password" })
+
+  const tunnel = data.connections[identifier]
+  if (!tunnel) return res.status(404).json({ error: "tunnel_not_found" })
+  if (tunnel.username !== username)
+    return res.status(403).json({ error: "not_owner" })
+
+  if (tunnel.hasdomain) {
+    await deleteRecord(tunnel.cloudflareA)
+    await deleteRecord(tunnel.cloudflareSRV)
   }
+
+  delete data.connections[identifier]
+  saveData()
+  return res.json({ ok: true })
 })
 
-app.post('/check',(req,res)=>{
-  const { subdomain } = req.body
-  if(!subdomain) return res.status(400).json({error:'missing_subdomain'})
-  const name = subdomain.toLowerCase()
-  return res.json({ ok:true, taken: !!data.subdomains[name] })
+// List tunnels
+app.post('/listTunnels', async (req, res) => {
+  const { username, password } = req.body
+  if (!username || !password)
+    return res.status(400).json({ error: "missing_fields" })
+
+  const user = data.users[username]
+  if (!user) return res.status(404).json({ error: "user_not_found" })
+  if (!await bcrypt.compare(password, user.passwordHash))
+    return res.status(403).json({ error: "wrong_password" })
+
+  const list = Object.entries(data.connections)
+    .filter(([id, c]) => c.username === username)
+    .map(([id, c]) => ({
+      identifier: id,
+      publicip: c.publicip,
+      publicdomain: c.publicdomain
+    }))
+
+  return res.json({ ok: true, tunnels: list })
 })
 
-app.listen(process.env.PORT,()=>console.log(`FRP API running on port ${process.env.PORT}`))
+// Connect (start) an existing tunnel
+app.post("/connectTunnel", async (req, res) => {
+  const { username, password, identifier } = req.body;
+
+  if (!username || !password || !identifier)
+    return res.status(400).json({ error: "missing_fields" });
+
+  const user = data.users[username];
+  if (!user) return res.status(404).json({ error: "user_not_found" });
+
+  if (!await bcrypt.compare(password, user.passwordHash))
+    return res.status(403).json({ error: "wrong_password" });
+
+  const tunnel = data.connections[identifier];
+  if (!tunnel) return res.status(404).json({ error: "tunnel_not_found" });
+
+  if (tunnel.username !== username)
+    return res.status(403).json({ error: "not_owner" });
+
+  // Return existing tunnel details so FRPC client can reconnect
+  return res.json({
+    ok: true,
+    identifier,
+    local_port: tunnel.clientport,
+    remote_port: tunnel.serverport,
+    public_ip: tunnel.publicip,
+    public_domain: tunnel.publicdomain,
+    has_domain: tunnel.hasdomain,
+    frp_server: FRP_SERVER_ADDR
+  });
+});
+
+//----------------------------------------
+
+app.listen(process.env.PORT, () =>
+  console.log(`API server running on port ${process.env.PORT}`)
+)
 EOF
 
 npm init -y
 npm install express node-fetch bcryptjs body-parser dotenv
 
-echo "{}" > data.json
+echo "{ "users": {}, "connections": {} }" > data.json
 
 # -----------------------------
 # CREATE START SCRIPT
