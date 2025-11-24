@@ -105,8 +105,22 @@ const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const path = require('path')
 const bodyParser = require('body-parser')
+const leo = require("leo-profanity");
+leo.loadDictionary(); // loads English dictionary
 
 const DATA_FILE = path.join(__dirname, 'data.json')
+
+// bad word thingy
+function containsBadWords(input) {
+  if (!input) return false;
+
+  // Normalize input (subdomains, identifiers normally use lowercase)
+  const cleaned = input.toString().toLowerCase().trim();
+
+  // Check profanity
+  return leo.check(cleaned);
+}
+
 
 // Load or initialize data
 let data = { users: {}, connections: {} }
@@ -220,7 +234,8 @@ app.use(bodyParser.json())
 app.post('/createUser', async (req, res) => {
   const { username, password } = req.body
   if (!username || !password) return res.status(400).json({ error: "missing_fields" })
-
+  if (containsBadWords(username))
+  return res.status(400).json({ error: "bad_username" });
   if (data.users[username])
     return res.status(409).json({ error: "username_taken" })
 
@@ -265,6 +280,8 @@ app.post('/deleteUser', async (req, res) => {
 app.post('/checkUser', (req, res) => {
   const { username } = req.body
   if (!username) return res.status(400).json({ error: "missing_username" })
+  if (containsBadWords(username))
+  return res.json({ ok: true, taken: true, reason: "bad_username" });
 
   return res.json({ ok: true, taken: !!data.users[username] })
 })
@@ -277,7 +294,8 @@ app.post('/checkUser', (req, res) => {
 app.post('/checkSubdomain', (req, res) => {
   const { subdomain } = req.body
   if (!subdomain) return res.status(400).json({ error: "missing_subdomain" })
-
+  if (containsBadWords(subdomain))
+  return res.json({ ok: true, taken: true, reason: "bad_subdomain" });
   const exists = Object.values(data.connections).some(c => c.publicdomain === `${subdomain}.${BASE_DOMAIN}`)
   return res.json({ ok: true, taken: exists })
 })
@@ -290,7 +308,8 @@ app.post('/createTunnel', async (req, res) => {
 
     if (!username || !password || !identifier || !localport)
       return res.status(400).json({ error: "missing_fields" })
-
+    if (containsBadWords(identifier))
+  return res.status(400).json({ error: "bad_identifier" });
     // Authenticate user
     const user = data.users[username]
     if (!user) return res.status(404).json({ error: "user_not_found" })
@@ -314,7 +333,7 @@ app.post('/createTunnel', async (req, res) => {
         .some(c => c.publicdomain === `${subdomain}.${BASE_DOMAIN}`)
 
       if (taken) return res.status(409).json({ error: "subdomain_taken" })
-
+      if (containsBadWords(subdomain)) return res.status(400).json({ error: "bad_subdomain" })
       domain = `${subdomain}.${BASE_DOMAIN}`
 
       cfA = await createARecord(subdomain, VPS_IP)
@@ -389,6 +408,9 @@ app.post('/listTunnels', async (req, res) => {
     .filter(([id, c]) => c.username === username)
     .map(([id, c]) => ({
       identifier: id,
+      local_port: c.clientport,
+      remote_port: c.serverport,
+      hasdomain: c.hasdomain,
       publicip: c.publicip,
       publicdomain: c.publicdomain
     }))
