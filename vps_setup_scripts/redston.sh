@@ -21,19 +21,29 @@ sudo npm install -g pm2
 # -----------------------------
 # ENV CREATION
 # -----------------------------
-echo "[*] Creating .env configuration..."
+echo "[*] Checking for existing .env..."
 
-read -p "Enter VPS public IP: " VPS_IP
-read -p "Enter base domain (example: tunnel.mydomain.com): " BASE_DOMAIN
-read -p "Enter Cloudflare API Token: " CF_TOKEN
-read -p "Enter Cloudflare Zone ID: " CF_ZONE
-read -p "Enter API server port (default 8080): " PORT
-PORT=${PORT:-8080}
+if [ -f ".env" ]; then
+    echo "[!] .env already exists."
+    read -p "Do you want to overwrite it? (y/N): " OVERWRITE
+    OVERWRITE=${OVERWRITE:-n}
 
-# FRP server address defaults to VPS_IP
-echo "[*] Using FRP server address: $VPS_IP"
+    if [[ "$OVERWRITE" != "y" && "$OVERWRITE" != "Y" ]]; then
+        echo "[*] Keeping existing .env. Skipping creation."
+        # DO NOT EXIT — just skip writing the file
+    else
+        echo "[*] Overwriting existing .env..."
 
-cat <<EOF > .env
+        read -p "Enter VPS public IP: " VPS_IP
+        read -p "Enter base domain (example: tunnel.mydomain.com): " BASE_DOMAIN
+        read -p "Enter Cloudflare API Token: " CF_TOKEN
+        read -p "Enter Cloudflare Zone ID: " CF_ZONE
+        read -p "Enter API server port (default 8080): " PORT
+        PORT=${PORT:-8080}
+
+        echo "[*] Using FRP server address: $VPS_IP"
+
+        cat <<EOF > .env
 VPS_IP=$VPS_IP
 BASE_DOMAIN=$BASE_DOMAIN
 FRP_SERVER_ADDR=$VPS_IP
@@ -42,7 +52,31 @@ CLOUDFLARE_ZONE_ID=$CF_ZONE
 PORT=$PORT
 EOF
 
-echo "[*] .env created."
+        echo "[*] .env created."
+    fi
+else
+    echo "[*] Creating .env configuration..."
+
+    read -p "Enter VPS public IP: " VPS_IP
+    read -p "Enter base domain (example: tunnel.mydomain.com): " BASE_DOMAIN
+    read -p "Enter Cloudflare API Token: " CF_TOKEN
+    read -p "Enter Cloudflare Zone ID: " CF_ZONE
+    read -p "Enter API server port (default 8080): " PORT
+    PORT=${PORT:-8080}
+
+    echo "[*] Using FRP server address: $VPS_IP"
+
+    cat <<EOF > .env
+VPS_IP=$VPS_IP
+BASE_DOMAIN=$BASE_DOMAIN
+FRP_SERVER_ADDR=$VPS_IP
+CLOUDFLARE_TOKEN=$CF_TOKEN
+CLOUDFLARE_ZONE_ID=$CF_ZONE
+PORT=$PORT
+EOF
+
+    echo "[*] .env created."
+fi
 
 # -----------------------------
 # DOWNLOAD LATEST FRP
