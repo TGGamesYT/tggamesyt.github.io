@@ -155,7 +155,6 @@ function containsBadWords(input) {
   return leo.check(cleaned);
 }
 
-
 // Load or initialize data
 let data = { users: {}, connections: {} }
 if (fs.existsSync(DATA_FILE)) {
@@ -171,6 +170,7 @@ const BASE_DOMAIN = process.env.BASE_DOMAIN
 const FRP_SERVER_ADDR = process.env.FRP_SERVER_ADDR
 const CF_TOKEN = process.env.CLOUDFLARE_TOKEN
 const CF_ZONE = process.env.CLOUDFLARE_ZONE_ID
+const HEARTBEAT_TIMEOUT = 30_000 // 30 seconds
 
 //----------------------------------------
 // Cloudflare API helpers
@@ -261,7 +261,7 @@ const app = express()
 app.use(bodyParser.json())
 
 //----------------------------------------
-// USER ENDPOINTS
+// USER ENDPOINTS (unchanged)
 //----------------------------------------
 
 // Create account
@@ -269,7 +269,7 @@ app.post('/createUser', async (req, res) => {
   const { username, password } = req.body
   if (!username || !password) return res.status(400).json({ error: "missing_fields" })
   if (containsBadWords(username))
-  return res.status(400).json({ error: "bad_username" });
+    return res.status(400).json({ error: "bad_username" });
   if (data.users[username])
     return res.status(409).json({ error: "username_taken" })
 
@@ -297,8 +297,8 @@ app.post('/deleteUser', async (req, res) => {
     if (c.username === username) {
 
       if (c.hasdomain) {
-        await deleteRecord(c.cloudflareA)
-        await deleteRecord(c.cloudflareSRV)
+        await deleteRecord(c.cloudflareA).catch(() => {})
+        await deleteRecord(c.cloudflareSRV).catch(() => {})
       }
 
       delete data.connections[id]
@@ -315,13 +315,13 @@ app.post('/checkUser', (req, res) => {
   const { username } = req.body
   if (!username) return res.status(400).json({ error: "missing_username" })
   if (containsBadWords(username))
-  return res.json({ ok: true, taken: true, reason: "bad_username" });
+    return res.json({ ok: true, taken: true, reason: "bad_username" });
 
   return res.json({ ok: true, taken: !!data.users[username] })
 })
 
 //----------------------------------------
-// TUNNEL ENDPOINTS
+// TUNNEL ENDPOINTS (with heartbeat system)
 //----------------------------------------
 
 // Check subdomain availability
@@ -329,11 +329,10 @@ app.post('/checkSubdomain', (req, res) => {
   const { subdomain } = req.body
   if (!subdomain) return res.status(400).json({ error: "missing_subdomain" })
   if (containsBadWords(subdomain))
-  return res.json({ ok: true, taken: true, reason: "bad_subdomain" });
+    return res.json({ ok: true, taken: true, reason: "bad_subdomain" });
   const exists = Object.values(data.connections).some(c => c.publicdomain === `${subdomain}.${BASE_DOMAIN}`)
   return res.json({ ok: true, taken: exists })
 })
-
 
 // Create tunnel
 app.post('/createTunnel', async (req, res) => {
@@ -343,7 +342,8 @@ app.post('/createTunnel', async (req, res) => {
     if (!username || !password || !identifier || !localport)
       return res.status(400).json({ error: "missing_fields" })
     if (containsBadWords(identifier))
-  return res.status(400).json({ error: "bad_identifier" });
+      return res.status(400).json({ error: "bad_identifier" });
+
     // Authenticate user
     const user = data.users[username]
     if (!user) return res.status(404).json({ error: "user_not_found" })
@@ -357,8 +357,6 @@ app.post('/createTunnel', async (req, res) => {
     if (!port) return res.status(500).json({ error: "no_ports_available" })
 
     let domain = ""
-    let cfA = ""
-    let cfSRV = ""
 
     if (hasdomain) {
       if (!subdomain) return res.status(400).json({ error: "missing_subdomain" })
@@ -369,11 +367,9 @@ app.post('/createTunnel', async (req, res) => {
       if (taken) return res.status(409).json({ error: "subdomain_taken" })
       if (containsBadWords(subdomain)) return res.status(400).json({ error: "bad_subdomain" })
       domain = `${subdomain}.${BASE_DOMAIN}`
-
-      cfA = await createARecord(subdomain, VPS_IP)
-      cfSRV = await createSRVRecord(subdomain, port)
     }
 
+    // **Do NOT create DNS here; will be done on heartbeat**
     data.connections[identifier] = {
       username,
       clientport: localport,
@@ -381,8 +377,11 @@ app.post('/createTunnel', async (req, res) => {
       hasdomain,
       publicip: `${VPS_IP}:${port}`,
       publicdomain: hasdomain ? domain : "",
-      cloudflareA: cfA,
-      cloudflareSRV: cfSRV
+      cloudflareA: "",
+      cloudflareSRV: "",
+      connected: false,
+      subdomain: hasdomain ? subdomain : "",
+      lastSeen: null
     }
 
     saveData()
@@ -400,7 +399,6 @@ app.post('/createTunnel', async (req, res) => {
   }
 })
 
-
 // Delete tunnel
 app.post('/deleteTunnel', async (req, res) => {
   const { username, password, identifier } = req.body
@@ -417,9 +415,10 @@ app.post('/deleteTunnel', async (req, res) => {
   if (tunnel.username !== username)
     return res.status(403).json({ error: "not_owner" })
 
+  // Delete DNS if any
   if (tunnel.hasdomain) {
-    await deleteRecord(tunnel.cloudflareA)
-    await deleteRecord(tunnel.cloudflareSRV)
+    await deleteRecord(tunnel.cloudflareA).catch(() => {})
+    await deleteRecord(tunnel.cloudflareSRV).catch(() => {})
   }
 
   delete data.connections[identifier]
@@ -452,7 +451,7 @@ app.post('/listTunnels', async (req, res) => {
   return res.json({ ok: true, tunnels: list })
 })
 
-// Connect (start) an existing tunnel
+// Connect tunnel (return info)
 app.post("/connectTunnel", async (req, res) => {
   const { username, password, identifier } = req.body;
 
@@ -471,7 +470,6 @@ app.post("/connectTunnel", async (req, res) => {
   if (tunnel.username !== username)
     return res.status(403).json({ error: "not_owner" });
 
-  // Return existing tunnel details so FRPC client can reconnect
   return res.json({
     ok: true,
     identifier,
@@ -482,10 +480,60 @@ app.post("/connectTunnel", async (req, res) => {
     has_domain: tunnel.hasdomain,
     frp_server: FRP_SERVER_ADDR
   });
-});
+})
 
 //----------------------------------------
+// Heartbeat endpoint
+//----------------------------------------
+app.post("/tunnelHeartbeat", async (req, res) => {
+  const { identifier } = req.body
+  if (!identifier) return res.status(400).json({ error: "missing_identifier" })
 
+  const tunnel = data.connections[identifier]
+  if (!tunnel) return res.status(404).json({ error: "tunnel_not_found" })
+
+  tunnel.lastSeen = Date.now()
+
+  // Create DNS if not already connected
+  if (tunnel.hasdomain && !tunnel.connected) {
+    try {
+      tunnel.cloudflareA = await createARecord(tunnel.subdomain, VPS_IP)
+      tunnel.cloudflareSRV = await createSRVRecord(tunnel.subdomain, tunnel.serverport)
+      tunnel.connected = true
+    } catch (err) {
+      console.error("Failed to create DNS records on heartbeat:", err)
+    }
+  }
+
+  saveData()
+  return res.json({ ok: true })
+})
+
+//----------------------------------------
+// Cleanup disconnected tunnels periodically
+//----------------------------------------
+setInterval(async () => {
+  const now = Date.now()
+  for (const [id, tunnel] of Object.entries(data.connections)) {
+    if (!tunnel.connected || !tunnel.lastSeen) continue
+
+    if (now - tunnel.lastSeen > HEARTBEAT_TIMEOUT) {
+      console.log(`Tunnel ${id} disconnected due to missed heartbeat, removing DNS`)
+
+      if (tunnel.hasdomain) {
+        await deleteRecord(tunnel.cloudflareA).catch(() => {})
+        await deleteRecord(tunnel.cloudflareSRV).catch(() => {})
+      }
+
+      tunnel.connected = false
+      tunnel.cloudflareA = ""
+      tunnel.cloudflareSRV = ""
+      saveData()
+    }
+  }
+}, 5000)
+
+//----------------------------------------
 app.listen(process.env.PORT, () =>
   console.log(`API server running on port ${process.env.PORT}`)
 )
