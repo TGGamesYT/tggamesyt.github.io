@@ -143,6 +143,19 @@ const leo = require("leo-profanity");
 leo.loadDictionary(); // loads English dictionary
 
 const DATA_FILE = path.join(__dirname, 'data.json')
+const fallbackSRVs = {};
+const FALLBACK_FILE = path.join(__dirname, 'fallbackSRVs.json');
+
+// Load persisted fallback SRVs
+if (fs.existsSync(FALLBACK_FILE)) {
+  Object.assign(fallbackSRVs, JSON.parse(fs.readFileSync(FALLBACK_FILE)));
+}
+
+// Helper to save fallback SRVs
+function saveFallbackSRVs() {
+  fs.writeFileSync(FALLBACK_FILE, JSON.stringify(fallbackSRVs, null, 2));
+}
+const FALLBACK_PORT = 25566;
 
 // bad word thingy
 function containsBadWords(input) {
@@ -197,6 +210,13 @@ async function createARecord(name, ip) {
 }
 
 async function createSRVRecord(name, port) {
+  // Ha van fallback az adott subdomainhez → töröljük
+  if (fallbackSRVs[name]) {
+    await deleteRecord(fallbackSRVs[name], name, true).catch(() => {});
+    delete fallbackSRVs[name];
+    saveFallbackSRVs();
+  }
+
   const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
     method: 'POST',
     headers: {
@@ -216,22 +236,73 @@ async function createSRVRecord(name, port) {
         target: `${name}.${BASE_DOMAIN}`
       }
     })
-  })
-  const j = await r.json()
-  if (!j.success) throw new Error(JSON.stringify(j.errors))
-  return j.result.id
+  });
+
+  const j = await r.json();
+  if (!j.success) throw new Error(JSON.stringify(j.errors));
+  return j.result.id;
 }
 
-async function deleteRecord(id) {
-  if (!id) return
+async function deleteRecord(id, name, deleteFallback = false) {
+  if (!id) return;
+
+  // Lekérjük a rekordot, hogy megtudjuk a típusát
+  const getResp = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${CF_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  const getJson = await getResp.json();
+  if (!getJson.success) throw new Error(JSON.stringify(getJson.errors));
+
+  const record = getJson.result;
+
+  // Törlés
   const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${CF_TOKEN}`
     }
-  })
-  const j = await r.json()
-  if (!j.success) throw new Error(JSON.stringify(j.errors))
+  });
+  const j = await r.json();
+  if (!j.success) throw new Error(JSON.stringify(j.errors));
+
+  // Csak normál SRV rekord törlésekor generáljunk fallbacket
+  if (!deleteFallback && name && record.type === "SRV" && record.data.port !== FALLBACK_PORT && !fallbackSRVs[name]) {
+    try {
+      const fallbackResp = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CF_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: "SRV",
+          name: `_minecraft._tcp.${name}.${BASE_DOMAIN}`,
+          data: {
+            service: "_minecraft",
+            proto: "_tcp",
+            name: `${name}.${BASE_DOMAIN}`,
+            priority: 0,
+            weight: 5,
+            port: FALLBACK_PORT,
+            target: `${name}.${BASE_DOMAIN}`
+          }
+        })
+      });
+
+      const fallbackJson = await fallbackResp.json();
+      if (!fallbackJson.success) throw new Error(JSON.stringify(fallbackJson.errors));
+
+      fallbackSRVs[name] = fallbackJson.result.id;
+      saveFallbackSRVs();
+      console.log(`Fallback SRV létrehozva ${name} subdomainhez 25566-os porton: ${fallbackJson.result.id}`);
+    } catch (err) {
+      console.error("Fallback SRV létrehozása sikertelen:", err);
+    }
+  }
 }
 
 //----------------------------------------
@@ -383,7 +454,40 @@ app.post('/createTunnel', async (req, res) => {
       subdomain: hasdomain ? subdomain : "",
       lastSeen: null
     }
+    if (hasdomain) {
+  try {
+    // Create fallback SRV immediately on 25566
+    const fallbackResp = await fetch(`https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/dns_records`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CF_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: "SRV",
+        name: `_minecraft._tcp.${subdomain}.${BASE_DOMAIN}`,
+        data: {
+          service: "_minecraft",
+          proto: "_tcp",
+          name: `${subdomain}.${BASE_DOMAIN}`,
+          priority: 0,
+          weight: 5,
+          port: FALLBACK_PORT,
+          target: `${subdomain}.${BASE_DOMAIN}`
+        }
+      })
+    });
 
+    const fallbackJson = await fallbackResp.json();
+    if (fallbackJson.success) {
+      fallbackSRVs[subdomain] = fallbackJson.result.id;
+      console.log(`Fallback SRV created for ${subdomain} on port ${FALLBACK_PORT}: ${fallbackJson.result.id}`);
+      saveFallbackSRVs();
+    }
+  } catch (err) {
+    console.error("Failed to create fallback SRV:", err);
+  }
+}
     saveData()
 
     return res.json({
@@ -522,7 +626,7 @@ setInterval(async () => {
 
       if (tunnel.hasdomain) {
         await deleteRecord(tunnel.cloudflareA).catch(() => {})
-        await deleteRecord(tunnel.cloudflareSRV).catch(() => {})
+        await deleteRecord(tunnel.cloudflareSRV, tunnel.subdomain).catch(() => {})
       }
 
       tunnel.connected = false
