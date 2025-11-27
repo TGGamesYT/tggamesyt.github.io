@@ -33,7 +33,7 @@
                 return;
             }
 
-            const apiURL = `https://api.redstonemc.net:6767/download?url=${encodeURIComponent(url)}&format=${format}`;
+            const apiURL = `http://api.redstonemc.net:6767/download?url=${encodeURIComponent(url)}&format=${format}`;
 
             document.getElementById("result").innerHTML =
                 `<p><a href="${apiURL}" target="_blank">Click here to download (${format.toUpperCase()})</a></p>`;
