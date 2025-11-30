@@ -4,31 +4,34 @@
 <meta charset="UTF-8">
 <title>Goob Walk</title>
 <style>
-    html, body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        width: 100vw;
-        height: 100vh;
-    }
-    .goob {
-        position: absolute;
-        width: 150px;
-        height: 150px;
-        background-image: url('https://tggamesyt.dev/goob.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        transform-origin: 50% 80%;
-    }
-    @keyframes wobbleWalk {
-        0% { transform: rotate(-10deg); }
-        50% { transform: rotate(10deg); }
-        100% { transform: rotate(-10deg); }
-    }
-    @keyframes idle {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(0deg); }
-    }
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+}
+.goob {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background-image: url('https://tggamesyt.dev/goob.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    transform-origin: 50% 80%;
+    will-change: transform, left;
+}
+@keyframes wobbleWalk {
+    0% { transform: rotate(-10deg); }
+    50% { transform: rotate(10deg); }
+    100% { transform: rotate(-10deg); }
+}
+@keyframes idle {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(0deg); }
+}
 </style>
 </head>
 <body>
@@ -36,7 +39,6 @@
 function randomVibrantHue() {
     return Math.floor(Math.random() * 360);
 }
-
 function spawnGoob() {
     const goob = document.createElement("div");
     goob.className = "goob";
