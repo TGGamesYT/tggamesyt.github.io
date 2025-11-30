@@ -4,77 +4,64 @@
 <meta charset="UTF-8">
 <title>Goob Walk</title>
 <style>
-    body {
+    html, body {
         margin: 0;
+        padding: 0;
         overflow: hidden;
-        background: #111;
+        width: 100vw;
+        height: 100vh;
+        background: transparent;
     }
-
     .goob {
         position: absolute;
         width: 150px;
         height: 150px;
-        background-image: url('https://tggamesyt.dev/assets/goob.png');
+        background-image: url('https://tggamesyt.dev/goob.png');
         background-size: contain;
         background-repeat: no-repeat;
-        filter: hue-rotate(0deg);
-        transform-origin: 50% 80%; /* wobble around feet */
+        transform-origin: 50% 80%;
     }
-
     @keyframes wobbleWalk {
-        0%   { transform: rotate(-10deg); }
-        50%  { transform: rotate(10deg); }
+        0% { transform: rotate(-10deg); }
+        50% { transform: rotate(10deg); }
         100% { transform: rotate(-10deg); }
     }
-
     @keyframes idle {
         from { transform: rotate(0deg); }
-        to   { transform: rotate(0deg); }
+        to { transform: rotate(0deg); }
     }
 </style>
 </head>
 <body>
-
 <script>
-// Pick a random vibrant color to replace #00bbd5
 function randomVibrantHue() {
     return Math.floor(Math.random() * 360);
 }
 
-// Create a single goob walker
 function spawnGoob() {
     const goob = document.createElement("div");
     goob.className = "goob";
-
-    // random hue replacement (filter hue-rotation)
     const hue = randomVibrantHue();
     goob.style.filter = `hue-rotate(${hue}deg)`;
 
     const fromLeft = Math.random() < 0.5;
     const screenH = window.innerHeight;
     const y = Math.random() * (screenH - 150);
-
     goob.style.top = y + "px";
 
-    // start position and direction
     if (fromLeft) {
         goob.style.left = "-200px";
     } else {
         goob.style.left = window.innerWidth + "px";
-        goob.style.transform = "scaleX(-1)"; // mirror image
+        goob.style.transform = "scaleX(-1)";
     }
 
     document.body.appendChild(goob);
-
-    // walking animation
     goob.style.animation = "wobbleWalk 0.3s infinite alternate";
 
-    const speed = 1 + Math.random() * 2; // random speed
-
+    const speed = 1 + Math.random() * 2;
     let pos = fromLeft ? -200 : window.innerWidth + 200;
     const direction = fromLeft ? 1 : -1;
-
-    // random stopping behavior
     let isStopped = false;
 
     function move() {
@@ -82,34 +69,25 @@ function spawnGoob() {
             pos += direction * speed;
             goob.style.left = pos + "px";
         }
-
-        // random stopping logic
         if (Math.random() < 0.005 && !isStopped) {
-            // stop
             isStopped = true;
             goob.style.animation = "idle 1s infinite";
             setTimeout(() => {
-                // resume walking
                 isStopped = false;
                 goob.style.animation = "wobbleWalk 0.3s infinite";
             }, 500 + Math.random() * 1500);
         }
-
-        // remove when off-screen
         if (pos > window.innerWidth + 300 || pos < -300) {
             goob.remove();
             return;
         }
-
         requestAnimationFrame(move);
     }
 
     move();
 }
 
-// spawn goobs forever
-setInterval(spawnGoob, 1000);
+setInterval(spawnGoob, 2500);
 </script>
-
 </body>
 </html>
