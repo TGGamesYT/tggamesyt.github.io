@@ -4,25 +4,43 @@
   <title>Block Model → VoxelShapes Converter</title>
   <style>
     body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
-    textarea { width: 100%; height: 260px; background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 10px; }
-    input { background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 6px; }
+    textarea { width: 100%; height: 240px; background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 10px; }
+    input, select { background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 6px; }
     button { background: #3a7afe; color: #fff; border: none; padding: 8px 14px; cursor: pointer; }
     button:hover { opacity: 0.9; }
     .row { margin-bottom: 12px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body><h2>Block Model JSON → Minecraft VoxelShapes</h2><div class="row">
-  <label>Paste block model JSON:</label>
-  <textarea id="jsonInput"></textarea>
+  Input method:
+  <select id="inputMode" onchange="switchMode()">
+    <option value="paste">Paste JSON</option>
+    <option value="upload">Upload JSON file</option>
+    <option value="url">Load from URL</option>
+  </select>
+</div><div id="pasteMode" class="row">
+  <textarea id="jsonInput" placeholder="Paste block model JSON here"></textarea>
+</div><div id="uploadMode" class="row hidden">
+  <input type="file" id="fileInput" accept=".json" />
+</div><div id="urlMode" class="row hidden">
+  <input id="urlInput" style="width:100%" placeholder="https://example.com/model.json" />
+  <button onclick="loadFromUrl()">Load</button>
 </div><div class="row">
   Shape index offset: <input id="offset" type="number" value="0" />
   &nbsp; Union name: <input id="unionName" value="COLLISION_SHAPE" />
 </div><button onclick="convert()">Convert</button>
 
 <div class="row">
-  <label>Java Output:</label>
-  <textarea id="output"></textarea>
+  <textarea id="output" placeholder="Java output will appear here"></textarea>
 </div><script>
+function switchMode() {
+  const mode = document.getElementById('inputMode').value;
+  document.getElementById('pasteMode').classList.toggle('hidden', mode !== 'paste');
+  document.getElementById('uploadMode').classList.toggle('hidden', mode !== 'upload');
+  document.getElementById('urlMode').classList.toggle('hidden', mode !== 'url');
+}
+
 function normalize(coord) {
   return coord.map(c => Math.round((c / 16) * 1e6) / 1e6);
 }
@@ -33,21 +51,15 @@ function rotatePoint(x, y, z, angle, axis, origin) {
 
   if (axis === 'x') {
     y -= oy; z -= oz;
-    const ny = y * Math.cos(rad) - z * Math.sin(rad);
-    const nz = y * Math.sin(rad) + z * Math.cos(rad);
-    return [x, ny + oy, nz + oz];
+    return [x, y * Math.cos(rad) - z * Math.sin(rad) + oy, y * Math.sin(rad) + z * Math.cos(rad) + oz];
   }
   if (axis === 'y') {
     x -= ox; z -= oz;
-    const nx = x * Math.cos(rad) - z * Math.sin(rad);
-    const nz = x * Math.sin(rad) + z * Math.cos(rad);
-    return [nx + ox, y, nz + oz];
+    return [x * Math.cos(rad) - z * Math.sin(rad) + ox, y, x * Math.sin(rad) + z * Math.cos(rad) + oz];
   }
   if (axis === 'z') {
     x -= ox; y -= oy;
-    const nx = x * Math.cos(rad) - y * Math.sin(rad);
-    const ny = x * Math.sin(rad) + y * Math.cos(rad);
-    return [nx + ox, ny + oy, z];
+    return [x * Math.cos(rad) - y * Math.sin(rad) + ox, x * Math.sin(rad) + y * Math.cos(rad) + oy, z];
   }
   return [x, y, z];
 }
@@ -57,81 +69,80 @@ function rotatedStairSlices(fromC, toC, rotation, sliceCount = 8) {
   const yMin = fromC[1];
   const yMax = toC[1];
   const step = (yMax - yMin) / sliceCount;
-
   const slices = [];
 
   for (let i = 0; i < sliceCount; i++) {
     const y1 = yMin + i * step;
     const y2 = yMin + (i + 1) * step;
 
-    const f = [fromC[0], y1, fromC[2]];
-    const t = [toC[0], y2, toC[2]];
+    const rf = rotatePoint(fromC[0], y1, fromC[2], angle, axis, origin);
+    const rt = rotatePoint(toC[0], y2, toC[2], angle, axis, origin);
 
-    const rf = rotatePoint(...f, angle, axis, origin);
-    const rt = rotatePoint(...t, angle, axis, origin);
-
-    const fNorm = normalize([
-      Math.min(rf[0], rt[0]),
-      Math.min(rf[1], rt[1]),
-      Math.min(rf[2], rt[2])
+    slices.push([
+      normalize([Math.min(rf[0], rt[0]), Math.min(rf[1], rt[1]), Math.min(rf[2], rt[2])]),
+      normalize([Math.max(rf[0], rt[0]), Math.max(rf[1], rt[1]), Math.max(rf[2], rt[2])])
     ]);
-
-    const tNorm = normalize([
-      Math.max(rf[0], rt[0]),
-      Math.max(rf[1], rt[1]),
-      Math.max(rf[2], rt[2])
-    ]);
-
-    slices.push([fNorm, tNorm]);
   }
-
   return slices;
 }
 
+function getJsonInput(callback) {
+  const mode = document.getElementById('inputMode').value;
+
+  if (mode === 'paste') {
+    callback(document.getElementById('jsonInput').value);
+  }
+
+  if (mode === 'upload') {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return alert('No file selected');
+    const reader = new FileReader();
+    reader.onload = e => callback(e.target.result);
+    reader.readAsText(file);
+  }
+}
+
+function loadFromUrl() {
+  const url = document.getElementById('urlInput').value;
+  fetch(url).then(r => r.text()).then(t => {
+    document.getElementById('jsonInput').value = t;
+    document.getElementById('inputMode').value = 'paste';
+    switchMode();
+  }).catch(() => alert('Failed to load JSON from URL'));
+}
+
 function convert() {
-  const output = [];
-  let shapeNames = [];
+  getJsonInput(jsonText => {
+    let data;
+    try { data = JSON.parse(jsonText); }
+    catch { return alert('Invalid JSON'); }
 
-  let data;
-  try {
-    data = JSON.parse(document.getElementById('jsonInput').value);
-  } catch (e) {
-    alert('Invalid JSON');
-    return;
-  }
+    const offset = parseInt(document.getElementById('offset').value || '0');
+    const unionName = document.getElementById('unionName').value || 'COLLISION_SHAPE';
 
-  const offset = parseInt(document.getElementById('offset').value || '0');
-  const unionName = document.getElementById('unionName').value || 'COLLISION_SHAPE';
+    let count = offset;
+    const out = [];
+    const names = [];
 
-  let shapeCount = offset;
-  const elements = data.elements || [];
-
-  for (const el of elements) {
-    const fromC = el.from || [0, 0, 0];
-    const toC = el.to || [0, 0, 0];
-    const rot = el.rotation;
-
-    if (rot) {
-      const slices = rotatedStairSlices(fromC, toC, rot, 8);
-      for (const [f, t] of slices) {
-        const name = `shape${shapeCount++}`;
-        output.push(`VoxelShape ${name} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
-        shapeNames.push(name);
+    for (const el of data.elements || []) {
+      if (el.rotation) {
+        for (const [f, t] of rotatedStairSlices(el.from, el.to, el.rotation)) {
+          const n = `shape${count++}`;
+          out.push(`VoxelShape ${n} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
+          names.push(n);
+        }
+      } else {
+        const f = normalize(el.from);
+        const t = normalize(el.to);
+        const n = `shape${count++}`;
+        out.push(`VoxelShape ${n} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
+        names.push(n);
       }
-    } else {
-      const f = normalize(fromC);
-      const t = normalize(toC);
-      const name = `shape${shapeCount++}`;
-      output.push(`VoxelShape ${name} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
-      shapeNames.push(name);
     }
-  }
 
-  if (shapeNames.length) {
-    output.push(`VoxelShape ${unionName} = VoxelShapes.union(${shapeNames.join(', ')});`);
-  }
-
-  document.getElementById('output').value = output.join('\n');
+    if (names.length) out.push(`VoxelShape ${unionName} = VoxelShapes.union(${names.join(', ')});`);
+    document.getElementById('output').value = out.join('\n');
+  });
 }
 </script></body>
 </html>
