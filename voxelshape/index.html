@@ -125,7 +125,7 @@ function convert() {
     const names = [];
 
     for (const el of data.elements || []) {
-      if (el.rotation) {
+      if (el.rotation && el.rotation.angle !== 0) {
         for (const [f, t] of rotatedStairSlices(el.from, el.to, el.rotation)) {
           const n = `shape${count++}`;
           out.push(`VoxelShape ${n} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
