@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Block Model → VoxelShapes Converter</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+    textarea { width: 100%; height: 260px; background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 10px; }
+    input { background: #1e1e1e; color: #fff; border: 1px solid #444; padding: 6px; }
+    button { background: #3a7afe; color: #fff; border: none; padding: 8px 14px; cursor: pointer; }
+    button:hover { opacity: 0.9; }
+    .row { margin-bottom: 12px; }
+  </style>
+</head>
+<body><h2>Block Model JSON → Minecraft VoxelShapes</h2><div class="row">
+  <label>Paste block model JSON:</label>
+  <textarea id="jsonInput"></textarea>
+</div><div class="row">
+  Shape index offset: <input id="offset" type="number" value="0" />
+  &nbsp; Union name: <input id="unionName" value="COLLISION_SHAPE" />
+</div><button onclick="convert()">Convert</button>
+
+<div class="row">
+  <label>Java Output:</label>
+  <textarea id="output"></textarea>
+</div><script>
+function normalize(coord) {
+  return coord.map(c => Math.round((c / 16) * 1e6) / 1e6);
+}
+
+function rotatePoint(x, y, z, angle, axis, origin) {
+  const rad = angle * Math.PI / 180;
+  const [ox, oy, oz] = origin;
+
+  if (axis === 'x') {
+    y -= oy; z -= oz;
+    const ny = y * Math.cos(rad) - z * Math.sin(rad);
+    const nz = y * Math.sin(rad) + z * Math.cos(rad);
+    return [x, ny + oy, nz + oz];
+  }
+  if (axis === 'y') {
+    x -= ox; z -= oz;
+    const nx = x * Math.cos(rad) - z * Math.sin(rad);
+    const nz = x * Math.sin(rad) + z * Math.cos(rad);
+    return [nx + ox, y, nz + oz];
+  }
+  if (axis === 'z') {
+    x -= ox; y -= oy;
+    const nx = x * Math.cos(rad) - y * Math.sin(rad);
+    const ny = x * Math.sin(rad) + y * Math.cos(rad);
+    return [nx + ox, ny + oy, z];
+  }
+  return [x, y, z];
+}
+
+function rotatedStairSlices(fromC, toC, rotation, sliceCount = 8) {
+  const { axis, angle, origin } = rotation;
+  const yMin = fromC[1];
+  const yMax = toC[1];
+  const step = (yMax - yMin) / sliceCount;
+
+  const slices = [];
+
+  for (let i = 0; i < sliceCount; i++) {
+    const y1 = yMin + i * step;
+    const y2 = yMin + (i + 1) * step;
+
+    const f = [fromC[0], y1, fromC[2]];
+    const t = [toC[0], y2, toC[2]];
+
+    const rf = rotatePoint(...f, angle, axis, origin);
+    const rt = rotatePoint(...t, angle, axis, origin);
+
+    const fNorm = normalize([
+      Math.min(rf[0], rt[0]),
+      Math.min(rf[1], rt[1]),
+      Math.min(rf[2], rt[2])
+    ]);
+
+    const tNorm = normalize([
+      Math.max(rf[0], rt[0]),
+      Math.max(rf[1], rt[1]),
+      Math.max(rf[2], rt[2])
+    ]);
+
+    slices.push([fNorm, tNorm]);
+  }
+
+  return slices;
+}
+
+function convert() {
+  const output = [];
+  let shapeNames = [];
+
+  let data;
+  try {
+    data = JSON.parse(document.getElementById('jsonInput').value);
+  } catch (e) {
+    alert('Invalid JSON');
+    return;
+  }
+
+  const offset = parseInt(document.getElementById('offset').value || '0');
+  const unionName = document.getElementById('unionName').value || 'COLLISION_SHAPE';
+
+  let shapeCount = offset;
+  const elements = data.elements || [];
+
+  for (const el of elements) {
+    const fromC = el.from || [0, 0, 0];
+    const toC = el.to || [0, 0, 0];
+    const rot = el.rotation;
+
+    if (rot) {
+      const slices = rotatedStairSlices(fromC, toC, rot, 8);
+      for (const [f, t] of slices) {
+        const name = `shape${shapeCount++}`;
+        output.push(`VoxelShape ${name} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
+        shapeNames.push(name);
+      }
+    } else {
+      const f = normalize(fromC);
+      const t = normalize(toC);
+      const name = `shape${shapeCount++}`;
+      output.push(`VoxelShape ${name} = VoxelShapes.cuboid(${f[0]}f, ${f[1]}f, ${f[2]}f, ${t[0]}f, ${t[1]}f, ${t[2]}f);`);
+      shapeNames.push(name);
+    }
+  }
+
+  if (shapeNames.length) {
+    output.push(`VoxelShape ${unionName} = VoxelShapes.union(${shapeNames.join(', ')});`);
+  }
+
+  document.getElementById('output').value = output.join('\n');
+}
+</script></body>
+</html>
