@@ -94,33 +94,40 @@ window.addEventListener("load", () => {
         alert(text);
       }
     });
-(() => {
+(async () => {
   const params = new URLSearchParams(window.location.search);
   const gh = params.get("gh");
   if (!gh) return;
 
-  // shortcuts
   const shortcuts = {
     site: "tggamesyt.github.io"
   };
 
-  // split repo and optional path
   const parts = gh.split("/");
   let repo = parts.shift();
   const extraPath = parts.join("/");
 
-  // apply shortcut if exists
   if (shortcuts[repo]) {
     repo = shortcuts[repo];
   }
 
-  // basic repo name validation
+  // basic safety check
   if (!/^[a-zA-Z0-9._-]+$/.test(repo)) return;
 
-  const url =
-    "https://github.com/tggamesyt/" +
-    repo +
-    (extraPath ? "/" + extraPath : "");
+  const repoApiUrl = `https://api.github.com/repos/tggamesyt/${repo}`;
 
-  window.location.replace(url);
+  try {
+    const res = await fetch(repoApiUrl, { method: "HEAD" });
+
+    // repo exists
+    if (res.ok) {
+      const redirectUrl =
+        `https://github.com/tggamesyt/${repo}` +
+        (extraPath ? "/" + extraPath : "");
+
+      window.location.replace(redirectUrl);
+    }
+  } catch {
+    // network error → do nothing
+  }
 })();
