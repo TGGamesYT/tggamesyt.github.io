@@ -94,3 +94,33 @@ window.addEventListener("load", () => {
         alert(text);
       }
     });
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const gh = params.get("gh");
+  if (!gh) return;
+
+  // shortcuts
+  const shortcuts = {
+    site: "tggamesyt.github.io"
+  };
+
+  // split repo and optional path
+  const parts = gh.split("/");
+  let repo = parts.shift();
+  const extraPath = parts.join("/");
+
+  // apply shortcut if exists
+  if (shortcuts[repo]) {
+    repo = shortcuts[repo];
+  }
+
+  // basic repo name validation
+  if (!/^[a-zA-Z0-9._-]+$/.test(repo)) return;
+
+  const url =
+    "https://github.com/tggamesyt/" +
+    repo +
+    (extraPath ? "/" + extraPath : "");
+
+  window.location.replace(url);
+})();
