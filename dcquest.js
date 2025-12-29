@@ -1,3 +1,4 @@
+// document.head.append(Object.assign(document.createElement("script"),{src:"https://tggamesyt.dev/dcquest.js"}))
 delete window.$;
 let wpRequire = webpackChunkdiscord_app.push([[Symbol()], {}, r => r]);
 webpackChunkdiscord_app.pop();
