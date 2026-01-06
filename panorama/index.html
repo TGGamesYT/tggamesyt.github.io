@@ -2,22 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fixed MC Panorama Converter</title>
+    <title>Final MC Panorama Fixer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 40px; }
-        .box { border: 3px dashed #444; padding: 50px; border-radius: 15px; cursor: pointer; background: #222; }
-        button { background: #3c8527; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin-top: 20px; font-weight: bold; }
-        #status { margin-top: 20px; color: #3c8527; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 40px; }
+        .box { border: 3px dashed #444; padding: 50px; border-radius: 15px; cursor: pointer; background: #222; transition: 0.3s; }
+        .box:hover { border-color: #3c8527; background: #2a2a2a; }
+        h1 { color: #3c8527; }
+        button { background: #3c8527; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin-top: 20px; font-weight: bold; font-size: 1.2em; }
+        #status { margin-top: 20px; color: #ffcc00; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>Java Panorama Fixer</h1>
-    <div class="box" id="dropzone">Drop 360° Image Here</div>
+    <h1>Pano2Pack Converter</h1>
+    <div class="box" id="dropzone">Click or Drop Panorama (panorama.jpg)</div>
     <input type="file" id="fileInput" hidden>
-    <div id="status">Waiting for file...</div>
-    <button id="dlBtn">Download Fixed .zip</button>
+    <div id="status">Waiting for image...</div>
+    <button id="dlBtn">Download Resource Pack</button>
 
     <canvas id="outCanvas" style="display:none;"></canvas>
 
@@ -35,7 +37,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            status.innerText = "Re-projecting and Flipping...";
+            status.innerText = "Processing Faces...";
             const img = new Image();
             img.src = URL.createObjectURL(file);
             
@@ -45,14 +47,15 @@
                 outCanvas.height = size;
                 const zip = new JSZip();
                 
-                // FIXED MAPPING: Swapped 2/3 and 4/5 as requested
+                // ORDER APPLIED: 
+                // 2 swapped with 3 | 4 swapped with 5
                 const faces = [
                     { name: "panorama_0.png", r: [0, 0] },          // Front
                     { name: "panorama_1.png", r: [Math.PI/2, 0] },  // Right
-                    { name: "panorama_3.png", r: [Math.PI, 0] },    // Swapped Back -> 3
-                    { name: "panorama_2.png", r: [-Math.PI/2, 0] }, // Swapped Left -> 2
-                    { name: "panorama_5.png", r: [0, Math.PI/2] },  // Swapped Up -> 5
-                    { name: "panorama_4.png", r: [0, -Math.PI/2] }  // Swapped Down -> 4
+                    { name: "panorama_2.png", r: [Math.PI, 0] },    // Back (from 3)
+                    { name: "panorama_3.png", r: [-Math.PI/2, 0] }, // Left (from 2)
+                    { name: "panorama_4.png", r: [0, Math.PI/2] },  // Up (from 5)
+                    { name: "panorama_5.png", r: [0, -Math.PI/2] }  // Down (from 4)
                 ];
 
                 const inData = await getImgData(img);
@@ -62,21 +65,26 @@
                     ctx.putImageData(facePixels, 0, 0);
                     const blob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
                     zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, blob);
+                    
+                    // Use panorama_0.png as the pack icon
                     if (faces[i].name === "panorama_0.png") zip.file("pack.png", blob);
                 }
 
                 zip.file("pack.mcmeta", JSON.stringify({
-                    "pack": { "pack_format": 15, "description": "360° panorama pack made with tggamesyt.dev/panorama" }
+                    "pack": { 
+                        "pack_format": 15, 
+                        "description": "360° panorama pack made with tggamesyt.dev/panorama" 
+                    }
                 }, null, 2));
 
                 const content = await zip.generateAsync({type:"blob"});
                 dlBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(content);
-                    a.download = "FixedJavaPanorama.zip";
+                    a.download = "PanoramaPack.zip";
                     a.click();
                 };
-                status.innerText = "Success! Orientation corrected.";
+                status.innerText = "Done! Orientation and flip corrected.";
                 dlBtn.style.display = "inline-block";
             };
         };
@@ -114,8 +122,7 @@
                     const lat = Math.acos(vy / mag);
 
                     const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
-                    // FLIP FIX: Inverting the Y-mapping here
-                    const py = (1 - (lat / Math.PI)) * inData.height;
+                    const py = (1 - (lat / Math.PI)) * inData.height; // Vertical Flip
 
                     const outIdx = (y * size + x) * 4;
                     const inIdx = (Math.floor(py) * inData.width + Math.floor(px)) * 4;
