@@ -9,7 +9,6 @@
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
         .container { width: 100%; max-width: 850px; }
         
-        /* THE BIG PANORAMA PREVIEW */
         .pano-display { 
             width: 100%;
             height: 350px; 
@@ -19,28 +18,23 @@
             background: #000; 
             border: 1px solid #333;
             margin-bottom: 30px;
-            display: none; /* Hidden until image is processed */
+            display: none; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         
-        /* The strip containing Front, Right, Back, Left, and Front again for seamless loop */
         .pano-mover { 
             height: 100%; 
-            width: 500%; /* 5 panels (F, R, B, L, F) */
+            width: 500%; 
             display: flex;
-            animation: rotateCinema 30s linear infinite;
+            /* Speed changed from 30s to 60s (Half speed) */
+            animation: rotateCinema 60s linear infinite;
         }
         
-        .pano-panel {
-            height: 100%;
-            flex: 1;
-            background-size: cover;
-            background-position: center;
-        }
+        .pano-panel { height: 100%; flex: 1; background-size: cover; background-position: center; }
 
         @keyframes rotateCinema {
             from { transform: translateX(0); }
-            to { transform: translateX(-80%); } /* Moves through first 4 panels */
+            to { transform: translateX(-80%); } 
         }
 
         .upload-section { background: var(--card); border: 2px dashed #444; border-radius: 12px; padding: 60px; text-align: center; cursor: pointer; transition: 0.3s; }
@@ -69,7 +63,8 @@
             <div class="pano-panel" id="panel1"></div>
             <div class="pano-panel" id="panel2"></div>
             <div class="pano-panel" id="panel3"></div>
-            <div class="pano-panel" id="panel4"></div> </div>
+            <div class="pano-panel" id="panel4"></div> 
+        </div>
     </div>
     
     <div class="upload-section" id="dropzone">
@@ -101,7 +96,6 @@
     const dlBtn = document.getElementById('dlBtn');
     const panoDisplay = document.getElementById('panoDisplay');
     const packCard = document.getElementById('packCard');
-    const panoMover = document.getElementById('panoMover');
     
     const outCanvas = document.getElementById('outCanvas');
     const rotCanvas = document.getElementById('rotateCanvas');
@@ -127,19 +121,20 @@
             const zip = new JSZip();
             
             const faces = [
-                { name: "panorama_0.png", r: [0, 0] },          // Front
-                { name: "panorama_1.png", r: [Math.PI/2, 0] },  // Right
-                { name: "panorama_2.png", r: [Math.PI, 0] },    // Back
-                { name: "panorama_3.png", r: [-Math.PI/2, 0] }, // Left
-                { name: "panorama_4.png", r: [0, Math.PI/2] },  // Up
-                { name: "panorama_5.png", r: [0, -Math.PI/2] }  // Down
+                { name: "panorama_0.png", r: [0, 0] },          
+                { name: "panorama_1.png", r: [Math.PI/2, 0] },  
+                { name: "panorama_2.png", r: [Math.PI, 0] },    
+                { name: "panorama_3.png", r: [-Math.PI/2, 0] }, 
+                { name: "panorama_4.png", r: [0, Math.PI/2] },  
+                { name: "panorama_5.png", r: [0, -Math.PI/2] }  
             ];
 
             const inData = await getImgData(img);
             const urls = [];
 
             for (let i = 0; i < faces.length; i++) {
-                const facePixels = renderFace(inData, faces[i].r, size);
+                // FOV Scale: 1.0 is default, 1.25 is "zoomed out"
+                const facePixels = renderFace(inData, faces[i].r, size, 1.25);
                 ctx.putImageData(facePixels, 0, 0);
 
                 if (faces[i].name === "panorama_5.png") {
@@ -164,12 +159,11 @@
                 }
             }
 
-            // Setup the cinematic rotation preview
             document.getElementById('panel0').style.backgroundImage = `url(${urls[0]})`;
             document.getElementById('panel1').style.backgroundImage = `url(${urls[1]})`;
             document.getElementById('panel2').style.backgroundImage = `url(${urls[2]})`;
             document.getElementById('panel3').style.backgroundImage = `url(${urls[3]})`;
-            document.getElementById('panel4').style.backgroundImage = `url(${urls[0]})`; // Loop back to Front
+            document.getElementById('panel4').style.backgroundImage = `url(${urls[0]})`; 
 
             zip.file("pack.mcmeta", JSON.stringify({
                 "pack": { "pack_format": 15, "description": "360° panorama pack made with tggamesyt.dev/panorama" }
@@ -199,13 +193,15 @@
         return c.getImageData(0, 0, canvas.width, canvas.height);
     }
 
-    function renderFace(inData, rotation, size) {
+    // Zoom parameter added to renderFace
+    function renderFace(inData, rotation, size, zoom = 1.0) {
         const outData = new ImageData(size, size);
         const [rotY, rotX] = rotation;
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                const xf = (2 * x / size) - 1;
-                const yf = (2 * y / size) - 1;
+                // Multiplying xf and yf by zoom effectively increases the FOV
+                const xf = ((2 * x / size) - 1) * zoom;
+                const yf = ((2 * y / size) - 1) * zoom;
                 let vx, vy, vz;
                 if (rotX === 0) {
                     vx = Math.cos(rotY) - xf * Math.sin(rotY);
