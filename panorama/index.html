@@ -6,15 +6,13 @@
     <title>360° Panorama to Minecraft Java</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; text-align: center; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; text-align: center; padding: 20px; }
         .container { max-width: 600px; margin: auto; background: #2d2d2d; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .upload-area { border: 3px dashed #4a4a4a; padding: 40px; border-radius: 10px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
         .upload-area:hover { border-color: #3c8527; background: #333; }
-        h1 { color: #3c8527; margin-bottom: 10px; }
-        p { color: #aaa; font-size: 0.9em; }
-        button { background: #3c8527; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; margin-top: 20px; font-size: 1.1em; }
-        button:hover { background: #4ca632; }
-        #status { margin-top: 15px; font-weight: bold; color: #ffcc00; }
+        h1 { color: #3c8527; margin: 0 0 10px 0; }
+        button { background: #3c8527; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; margin-top: 20px; width: 100%; }
+        #status { margin-top: 15px; color: #ffcc00; font-family: monospace; }
         canvas { display: none; }
     </style>
 </head>
@@ -22,17 +20,13 @@
 
 <div class="container">
     <h1>Pano2Pack</h1>
-    <p>Convert 360° Sphere to Java Resource Pack</p>
-    
     <div class="upload-area" id="dropzone">
-        <strong>Click to select your panorama.jpg</strong>
-        <p>(Equirectangular 2:1 image)</p>
+        <strong>Drop or Click to Upload Panorama</strong>
+        <p>Must be a 360° Sphere (2:1 ratio)</p>
     </div>
-    
     <input type="file" id="fileInput" accept="image/*" hidden>
-    
     <div id="status">Ready</div>
-    <button id="dlBtn">Download .zip Pack</button>
+    <button id="dlBtn">DOWNLOAD RESOURCE PACK (.ZIP)</button>
 </div>
 
 <canvas id="outCanvas"></canvas>
@@ -51,7 +45,7 @@
         const file = e.target.files[0];
         if (!file) return;
 
-        status.innerText = "Processing Image... Please wait.";
+        status.innerText = "Processing... (Wait for 100%)";
         dlBtn.style.display = "none";
 
         const img = new Image();
@@ -61,35 +55,30 @@
             const faceSize = 1024;
             outCanvas.width = faceSize;
             outCanvas.height = faceSize;
-
             const zip = new JSZip();
             
-            // Define Minecraft faces in order: Front(0), Right(1), Back(2), Left(3), Up(4), Down(5)
-            // Math targets for Cubemap projection
+            // Minecraft Java Face Mapping: 0:Front, 1:Right, 2:Back, 3:Left, 4:Up, 5:Down
             const faces = [
-                { name: "panorama_0.png", r: [0, 0] },     // Front
-                { name: "panorama_1.png", r: [Math.PI/2, 0] }, // Right
-                { name: "panorama_2.png", r: [Math.PI, 0] },   // Back
-                { name: "panorama_3.png", r: [-Math.PI/2, 0] },// Left
-                { name: "panorama_4.png", r: [0, -Math.PI/2] }, // Up
-                { name: "panorama_5.png", r: [0, Math.PI/2] }   // Down
+                { name: "panorama_0.png", r: [0, 0] },         // Front
+                { name: "panorama_1.png", r: [Math.PI/2, 0] },     // Right
+                { name: "panorama_2.png", r: [Math.PI, 0] },       // Back
+                { name: "panorama_3.png", r: [-Math.PI/2, 0] },    // Left
+                { name: "panorama_4.png", r: [0, Math.PI/2] },      // Up (Flipped)
+                { name: "panorama_5.png", r: [0, -Math.PI/2] }      // Down (Flipped)
             ];
 
             const imgData = await getImgData(img);
 
             for (let i = 0; i < faces.length; i++) {
-                status.innerText = `Generating Face ${i+1}/6...`;
+                status.innerText = `Calculating: ${Math.round((i/6)*100)}%`;
                 const facePixels = renderFace(imgData, faces[i].r, faceSize);
                 ctx.putImageData(facePixels, 0, 0);
                 
                 const blob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
                 zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, blob);
-                
-                // Use panorama_0.png as the pack icon
                 if (i === 0) zip.file("pack.png", blob);
             }
 
-            // pack.mcmeta content
             const mcmeta = {
                 "pack": {
                     "pack_format": 15,
@@ -106,8 +95,8 @@
                 a.click();
             };
 
-            status.innerText = "Conversion Complete!";
-            dlBtn.style.display = "inline-block";
+            status.innerText = "100% - SUCCESS";
+            dlBtn.style.display = "block";
         };
     };
 
@@ -120,35 +109,32 @@
         return c.getImageData(0, 0, canvas.width, canvas.height);
     }
 
-    // Core Math: Equirectangular to Cubemap
     function renderFace(inData, rotation, size) {
         const outData = new ImageData(size, size);
         const [rotY, rotX] = rotation;
 
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                // Map pixels to 3D space coordinates
-                let nx = (2 * x / size) - 1;
-                let ny = (2 * y / size) - 1;
+                // Fixed coordinate mapping for Minecraft's coordinate system
+                const xf = (2 * x / size) - 1;
+                const yf = (2 * y / size) - 1;
                 
                 let vx, vy, vz;
-                // Determine direction based on rotation
-                if (rotX === 0) { // Sides
-                    vx = Math.cos(rotY) - nx * Math.sin(rotY);
-                    vy = ny;
-                    vz = Math.sin(rotY) + nx * Math.cos(rotY);
-                } else if (rotX < 0) { // Up
-                    vx = nx; vy = -1; vz = ny;
+                
+                if (rotX === 0) { // Horizontal faces
+                    vx = Math.cos(rotY) - xf * Math.sin(rotY);
+                    vy = yf; // Up stays up
+                    vz = Math.sin(rotY) + xf * Math.cos(rotY);
+                } else if (rotX > 0) { // Up
+                    vx = xf; vy = -1; vz = -yf;
                 } else { // Down
-                    vx = nx; vy = 1; vz = -ny;
+                    vx = xf; vy = 1; vz = yf;
                 }
 
-                // Convert 3D direction to Spherical (lat/long)
                 const mag = Math.sqrt(vx*vx + vy*vy + vz*vz);
                 const lon = Math.atan2(vz, vx);
                 const lat = Math.acos(vy / mag);
 
-                // Map back to input image pixels
                 const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
                 const py = lat / Math.PI * inData.height;
 
