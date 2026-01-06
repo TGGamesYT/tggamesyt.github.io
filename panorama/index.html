@@ -2,155 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Panorama to Resource Pack</title>
+    <title>360° Panorama Converter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        :root {
-            --primary: #3c8527;
-            --primary-hover: #4ca632;
-            --bg: #121212;
-            --card: #1e1e1e;
-            --text: #e0e0e0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-
-        .container {
+        :root { --primary: #3c8527; --primary-hover: #4ca632; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+        .container { width: 100%; max-width: 850px; }
+        
+        /* THE BIG PANORAMA PREVIEW */
+        .pano-display { 
             width: 100%;
-            max-width: 800px;
-        }
-
-        .upload-section {
-            background: var(--card);
-            border: 2px dashed #444;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.3s;
+            height: 350px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            position: relative; 
+            background: #000; 
+            border: 1px solid #333;
             margin-bottom: 30px;
+            display: none; /* Hidden until image is processed */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-
-        .upload-section:hover {
-            border-color: var(--primary);
-            background: #252525;
-        }
-
-        h1 { font-weight: 300; letter-spacing: 1px; margin-bottom: 30px; }
-
-        /* Preview Layout */
-        .preview-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 30px;
-            display: none;
-        }
-
-        /* In-Game Panorama Preview */
-        .pano-viewer {
-            grid-column: span 2;
-            height: 250px;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            background: #000;
-            border: 1px solid #333;
-        }
-
-        .pano-strip {
-            height: 100%;
-            width: 400%; /* Shows 4 faces side-by-side */
-            background-size: cover;
-            background-repeat: repeat-x;
-            animation: rotatePano 40s linear infinite;
-        }
-
-        @keyframes rotatePano {
-            from { background-position: 0 0; }
-            to { background-position: -1000% 0; }
-        }
-
-        /* Pack Card Preview */
-        .pack-card {
-            background: #252525;
-            padding: 15px;
-            border-radius: 8px;
+        
+        /* The strip containing Front, Right, Back, Left, and Front again for seamless loop */
+        .pano-mover { 
+            height: 100%; 
+            width: 500%; /* 5 panels (F, R, B, L, F) */
             display: flex;
-            align-items: center;
-            gap: 15px;
-            border: 1px solid #333;
+            animation: rotateCinema 30s linear infinite;
+        }
+        
+        .pano-panel {
+            height: 100%;
+            flex: 1;
+            background-size: cover;
+            background-position: center;
         }
 
-        .pack-icon {
-            width: 64px;
-            height: 64px;
-            background: #000;
-            border: 2px solid #555;
-            image-rendering: pixelated;
+        @keyframes rotateCinema {
+            from { transform: translateX(0); }
+            to { transform: translateX(-80%); } /* Moves through first 4 panels */
         }
 
+        .upload-section { background: var(--card); border: 2px dashed #444; border-radius: 12px; padding: 60px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .upload-section:hover { border-color: var(--primary); background: #252525; }
+        
+        .pack-card { background: #252525; padding: 15px; border-radius: 8px; display: flex; align-items: center; gap: 15px; border: 1px solid #333; margin: 20px 0; display: none; }
+        .pack-icon { width: 64px; height: 64px; background: #000; border: 1px solid #555; image-rendering: pixelated; }
         .pack-info { text-align: left; }
         .pack-title { color: #fff; font-weight: bold; font-size: 14px; }
         .pack-desc { color: #888; font-size: 12px; margin-top: 4px; }
 
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 16px;
-            transition: 0.2s;
-            width: 100%;
-        }
-
-        button:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        #status { margin-bottom: 10px; font-family: monospace; color: var(--primary); }
+        button { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; display: none; font-size: 16px; }
+        button:hover { background: var(--primary-hover); }
+        #status { margin: 15px 0; color: var(--primary); font-weight: bold; font-family: monospace; }
         canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Panorama to Resource Pack</h1>
+    <h1 style="text-align:center; font-weight: 300;">Panorama to Resource Pack</h1>
+
+    <div class="pano-display" id="panoDisplay">
+        <div class="pano-mover" id="panoMover">
+            <div class="pano-panel" id="panel0"></div>
+            <div class="pano-panel" id="panel1"></div>
+            <div class="pano-panel" id="panel2"></div>
+            <div class="pano-panel" id="panel3"></div>
+            <div class="pano-panel" id="panel4"></div> </div>
+    </div>
     
     <div class="upload-section" id="dropzone">
-        <strong>Select 360° Image</strong>
-        <p style="color: #666; font-size: 0.9em;">Supports standard equirectangular panorama.jpg</p>
+        <strong>Drop your 360° panorama.jpg here</strong>
+        <p style="font-size: 0.8em; color: #777;">Equirectangular photo sphere</p>
     </div>
     
     <input type="file" id="fileInput" accept="image/*" hidden>
-    
     <div id="status"></div>
 
-    <div class="preview-grid" id="previewArea">
-        <div class="pano-viewer">
-            <div class="pano-strip" id="panoPreview"></div>
+    <div class="pack-card" id="packCard">
+        <img id="iconPreview" class="pack-icon">
+        <div class="pack-info">
+            <div class="pack-title">PanoramaPack.zip</div>
+            <div class="pack-desc">360° panorama pack made with tggamesyt.dev/panorama</div>
         </div>
-
-        <div class="pack-card">
-            <img id="iconPreview" class="pack-icon">
-            <div class="pack-info">
-                <div class="pack-title">PanoramaPack.zip</div>
-                <div class="pack-desc">360° panorama pack made with tggamesyt.dev/panorama</div>
-            </div>
-        </div>
-
-        <button id="dlBtn">Download Package</button>
     </div>
+
+    <button id="dlBtn">DOWNLOAD RESOURCE PACK</button>
 </div>
 
 <canvas id="outCanvas"></canvas>
@@ -161,9 +99,10 @@
     const dropzone = document.getElementById('dropzone');
     const status = document.getElementById('status');
     const dlBtn = document.getElementById('dlBtn');
-    const previewArea = document.getElementById('previewArea');
-    const panoPreview = document.getElementById('panoPreview');
-    const iconPreview = document.getElementById('iconPreview');
+    const panoDisplay = document.getElementById('panoDisplay');
+    const packCard = document.getElementById('packCard');
+    const panoMover = document.getElementById('panoMover');
+    
     const outCanvas = document.getElementById('outCanvas');
     const rotCanvas = document.getElementById('rotateCanvas');
     const ctx = outCanvas.getContext('2d');
@@ -175,7 +114,7 @@
         const file = e.target.files[0];
         if (!file) return;
 
-        status.innerText = "Processing...";
+        status.innerText = "Slicing 360° Sphere...";
         const img = new Image();
         img.src = URL.createObjectURL(file);
         
@@ -197,18 +136,17 @@
             ];
 
             const inData = await getImgData(img);
-            let frontBlobUrl = "";
+            const urls = [];
 
             for (let i = 0; i < faces.length; i++) {
                 const facePixels = renderFace(inData, faces[i].r, size);
                 ctx.putImageData(facePixels, 0, 0);
 
-                // Handle Floor Rotation (panorama_5): 90 degrees Left
                 if (faces[i].name === "panorama_5.png") {
                     rotCtx.clearRect(0,0,size,size);
                     rotCtx.save();
                     rotCtx.translate(size/2, size/2);
-                    rotCtx.rotate(-Math.PI / 2); // 90 deg left
+                    rotCtx.rotate(-Math.PI / 2);
                     rotCtx.drawImage(outCanvas, -size/2, -size/2);
                     rotCtx.restore();
                     var finalBlob = await new Promise(res => rotCanvas.toBlob(res, 'image/png'));
@@ -216,26 +154,33 @@
                     var finalBlob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
                 }
                 
+                const url = URL.createObjectURL(finalBlob);
+                urls.push(url);
+
                 zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, finalBlob);
-                
                 if (i === 0) {
-                    frontBlobUrl = URL.createObjectURL(finalBlob);
+                    document.getElementById('iconPreview').src = url;
                     zip.file("pack.png", finalBlob);
                 }
             }
 
-            // ZIP generation
+            // Setup the cinematic rotation preview
+            document.getElementById('panel0').style.backgroundImage = `url(${urls[0]})`;
+            document.getElementById('panel1').style.backgroundImage = `url(${urls[1]})`;
+            document.getElementById('panel2').style.backgroundImage = `url(${urls[2]})`;
+            document.getElementById('panel3').style.backgroundImage = `url(${urls[3]})`;
+            document.getElementById('panel4').style.backgroundImage = `url(${urls[0]})`; // Loop back to Front
+
             zip.file("pack.mcmeta", JSON.stringify({
                 "pack": { "pack_format": 15, "description": "360° panorama pack made with tggamesyt.dev/panorama" }
             }, null, 2));
 
             const content = await zip.generateAsync({type:"blob"});
             
-            // Update UI Previews
-            panoPreview.style.backgroundImage = `url(${frontBlobUrl})`; 
-            iconPreview.src = frontBlobUrl;
-            previewArea.style.display = "grid";
             status.innerText = "";
+            panoDisplay.style.display = "block";
+            packCard.style.display = "flex";
+            dlBtn.style.display = "block";
 
             dlBtn.onclick = () => {
                 const a = document.createElement('a');
@@ -257,13 +202,11 @@
     function renderFace(inData, rotation, size) {
         const outData = new ImageData(size, size);
         const [rotY, rotX] = rotation;
-
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const xf = (2 * x / size) - 1;
                 const yf = (2 * y / size) - 1;
                 let vx, vy, vz;
-                
                 if (rotX === 0) {
                     vx = Math.cos(rotY) - xf * Math.sin(rotY);
                     vy = yf;
@@ -273,17 +216,13 @@
                 } else {
                     vx = xf; vy = 1; vz = yf;
                 }
-
                 const mag = Math.sqrt(vx*vx + vy*vy + vz*vz);
                 const lon = Math.atan2(vz, vx);
                 const lat = Math.acos(vy / mag);
-
                 const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
                 const py = (1 - (lat / Math.PI)) * inData.height;
-
                 const outIdx = (y * size + x) * 4;
                 const inIdx = (Math.floor(py) * inData.width + Math.floor(px)) * 4;
-
                 outData.data[outIdx] = inData.data[inIdx];
                 outData.data[outIdx+1] = inData.data[inIdx+1];
                 outData.data[outIdx+2] = inData.data[inIdx+2];
