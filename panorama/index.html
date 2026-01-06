@@ -2,153 +2,132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360° Panorama to Minecraft Java</title>
+    <title>Fixed MC Panorama Converter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; text-align: center; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: #2d2d2d; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .upload-area { border: 3px dashed #4a4a4a; padding: 40px; border-radius: 10px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
-        .upload-area:hover { border-color: #3c8527; background: #333; }
-        h1 { color: #3c8527; margin: 0 0 10px 0; }
-        button { background: #3c8527; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; margin-top: 20px; width: 100%; }
-        #status { margin-top: 15px; color: #ffcc00; font-family: monospace; }
-        canvas { display: none; }
+        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 40px; }
+        .box { border: 3px dashed #444; padding: 50px; border-radius: 15px; cursor: pointer; background: #222; }
+        button { background: #3c8527; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin-top: 20px; font-weight: bold; }
+        #status { margin-top: 20px; color: #3c8527; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Pano2Pack</h1>
-    <div class="upload-area" id="dropzone">
-        <strong>Drop or Click to Upload Panorama</strong>
-        <p>Must be a 360° Sphere (2:1 ratio)</p>
-    </div>
-    <input type="file" id="fileInput" accept="image/*" hidden>
-    <div id="status">Ready</div>
-    <button id="dlBtn">DOWNLOAD RESOURCE PACK (.ZIP)</button>
-</div>
+    <h1>Java Panorama Fixer</h1>
+    <div class="box" id="dropzone">Drop 360° Image Here</div>
+    <input type="file" id="fileInput" hidden>
+    <div id="status">Waiting for file...</div>
+    <button id="dlBtn">Download Fixed .zip</button>
 
-<canvas id="outCanvas"></canvas>
+    <canvas id="outCanvas" style="display:none;"></canvas>
 
-<script>
-    const fileInput = document.getElementById('fileInput');
-    const dropzone = document.getElementById('dropzone');
-    const status = document.getElementById('status');
-    const dlBtn = document.getElementById('dlBtn');
-    const outCanvas = document.getElementById('outCanvas');
-    const ctx = outCanvas.getContext('2d');
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const status = document.getElementById('status');
+        const dlBtn = document.getElementById('dlBtn');
+        const outCanvas = document.getElementById('outCanvas');
+        const ctx = outCanvas.getContext('2d');
 
-    dropzone.onclick = () => fileInput.click();
+        dropzone.onclick = () => fileInput.click();
 
-    fileInput.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        status.innerText = "Processing... (Wait for 100%)";
-        dlBtn.style.display = "none";
-
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        
-        img.onload = async () => {
-            const faceSize = 1024;
-            outCanvas.width = faceSize;
-            outCanvas.height = faceSize;
-            const zip = new JSZip();
+            status.innerText = "Re-projecting and Flipping...";
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
             
-            // Minecraft Java Face Mapping: 0:Front, 1:Right, 2:Back, 3:Left, 4:Up, 5:Down
-            const faces = [
-                { name: "panorama_0.png", r: [0, 0] },         // Front
-                { name: "panorama_1.png", r: [Math.PI/2, 0] },     // Right
-                { name: "panorama_2.png", r: [Math.PI, 0] },       // Back
-                { name: "panorama_3.png", r: [-Math.PI/2, 0] },    // Left
-                { name: "panorama_4.png", r: [0, Math.PI/2] },      // Up (Flipped)
-                { name: "panorama_5.png", r: [0, -Math.PI/2] }      // Down (Flipped)
-            ];
-
-            const imgData = await getImgData(img);
-
-            for (let i = 0; i < faces.length; i++) {
-                status.innerText = `Calculating: ${Math.round((i/6)*100)}%`;
-                const facePixels = renderFace(imgData, faces[i].r, faceSize);
-                ctx.putImageData(facePixels, 0, 0);
+            img.onload = async () => {
+                const size = 1024;
+                outCanvas.width = size;
+                outCanvas.height = size;
+                const zip = new JSZip();
                 
-                const blob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
-                zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, blob);
-                if (i === 0) zip.file("pack.png", blob);
-            }
+                // FIXED MAPPING: Swapped 2/3 and 4/5 as requested
+                const faces = [
+                    { name: "panorama_0.png", r: [0, 0] },          // Front
+                    { name: "panorama_1.png", r: [Math.PI/2, 0] },  // Right
+                    { name: "panorama_3.png", r: [Math.PI, 0] },    // Swapped Back -> 3
+                    { name: "panorama_2.png", r: [-Math.PI/2, 0] }, // Swapped Left -> 2
+                    { name: "panorama_5.png", r: [0, Math.PI/2] },  // Swapped Up -> 5
+                    { name: "panorama_4.png", r: [0, -Math.PI/2] }  // Swapped Down -> 4
+                ];
 
-            const mcmeta = {
-                "pack": {
-                    "pack_format": 15,
-                    "description": "360° panorama pack made with tggamesyt.dev/panorama"
+                const inData = await getImgData(img);
+
+                for (let i = 0; i < faces.length; i++) {
+                    const facePixels = renderFace(inData, faces[i].r, size);
+                    ctx.putImageData(facePixels, 0, 0);
+                    const blob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
+                    zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, blob);
+                    if (faces[i].name === "panorama_0.png") zip.file("pack.png", blob);
                 }
-            };
-            zip.file("pack.mcmeta", JSON.stringify(mcmeta, null, 2));
 
-            const finalZip = await zip.generateAsync({type: "blob"});
-            dlBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(finalZip);
-                a.download = "JavaPanoramaPack.zip";
-                a.click();
-            };
+                zip.file("pack.mcmeta", JSON.stringify({
+                    "pack": { "pack_format": 15, "description": "360° panorama pack made with tggamesyt.dev/panorama" }
+                }, null, 2));
 
-            status.innerText = "100% - SUCCESS";
-            dlBtn.style.display = "block";
+                const content = await zip.generateAsync({type:"blob"});
+                dlBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(content);
+                    a.download = "FixedJavaPanorama.zip";
+                    a.click();
+                };
+                status.innerText = "Success! Orientation corrected.";
+                dlBtn.style.display = "inline-block";
+            };
         };
-    };
 
-    function getImgData(img) {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const c = canvas.getContext('2d');
-        c.drawImage(img, 0, 0);
-        return c.getImageData(0, 0, canvas.width, canvas.height);
-    }
-
-    function renderFace(inData, rotation, size) {
-        const outData = new ImageData(size, size);
-        const [rotY, rotX] = rotation;
-
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                // Fixed coordinate mapping for Minecraft's coordinate system
-                const xf = (2 * x / size) - 1;
-                const yf = (2 * y / size) - 1;
-                
-                let vx, vy, vz;
-                
-                if (rotX === 0) { // Horizontal faces
-                    vx = Math.cos(rotY) - xf * Math.sin(rotY);
-                    vy = yf; // Up stays up
-                    vz = Math.sin(rotY) + xf * Math.cos(rotY);
-                } else if (rotX > 0) { // Up
-                    vx = xf; vy = -1; vz = -yf;
-                } else { // Down
-                    vx = xf; vy = 1; vz = yf;
-                }
-
-                const mag = Math.sqrt(vx*vx + vy*vy + vz*vz);
-                const lon = Math.atan2(vz, vx);
-                const lat = Math.acos(vy / mag);
-
-                const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
-                const py = lat / Math.PI * inData.height;
-
-                const outIdx = (y * size + x) * 4;
-                const inIdx = (Math.floor(py) * inData.width + Math.floor(px)) * 4;
-
-                outData.data[outIdx] = inData.data[inIdx];
-                outData.data[outIdx+1] = inData.data[inIdx+1];
-                outData.data[outIdx+2] = inData.data[inIdx+2];
-                outData.data[outIdx+3] = 255;
-            }
+        function getImgData(img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const c = canvas.getContext('2d');
+            c.drawImage(img, 0, 0);
+            return c.getImageData(0, 0, canvas.width, canvas.height);
         }
-        return outData;
-    }
-</script>
+
+        function renderFace(inData, rotation, size) {
+            const outData = new ImageData(size, size);
+            const [rotY, rotX] = rotation;
+
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const xf = (2 * x / size) - 1;
+                    const yf = (2 * y / size) - 1;
+                    let vx, vy, vz;
+                    
+                    if (rotX === 0) {
+                        vx = Math.cos(rotY) - xf * Math.sin(rotY);
+                        vy = yf;
+                        vz = Math.sin(rotY) + xf * Math.cos(rotY);
+                    } else if (rotX > 0) {
+                        vx = xf; vy = -1; vz = -yf;
+                    } else {
+                        vx = xf; vy = 1; vz = yf;
+                    }
+
+                    const mag = Math.sqrt(vx*vx + vy*vy + vz*vz);
+                    const lon = Math.atan2(vz, vx);
+                    const lat = Math.acos(vy / mag);
+
+                    const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
+                    // FLIP FIX: Inverting the Y-mapping here
+                    const py = (1 - (lat / Math.PI)) * inData.height;
+
+                    const outIdx = (y * size + x) * 4;
+                    const inIdx = (Math.floor(py) * inData.width + Math.floor(px)) * 4;
+
+                    outData.data[outIdx] = inData.data[inIdx];
+                    outData.data[outIdx+1] = inData.data[inIdx+1];
+                    outData.data[outIdx+2] = inData.data[inIdx+2];
+                    outData.data[outIdx+3] = 255;
+                }
+            }
+            return outData;
+        }
+    </script>
 </body>
 </html>
