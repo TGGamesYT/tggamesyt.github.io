@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360° Panorama to Minecraft Java</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; text-align: center; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #2d2d2d; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .upload-area { border: 3px dashed #4a4a4a; padding: 40px; border-radius: 10px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
+        .upload-area:hover { border-color: #3c8527; background: #333; }
+        h1 { color: #3c8527; margin-bottom: 10px; }
+        p { color: #aaa; font-size: 0.9em; }
+        button { background: #3c8527; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; margin-top: 20px; font-size: 1.1em; }
+        button:hover { background: #4ca632; }
+        #status { margin-top: 15px; font-weight: bold; color: #ffcc00; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Pano2Pack</h1>
+    <p>Convert 360° Sphere to Java Resource Pack</p>
+    
+    <div class="upload-area" id="dropzone">
+        <strong>Click to select your panorama.jpg</strong>
+        <p>(Equirectangular 2:1 image)</p>
+    </div>
+    
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    
+    <div id="status">Ready</div>
+    <button id="dlBtn">Download .zip Pack</button>
+</div>
+
+<canvas id="outCanvas"></canvas>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const status = document.getElementById('status');
+    const dlBtn = document.getElementById('dlBtn');
+    const outCanvas = document.getElementById('outCanvas');
+    const ctx = outCanvas.getContext('2d');
+
+    dropzone.onclick = () => fileInput.click();
+
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        status.innerText = "Processing Image... Please wait.";
+        dlBtn.style.display = "none";
+
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        img.onload = async () => {
+            const faceSize = 1024;
+            outCanvas.width = faceSize;
+            outCanvas.height = faceSize;
+
+            const zip = new JSZip();
+            
+            // Define Minecraft faces in order: Front(0), Right(1), Back(2), Left(3), Up(4), Down(5)
+            // Math targets for Cubemap projection
+            const faces = [
+                { name: "panorama_0.png", r: [0, 0] },     // Front
+                { name: "panorama_1.png", r: [Math.PI/2, 0] }, // Right
+                { name: "panorama_2.png", r: [Math.PI, 0] },   // Back
+                { name: "panorama_3.png", r: [-Math.PI/2, 0] },// Left
+                { name: "panorama_4.png", r: [0, -Math.PI/2] }, // Up
+                { name: "panorama_5.png", r: [0, Math.PI/2] }   // Down
+            ];
+
+            const imgData = await getImgData(img);
+
+            for (let i = 0; i < faces.length; i++) {
+                status.innerText = `Generating Face ${i+1}/6...`;
+                const facePixels = renderFace(imgData, faces[i].r, faceSize);
+                ctx.putImageData(facePixels, 0, 0);
+                
+                const blob = await new Promise(res => outCanvas.toBlob(res, 'image/png'));
+                zip.file(`assets/minecraft/textures/gui/title/background/${faces[i].name}`, blob);
+                
+                // Use panorama_0.png as the pack icon
+                if (i === 0) zip.file("pack.png", blob);
+            }
+
+            // pack.mcmeta content
+            const mcmeta = {
+                "pack": {
+                    "pack_format": 15,
+                    "description": "360° panorama pack made with tggamesyt.dev/panorama"
+                }
+            };
+            zip.file("pack.mcmeta", JSON.stringify(mcmeta, null, 2));
+
+            const finalZip = await zip.generateAsync({type: "blob"});
+            dlBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(finalZip);
+                a.download = "JavaPanoramaPack.zip";
+                a.click();
+            };
+
+            status.innerText = "Conversion Complete!";
+            dlBtn.style.display = "inline-block";
+        };
+    };
+
+    function getImgData(img) {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const c = canvas.getContext('2d');
+        c.drawImage(img, 0, 0);
+        return c.getImageData(0, 0, canvas.width, canvas.height);
+    }
+
+    // Core Math: Equirectangular to Cubemap
+    function renderFace(inData, rotation, size) {
+        const outData = new ImageData(size, size);
+        const [rotY, rotX] = rotation;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                // Map pixels to 3D space coordinates
+                let nx = (2 * x / size) - 1;
+                let ny = (2 * y / size) - 1;
+                
+                let vx, vy, vz;
+                // Determine direction based on rotation
+                if (rotX === 0) { // Sides
+                    vx = Math.cos(rotY) - nx * Math.sin(rotY);
+                    vy = ny;
+                    vz = Math.sin(rotY) + nx * Math.cos(rotY);
+                } else if (rotX < 0) { // Up
+                    vx = nx; vy = -1; vz = ny;
+                } else { // Down
+                    vx = nx; vy = 1; vz = -ny;
+                }
+
+                // Convert 3D direction to Spherical (lat/long)
+                const mag = Math.sqrt(vx*vx + vy*vy + vz*vz);
+                const lon = Math.atan2(vz, vx);
+                const lat = Math.acos(vy / mag);
+
+                // Map back to input image pixels
+                const px = (lon + Math.PI) / (2 * Math.PI) * inData.width;
+                const py = lat / Math.PI * inData.height;
+
+                const outIdx = (y * size + x) * 4;
+                const inIdx = (Math.floor(py) * inData.width + Math.floor(px)) * 4;
+
+                outData.data[outIdx] = inData.data[inIdx];
+                outData.data[outIdx+1] = inData.data[inIdx+1];
+                outData.data[outIdx+2] = inData.data[inIdx+2];
+                outData.data[outIdx+3] = 255;
+            }
+        }
+        return outData;
+    }
+</script>
+</body>
+</html>
