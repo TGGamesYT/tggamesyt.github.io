@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Discord Invites</title>
+<style>
+:root {
+  --bg: #1e1f22;
+  --card: #2b2d31;
+  --muted: #b5bac1;
+  --text: #ffffff;
+  --accent: #5865f2;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1 {
+  text-align: center;
+  padding: 20px;
+}
+
+.category {
+  margin: 20px;
+}
+
+.category h2 {
+  color: var(--muted);
+  border-bottom: 1px solid #3f4147;
+  padding-bottom: 6px;
+}
+
+.server {
+  display: flex;
+  gap: 16px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.banner {
+  width: 120px;
+  height: 70px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.info {
+  flex: 1;
+}
+
+.info h3 {
+  margin: 0;
+}
+
+.info p {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.join {
+  align-self: center;
+}
+
+.join a {
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<h1>Discord Servers</h1>
+<div id="content"></div>
+
+<script>
+// === INVITE JSON ===
+const INVITES = {
+  "My servers": {
+    "tg": "8v6NvACFX5",
+    "redstone": "eH4ZyUVfpr",
+    "hytale": "Qzfq4XAsx4"
+  },
+  "Favourite servers": {
+    "icebluebird": "icebluebird",
+    "peutron": "MrcrsKPJgR",
+    "flashz": "axxMspEwfP",
+    "mrbeastgaming": "mrbeastgaming",
+    "kasaisora": "kasaisora",
+    "locksoul": "rnJEQEArt3"
+  }
+};
+
+// === SHORTCUT HANDLER ===
+const shortcut = location.search.replace("?", "");
+if (shortcut) {
+  for (const group of Object.values(INVITES)) {
+    if (group[shortcut]) {
+      location.href = "https://discord.gg/" + group[shortcut];
+    }
+  }
+}
+
+// === FETCH + RENDER ===
+const container = document.getElementById("content");
+
+async function loadInvite(code) {
+  const res = await fetch(
+    `https://discord.com/api/v10/invites/${code}?with_counts=true&with_expiration=true`
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
+
+(async () => {
+  for (const [groupName, servers] of Object.entries(INVITES)) {
+    const cat = document.createElement("div");
+    cat.className = "category";
+    cat.innerHTML = `<h2>${groupName}</h2>`;
+    container.appendChild(cat);
+
+    for (const code of Object.values(servers)) {
+      const data = await loadInvite(code);
+      if (!data || !data.guild) continue;
+
+      const banner = data.guild.banner
+        ? `https://cdn.discordapp.com/banners/${data.guild.id}/${data.guild.banner}.png?size=480`
+        : "";
+
+      const el = document.createElement("div");
+      el.className = "server";
+      el.innerHTML = `
+        <div class="banner" style="background-image:url('${banner}')"></div>
+        <div class="info">
+          <h3>${data.guild.name}</h3>
+          <p>${data.guild.description || "No description"}</p>
+          <p>👥 ${data.approximate_member_count} members</p>
+        </div>
+        <div class="join">
+          <a href="https://discord.gg/${code}">Join</a>
+        </div>
+      `;
+      cat.appendChild(el);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
