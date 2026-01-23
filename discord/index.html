@@ -55,44 +55,44 @@ h1 {
 .server {
   background: var(--card);
   border-radius: 18px;
-  margin-top: 16px;
+  margin-top: 18px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
 
-/* Banner / header area */
 .banner {
   height: 110px;
-  background: linear-gradient(135deg, #3a3d44, #2b2d31);
   background-size: cover;
   background-position: center;
 }
 
-/* Content */
 .server-body {
-  padding: 16px;
+  padding: 48px 16px 16px;
+  position: relative;
 }
 
-.top {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-/* Server icon */
+/* Icon overlaps banner seam */
 .icon {
+  position: absolute;
+  top: -32px;
+  left: 16px;
   width: 64px;
   height: 64px;
   border-radius: 18px;
   background-size: cover;
   background-position: center;
-  flex-shrink: 0;
+  border: 6px solid var(--card);
 }
 
-/* Info */
 .info h3 {
   margin: 0;
   font-size: 20px;
+}
+
+.info p {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .stats {
@@ -109,7 +109,6 @@ h1 {
   color: #23a559;
 }
 
-/* Join button */
 .join {
   margin-top: 16px;
 }
@@ -127,7 +126,6 @@ h1 {
   font-size: 16px;
 }
 
-/* Desktop tweak */
 @media (min-width: 700px) {
   .server {
     max-width: 600px;
@@ -157,6 +155,34 @@ const INVITES = {
     "locksoul": "rnJEQEArt3"
   }
 };
+
+// === UTILITIES ===
+function shorten(num) {
+  if (num < 1000) return num;
+  if (num < 1e6) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+  return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+}
+
+function extractVibrantColor(img) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = canvas.height = 32;
+  ctx.drawImage(img, 0, 0, 32, 32);
+
+  const data = ctx.getImageData(0, 0, 32, 32).data;
+  let r = 0, g = 0, b = 0, count = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] > 200) {
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+      count++;
+    }
+  }
+
+  return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+}
 
 // === SHORTCUT HANDLER ===
 const shortcut = location.search.replace("?", "");
@@ -190,31 +216,56 @@ async function loadInvite(code) {
       const data = await loadInvite(code);
       if (!data || !data.guild) continue;
 
-      const icon = data.guild.icon
+      const iconUrl = data.guild.icon
         ? `https://cdn.discordapp.com/icons/${data.guild.id}/${data.guild.icon}.png?size=128`
+        : "";
+
+      const bannerUrl = data.guild.banner
+        ? `https://cdn.discordapp.com/banners/${data.guild.id}/${data.guild.banner}.png?size=600`
         : "";
 
       const el = document.createElement("div");
       el.className = "server";
-      el.innerHTML = `
-        <div class="banner"></div>
-        <div class="server-body">
-          <div class="top">
-            <div class="icon" style="background-image:url('${icon}')"></div>
-            <div class="info">
-              <h3>${data.guild.name}</h3>
-              <div class="stats">
-                <span class="online">● ${data.approximate_presence_count ?? 0} Online</span>
-                <span>● ${data.approximate_member_count} Members</span>
-              </div>
-            </div>
-          </div>
-          <div class="join">
-            <a href="https://discord.gg/${code}">Join</a>
+
+      const bannerEl = document.createElement("div");
+      bannerEl.className = "banner";
+
+      if (bannerUrl) {
+        bannerEl.style.backgroundImage = `url('${bannerUrl}')`;
+      }
+
+      const body = document.createElement("div");
+      body.className = "server-body";
+
+      body.innerHTML = `
+        <div class="icon" style="background-image:url('${iconUrl}')"></div>
+        <div class="info">
+          <h3>${data.guild.name}</h3>
+          ${data.guild.description ? `<p>${data.guild.description}</p>` : ""}
+          <div class="stats">
+            <span class="online">● ${shorten(data.approximate_presence_count ?? 0)} Online</span>
+            <span>● ${shorten(data.approximate_member_count)} Members</span>
           </div>
         </div>
+        <div class="join">
+          <a href="https://discord.gg/${code}">Join</a>
+        </div>
       `;
+
+      el.appendChild(bannerEl);
+      el.appendChild(body);
       cat.appendChild(el);
+
+      // Generate gradient if no banner
+      if (!bannerUrl && iconUrl) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = iconUrl;
+        img.onload = () => {
+          const color = extractVibrantColor(img);
+          bannerEl.style.background = `linear-gradient(135deg, ${color}, rgba(0,0,0,0.6))`;
+        };
+      }
     }
   }
 })();
