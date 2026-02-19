@@ -301,13 +301,13 @@ async function login(){
 
     await detectServer(serverInput);
 
-    const res=await fetch(serverBase+"/login",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify(account)
+    const res = await fetch(serverBase + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ encryptedAccount: raw, password: pass })
     });
     const data=await res.json();
-    if(!data.success) return alert("Login failed");
+    if(!data.success) return alert("Login failed: " + data?.error || "Unknown Error");
 
     sessionId = data.sessionId;
 
