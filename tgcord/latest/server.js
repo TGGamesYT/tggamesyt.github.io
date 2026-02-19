@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const crypto = require("crypto");
+const http = require("http");
+const https = require("https");
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -309,6 +311,32 @@ app.get("/server-messages", (req, res) => {
    START
 =========================== */
 
-app.listen(config.port, () => {
-    console.log("TGcord server running on port", config.port);
-})
+if (config.protocol === "https") {
+    let certPath = config.certFile;
+    let keyPath = config.keyFile;
+
+    // If not manually set, use Certbot standard paths
+    if (!certPath || !keyPath) {
+        certPath = `/etc/letsencrypt/live/${config.domain}/fullchain.pem`;
+        keyPath = `/etc/letsencrypt/live/${config.domain}/privkey.pem`;
+    }
+
+    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+        console.error("HTTPS enabled but certificate files not found:", certPath, keyPath);
+        process.exit(1);
+    }
+
+    const options = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+
+    https.createServer(options, app).listen(config.port, () => {
+        console.log(`TGcord HTTPS server running on port ${config.port}`);
+    });
+} else {
+    // HTTP fallback
+    app.listen(config.port, () => {
+        console.log(`TGcord HTTP server running on port ${config.port}`);
+    });
+}
