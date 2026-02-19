@@ -25,6 +25,7 @@ button:hover { opacity:0.9; }
 #ownUser { margin-top:auto; padding:8px; background:#2b2d31; text-align:center; border-top:1px solid #444; }
 .toggleButtons { display:flex; justify-content:space-around; margin-bottom:5px; }
 .toggleButtons button { flex:1; margin:2px; }
+#logoutBtn {background:red;}
 /* Discord-style messages */
 .messageCard {
     display: flex;
@@ -116,6 +117,7 @@ button:hover { opacity:0.9; }
     <div id="ownUser" class="hidden">
         <img class="avatar" id="ownAvatar" src="">
         <span id="ownName"></span>
+        <button id="logoutBtn" onclick="logout()">log out</button>
     </div>
 </div>
 
@@ -194,7 +196,7 @@ async function login(){
     let raw;
     if(file) raw=await file.text();
     //else if(url) raw=await fetch(url).then(r=>r.text());
-    else return alert("Provide account file or URL");
+    else return alert("Provide account file");
 
     try{ account=await decryptAccount(raw,pass); } catch { return alert("Wrong password"); }
 
@@ -208,7 +210,12 @@ async function login(){
     const data=await res.json();
     if(!data.success) return alert("Login failed");
 
-    sessionId=data.sessionId;
+    sessionId = data.sessionId;
+
+    // Save session in localStorage
+    localStorage.setItem("tgcordSessionId", sessionId);
+    localStorage.setItem("tgcordAccountId", account.id);
+
 
     document.getElementById("authView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
@@ -359,7 +366,15 @@ async function fetchMessages() {
     // Clear loading placeholder
     if (firstMessageLoad) messagesDiv.innerHTML = "";
 
-    msgs.forEach(m => {
+    // Filter messages: show only
+    // 1) From selectedUser to you
+    // 2) From you to selectedUser
+    const filteredMsgs = msgs.filter(m => 
+        (m.from === selectedUser.id && m.to === account.id) || 
+        (m.from === account.id && m.to === selectedUser.id)
+    );
+
+    filteredMsgs.forEach(m => {
         // Remove placeholder if sending
         if (m.from === account.id) {
             const index = sendingMessages.findIndex(s => s.message === m.message);
@@ -371,8 +386,8 @@ async function fetchMessages() {
 
         addMessage(m, allUsers);
 
-        // Play sound only if not the first load
-        if (!firstMessageLoad && m.from !== account.id && m.timestamp > lastMessageTimestamp) {
+        // Play sound only for incoming messages from selected user, not first load
+        if (!firstMessageLoad && m.from === selectedUser.id && m.timestamp > lastMessageTimestamp) {
             notifAudio.play().catch(()=>{});
         }
 
@@ -380,7 +395,6 @@ async function fetchMessages() {
         if (m.timestamp > lastMessageTimestamp) lastMessageTimestamp = m.timestamp;
     });
 
-    // After first fetch, disable first-load flag
     if (firstMessageLoad) firstMessageLoad = false;
 }
 
@@ -411,7 +425,11 @@ function addMessage(msg, allUsers, sending = false) {
     return container;
 }
 
-
+function logout() {
+    localStorage.removeItem("tgcordSessionId");
+    localStorage.removeItem("tgcordAccountId");
+    location.reload();
+}
 
 
 /* ================== CREATE SERVER ================== */
@@ -448,6 +466,40 @@ document.getElementById("messageInput").addEventListener("keydown", (e) => {
     }
 });
 
+window.addEventListener("load", async () => {
+    const storedSession = localStorage.getItem("tgcordSessionId");
+    const storedAccountId = localStorage.getItem("tgcordAccountId");
+
+    if (storedSession && storedAccountId) {
+        // Try to restore session
+        sessionId = storedSession;
+
+        // Fetch account info from server
+        try {
+            const res = await fetch(`${serverBase}/profile/${storedAccountId}`);
+            if (res.ok) {
+                account = await res.json();
+
+                // Show app view
+                document.getElementById("authView").classList.add("hidden");
+                document.getElementById("appView").classList.remove("hidden");
+
+                document.getElementById("ownUser").classList.remove("hidden");
+                document.getElementById("ownName").innerText = account.nickname || account.username;
+                document.getElementById("ownAvatar").src = account.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(account.nickname||account.username);
+
+                showDMs();
+                pollInterval = setInterval(fetchMessages, 3000);
+            } else {
+                console.log("Session expired or invalid, need login");
+                localStorage.removeItem("tgcordSessionId");
+                localStorage.removeItem("tgcordAccountId");
+            }
+        } catch (e) {
+            console.error("Failed to restore session", e);
+        }
+    }
+});
 
 </script>
 </body>
