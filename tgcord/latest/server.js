@@ -1,81 +1,43 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const cors = require("cors");
-const crypto = require("crypto");
-const http = require("http");
-const https = require("https");
-
-const app = express();
-app.use(express.json({ limit: "10mb" }));
-app.use(cors());
-
-/* ===========================
-   CONFIG + STORAGE
-=========================== */
-
-const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-
-function load(file, fallback) {
-    const filePath = path.join(DATA_DIR, file);
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2));
-        return fallback;
-    }
-    return JSON.parse(fs.readFileSync(filePath));
-}
-
-function save(file, data) {
+const express = require("express");                                         const fs = require("fs");
+const path = require("path");                                               const cors = require("cors");
+const crypto = require("crypto");                                           const http = require("http");
+const https = require("https");                                             const bcrypt = require("bcrypt");
+const SALT_ROUNDS = 12; // adjust for performance/security                  const app = express();
+app.use(express.json({ limit: "10mb" }));                                   app.use(cors());
+                                                                            /* ===========================
+   CONFIG + STORAGE                                                         =========================== */
+                                                                            const DATA_DIR = path.join(__dirname, "data");
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);                       
+function load(file, fallback) {                                                 const filePath = path.join(DATA_DIR, file);
+    if (!fs.existsSync(filePath)) {                                                 fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2));
+        return fallback;                                                        }
+    return JSON.parse(fs.readFileSync(filePath));                           }
+                                                                            function save(file, data) {
     fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
-}
-
-let config = load("config.json", {
-    port: 21280,
-    allowServerCreation: "admin",
-    admins: []
-});
-
-let users = load("users.json", []);
-let sessions = load("sessions.json", {});
-let messages = load("messages.json", []);
-let servers = load("servers.json", []);
-
-/* ===========================
-   CACHE LAYER
-=========================== */
-
-let userCache = new Map();
-
-function rebuildCache() {
-    userCache.clear();
-    users.forEach(u => userCache.set(u.id, u));
-}
-
-rebuildCache();
-
-/* ===========================
-   UTIL
-=========================== */
-
-function generateSession() {
-    return crypto.randomUUID();
-}
-
-function getUserById(id) {
-    return userCache.get(id);
-}
-
-function getUserByUsername(username) {
-    return users.find(u => u.username === username);
-}
-
-function requireSession(req, res) {
-    const sessionId = req.body.sessionId || req.query.sessionId;
-    const userId = sessions[sessionId];
-    if (!userId) {
-        res.status(401).json({ error: "Invalid session" });
-        return null;
+}                                                                           
+let config = load("config.json", {                                              port: 21280,
+    allowServerCreation: "admin",                                               admins: []
+});                                                                         
+let users = load("users.json", []);                                         let sessions = load("sessions.json", {});
+let messages = load("messages.json", []);                                   let servers = load("servers.json", []);
+                                                                            /* ===========================
+   CACHE LAYER                                                              =========================== */
+                                                                            let userCache = new Map();
+                                                                            function rebuildCache() {
+    userCache.clear();                                                          users.forEach(u => userCache.set(u.id, u));
+}                                                                           
+rebuildCache();                                                             
+/* ===========================                                                 UTIL
+=========================== */                                              
+function generateSession() {                                                    return crypto.randomUUID();
+}                                                                           
+function getUserById(id) {                                                      return userCache.get(id);
+}                                                                           
+function getUserByUsername(username) {                                          return users.find(u => u.username === username);
+}                                                                           
+function requireSession(req, res) {                                             const sessionId = req.body.sessionId || req.query.sessionId;
+    const userId = sessions[sessionId];                                         if (!userId) {
+        res.status(401).json({ error: "Invalid session" });                         return null;
     }
     return getUserById(userId);
 }
@@ -92,54 +54,184 @@ app.get("/status", (req, res) => {
         totalServers: servers.length,
         totalMessages: messages.length,
         activeSessions: Object.keys(sessions).length,
-        version: "TGcord-Server-2.0"
+        version: "TGcord-Server-3.0"
     });
 });
 
 /* ===========================
    LOGIN
 =========================== */
+app.post("/login", async (req, res) => {
+    const { encryptedAccount, password } = req.body;
 
-app.post("/login", (req, res) => {
-    const { id, username, nickname, about, avatar } = req.body;
+    let account;
+    try {
+        account = await decryptAccount(encryptedAccount, password);
+    } catch {
+        return res.json({ success: false, error: "Invalid password or file" });                                                                             }
 
-    if (!id || !username) {
-        return res.json({ success: false, error: "Missing fields" });
+    if (!account?.id || !account?.username) {
+        return res.json({ success: false, error: "Corrupted account data" });
     }
 
-    const existingUsername = getUserByUsername(username);
-    if (existingUsername && existingUsername.id !== id) {
-        return res.json({ success: false, error: "Username taken" });
-    }
+    let user = getUserById(account.id);
 
-    let user = getUserById(id);
-
+    // 🆕 AUTO-REGISTER
     if (!user) {
+        // prevent username duplicates
+        if (getUserByUsername(account.username)) {
+            return res.json({ success: false, error: "Username already taken" });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+
         user = {
-            id,
-            username,
-            nickname: nickname || username,
-            about: about || "",
-            avatar: avatar || null,
-            created: Date.now()
+            id: account.id,
+            username: account.username,
+            nickname: account.nickname || account.username,
+            about: account.about || "",
+            avatar: account.avatar || null,
+            created: Date.now(),
+            passwordHash
         };
+
         users.push(user);
+        save("users.json", users);
     } else {
-        user.username = username;
-        user.nickname = nickname || user.nickname;
-        user.about = about || user.about;
-        user.avatar = avatar || user.avatar;
+        // 🔐 PASSWORD CHECK
+        const match = await bcrypt.compare(password, user.passwordHash);
+        if (!match) {
+            return res.json({ success: false, error: "Wrong password" });
+        }
+
+        // 🔄 UPDATE PROFILE IF CHANGED
+        let changed = false;
+
+        if (user.nickname !== account.nickname) {
+            user.nickname = account.nickname || user.username;
+            changed = true;
+        }
+
+        if (user.about !== account.about) {
+            user.about = account.about || "";
+            changed = true;
+        }
+
+        if (user.avatar !== account.avatar) {
+            user.avatar = account.avatar || null;
+            changed = true;
+        }
+
+        if (changed) {
+            save("users.json", users);
+        }
     }
 
-    save("users.json", users);
-    rebuildCache();
-
+    // 🎫 CREATE SESSION
     const sessionId = generateSession();
-    sessions[sessionId] = id;
+    sessions[sessionId] = user.id;
     save("sessions.json", sessions);
 
-    res.json({ success: true, sessionId });
+    // ✅ RESPONSE
+    res.json({
+        success: true,
+        sessionId,
+        user: {
+            id: user.id,
+            username: user.username,
+            nickname: user.nickname,
+            about: user.about,
+            avatar: user.avatar
+        }
+    });
 });
+/* ================== CRYPTO ================== */
+
+async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 150000,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        {
+            name: "AES-GCM",
+            length: 256
+        },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
+async function encryptAccount(account, password) {
+    const enc = new TextEncoder();
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const key = await deriveKey(password, salt);
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        key,
+        enc.encode(JSON.stringify(account))
+    );
+
+    return {
+        salt: btoa(String.fromCharCode(...salt)),
+        iv: btoa(String.fromCharCode(...iv)),
+        data: btoa(String.fromCharCode(...new Uint8Array(encrypted)))
+    };
+}
+
+async function decryptAccount(raw, password) {
+    const data = JSON.parse(raw);
+
+    const salt = Uint8Array.from(
+        atob(data.salt),
+        c => c.charCodeAt(0)
+    );
+
+    const iv = Uint8Array.from(
+        atob(data.iv),
+        c => c.charCodeAt(0)
+    );
+
+    const encrypted = Uint8Array.from(
+        atob(data.data),
+        c => c.charCodeAt(0)
+    );
+
+    const key = await deriveKey(password, salt);
+
+    const decrypted = await crypto.subtle.decrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        key,
+        encrypted
+    );
+
+    return JSON.parse(
+        new TextDecoder().decode(decrypted)
+    );
+}
 
 /* ===========================
    USER ENDPOINTS
@@ -269,8 +361,7 @@ app.post("/join-server", (req, res) => {
 
 app.post("/server-message", (req, res) => {
     const user = requireSession(req, res);
-    if (!user) return;
-
+    if (!user) return;                                                      
     const { serverId, message } = req.body;
     const server = servers.find(s => s.id === serverId);
 
@@ -339,4 +430,4 @@ if (config.protocol === "https") {
     app.listen(config.port, () => {
         console.log(`TGcord HTTP server running on port ${config.port}`);
     });
-}
+   }
