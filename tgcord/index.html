@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TGcord</title>
+
+<style>
+body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#313338; color:#fff; }
+.container { display:flex; height:100vh; }
+.sidebar { width:240px; background:#2b2d31; padding:10px; overflow-y:auto; display:flex; flex-direction:column; }
+.chatArea { flex:1; display:flex; flex-direction:column; }
+.topbar { background:#232428; padding:12px; font-weight:bold; }
+.messages { flex:1; padding:15px; overflow-y:auto; }
+.messageInput { display:flex; padding:10px; background:#2b2d31; }
+.messageInput input { flex:1; padding:10px; border:none; border-radius:6px; }
+.messageInput button { margin-left:10px; padding:10px 15px; border:none; border-radius:6px; background:#5865f2; color:white; cursor:pointer; }
+.userCard, .serverCard { padding:8px; margin:4px 0; background:#3f4147; border-radius:6px; cursor:pointer; }
+.userCard:hover, .serverCard:hover { background:#4e5058; }
+.avatar { width:32px; height:32px; border-radius:50%; vertical-align:middle; margin-right:8px; }
+.hidden { display:none; }
+.centered { padding:40px; }
+input, button { padding:8px; margin:5px; }
+button { background:#5865f2; border:none; border-radius:6px; color:white; cursor:pointer; }
+button:hover { opacity:0.9; }
+#ownUser { margin-top:auto; padding:8px; background:#2b2d31; text-align:center; border-top:1px solid #444; }
+.toggleButtons { display:flex; justify-content:space-around; margin-bottom:5px; }
+.toggleButtons button { flex:1; margin:2px; }
+/* Discord-style messages */
+.messageCard {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: flex-start;
+}
+
+.messageCard .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.messageContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.messageHeader {
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 2px;
+}
+
+.messageHeader span.username {
+    font-weight: normal;
+    color: #b9bbbe;
+    margin-left: 5px;
+}
+
+.messageText {
+    white-space: pre-wrap; /* allows line breaks */
+    word-wrap: break-word;
+    font-size: 0.95em;
+}
+.messageSending {
+    opacity: 0.5;
+}
+
+</style>
+</head>
+<body>
+
+<!-- AUTH VIEW -->
+<div id="authView" class="centered">
+<h2>TGcord</h2>
+<button onclick="showLogin()">Login</button>
+<button onclick="showSignup()">Sign Up</button>
+<button onclick="download()">Download server</button>
+
+<div id="loginView">
+<h3>Login</h3>
+<input type="file" id="fileInput"><br>
+<!-- OR <input type="text" id="fileUrl" placeholder="Public URL to .tgcord"> -->
+<br>
+<input type="password" id="loginPassword" placeholder="Password"><br>
+<input type="text" id="serverUrl" placeholder="enter server address (redstonemc.net)"><br>
+<button onclick="login()">Login</button>
+</div>
+
+<div id="signupView" class="hidden">
+<h3>Create Account</h3>
+<input type="text" id="newName" placeholder="Username"><br>
+<input type="text" id="newNick" placeholder="Nickname"><br>
+<input type="text" id="newAbout" placeholder="About"><br>
+<input type="password" id="newPassword" placeholder="Password"><br>
+<input type="password" id="confirmPassword" placeholder="Confirm Password"><br>
+<button onclick="createAccount()">Generate Account File</button>
+</div>
+</div>
+
+<!-- APP VIEW -->
+<div id="appView" class="hidden container">
+<div class="sidebar">
+    <div class="toggleButtons">
+        <button id="dmToggle" onclick="showDMs()">DMs</button>
+        <button id="serverToggle" onclick="showServers()">Servers</button>
+    </div>
+
+    <div id="userList"></div>
+    <div id="serverList" class="hidden"></div>
+
+    <div id="serverActions" class="hidden">
+        <button onclick="createServer()">Create Server</button>
+    </div>
+
+    <div id="ownUser" class="hidden">
+        <img class="avatar" id="ownAvatar" src="">
+        <span id="ownName"></span>
+    </div>
+</div>
+
+<div class="chatArea">
+<div class="topbar" id="chatHeader">Select a user or server</div>
+<div class="messages" id="messages">Loading messages...</div>
+<div class="messageInput">
+<input type="text" id="messageInput" placeholder="Message">
+<button onclick="sendMessage()">Send</button>
+</div>
+</div>
+</div>
+
+<script>
+let account=null, sessionId=null, serverBase=null;
+let selectedUser=null, selectedServer=null, lastTimestamp=0, pollInterval=null;
+let lastMessageTimestamp = 0; // tracks newest message we've seen
+let firstMessageLoad = true; // used to suppress sound on initial load
+let showDMList = true;
+let sendingMessages = []; // array of {id, element}
+const notifAudio = new Audio("https://tggamesyt.dev/assets/tgcord.mp3");
+
+
+/* ================== SERVER DETECT ================== */
+async function detectServer(input){
+    if(!input) input="redstonemc.net";
+    input = input.trim();
+
+    let urlsToTry = [];
+
+    if(input.startsWith("http://") || input.startsWith("https://")){
+        urlsToTry.push(input.replace(/\/+$/,""));
+        if(input.startsWith("http://")) urlsToTry.push(input.replace(/^http:/,"https:"));
+        else urlsToTry.push(input.replace(/^https:/,"http:"));
+    } else {
+        urlsToTry.push("https://" + input + ":21280");
+        urlsToTry.push("http://" + input + ":21280");
+    }
+
+    for(let url of urlsToTry){
+        try {
+            const res = await fetch(url + "/status");
+            if(res.ok){
+                serverBase = url.replace(/\/+$/,"");
+                console.log("Using server:", serverBase);
+                return;
+            }
+        } catch(e){
+            // failed, try next
+        }
+    }
+
+    alert("Server not reachable at any protocol/port tried");
+    throw new Error("No server reachable");
+}
+
+
+/* ================== CRYPTO ================== */
+async function deriveKey(password,salt){ const enc=new TextEncoder(); const keyMaterial=await crypto.subtle.importKey( "raw", enc.encode(password),"PBKDF2",false,["deriveKey"] ); return crypto.subtle.deriveKey( {name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"}, keyMaterial, {name:"AES-GCM",length:256}, false, ["encrypt","decrypt"] ); } async function encryptAccount(account,password){ const enc=new TextEncoder(); const salt=crypto.getRandomValues(new Uint8Array(16)); const iv=crypto.getRandomValues(new Uint8Array(12)); const key=await deriveKey(password,salt); const encrypted=await crypto.subtle.encrypt( {name:"AES-GCM",iv:iv}, key, enc.encode(JSON.stringify(account)) ); return { salt:btoa(String.fromCharCode(...salt)), iv:btoa(String.fromCharCode(...iv)), data:btoa(String.fromCharCode(...new Uint8Array(encrypted))) }; } async function decryptAccount(raw,password){ const data=JSON.parse(raw); const salt=Uint8Array.from(atob(data.salt),c=>c.charCodeAt(0)); const iv=Uint8Array.from(atob(data.iv),c=>c.charCodeAt(0)); const encrypted=Uint8Array.from(atob(data.data),c=>c.charCodeAt(0)); const key=await deriveKey(password,salt); const decrypted=await crypto.subtle.decrypt( {name:"AES-GCM",iv:iv}, key, encrypted ); return JSON.parse(new TextDecoder().decode(decrypted)); }
+
+/* ================== AUTH ================== */
+function showLogin(){ document.getElementById("signupView").classList.add("hidden"); document.getElementById("loginView").classList.remove("hidden"); }
+function showSignup(){ document.getElementById("loginView").classList.add("hidden"); document.getElementById("signupView").classList.remove("hidden"); }
+function download() {
+    // 1. Open instructions page
+    window.open('https://tggamesyt.dev/tgcord/server-instructions.html', '_blank');
+}
+
+async function createAccount(){ const username = newName.value; const nick = newNick.value; const about = newAbout.value; const pass = newPassword.value; const confirm = confirmPassword.value; if(pass!==confirm) return alert("Passwords do not match"); if(!username) return alert("Username required"); const acc = { id: crypto.randomUUID(), username: username, nick, about: about, avatar: null }; const encrypted = await encryptAccount(acc, pass); const blob = new Blob([JSON.stringify(encrypted)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = username + ".tgcord"; link.click(); }
+
+async function login(){
+    const file=fileInput.files[0];
+    const url=fileUrl.value;
+    const pass=loginPassword.value;
+    const serverInput=serverUrl.value;
+    let raw;
+    if(file) raw=await file.text();
+    else if(url) raw=await fetch(url).then(r=>r.text());
+    else return alert("Provide account file or URL");
+
+    try{ account=await decryptAccount(raw,pass); } catch { return alert("Wrong password"); }
+
+    await detectServer(serverInput);
+
+    const res=await fetch(serverBase+"/login",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify(account)
+    });
+    const data=await res.json();
+    if(!data.success) return alert("Login failed");
+
+    sessionId=data.sessionId;
+
+    document.getElementById("authView").classList.add("hidden");
+    document.getElementById("appView").classList.remove("hidden");
+
+    document.getElementById("ownUser").classList.remove("hidden");
+    document.getElementById("ownName").innerText = account.nickname || account.username;
+    document.getElementById("ownAvatar").src = account.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(account.nickname||account.username);
+
+    showDMs();
+    pollInterval = setInterval(fetchMessages,3000);
+}
+
+/* ================== USERS ================== */
+async function showDMs(){
+    showDMList = true;
+    document.getElementById("userList").classList.remove("hidden");
+    document.getElementById("serverList").classList.add("hidden");
+    document.getElementById("serverActions").classList.add("hidden");
+    await loadUsers();
+
+    // Auto-select the first DM if it exists
+    const firstUserCard = document.getElementById("userList").firstChild;
+    if(firstUserCard) {
+        firstUserCard.click();
+    }
+}
+
+
+async function showServers(){
+    showDMList = false;
+    document.getElementById("userList").classList.add("hidden");
+    document.getElementById("serverList").classList.remove("hidden");
+    await loadServers();
+}
+
+async function loadUsers(){
+    const res=await fetch(serverBase+"/users");
+    let users=await res.json();
+    // remove self
+    users = users.filter(u=>u.id!==account.id);
+
+    const list=document.getElementById("userList");
+    list.innerHTML="";
+    users.forEach(u=>{
+        const div=document.createElement("div");
+        div.className="userCard";
+        div.innerHTML=`<img class="avatar" src="${u.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname)}"> ${u.nickname || u.username}`;
+        div.onclick=()=>selectUser(u);
+        list.appendChild(div);
+    });
+}
+
+async function loadServers(){
+    const res = await fetch(serverBase+"/servers");
+    let servers = await res.json();
+    const list = document.getElementById("serverList");
+    list.innerHTML = "";
+
+    servers.forEach(s=>{
+        const div = document.createElement("div");
+        div.className = "serverCard";
+        div.innerText = s.name;
+        div.onclick = () => openServer(s);
+        list.appendChild(div);
+    });
+
+    // Show create server button if allowed
+    const actions = document.getElementById("serverActions");
+    actions.classList.toggle("hidden", !account.canCreateServer);
+}
+
+/* ================== SELECT ================== */
+function selectUser(user){
+    selectedUser=user;
+    selectedServer=null;
+    document.getElementById("chatHeader").innerText = user.nickname || user.username;
+    document.getElementById("messages").innerHTML='<div style="opacity:0.5; text-align:center;">Loading messages...</div>';
+    lastTimestamp=0;
+}
+
+/* ================== SERVER ================== */
+function openServer(server){
+    selectedServer=server;
+    selectedUser=null;
+    document.getElementById("chatHeader").innerText = "Server: "+server.name;
+    document.getElementById("messages").innerHTML="Channels will be listed here...";
+}
+
+/* ================== MESSAGES ================== */
+async function sendMessage() {
+    if (!showDMList) {
+        alert("Server messaging not yet implemented");
+        return;
+    }
+
+    if (!selectedUser) return alert("Select user");
+    const msg = messageInput.value.trim();
+    if (!msg) return;
+
+    const tempId = crypto.randomUUID();
+
+    // Create temporary "sending" message
+    const sendingMsg = {
+        from: account.id,
+        message: msg,
+        tempId
+    };
+
+    const elem = addMessage(sendingMsg, [account], true);
+    sendingMessages.push({ tempId, element: elem, message: msg });
+
+    messageInput.value = "";
+
+    try {
+        await fetch(serverBase + "/dm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, to: selectedUser.id, message: msg })
+        });
+    } catch (e) {
+        console.error("Failed to send message:", e);
+    }
+
+    // Fetch messages immediately to replace placeholder
+    await fetchMessages();
+}
+async function fetchMessages() {
+    if (!selectedUser) return; 
+
+    const messagesDiv = document.getElementById("messages");
+
+    // Show loading if first load
+    if (firstMessageLoad) {
+        messagesDiv.innerHTML = '<div style="opacity:0.5; text-align:center;">Loading messages...</div>';
+    }
+
+    const res = await fetch(
+        serverBase +
+        "/messages?since=" + lastTimestamp +
+        "&sessionId=" + sessionId +
+        "&with=" + selectedUser.id
+    ); 
+
+    const msgs = await res.json(); 
+    const usersRes = await fetch(serverBase + "/users");
+    const allUsers = await usersRes.json();
+
+    // Clear loading placeholder
+    if (firstMessageLoad) messagesDiv.innerHTML = "";
+
+    msgs.forEach(m => {
+        // Remove placeholder if sending
+        if (m.from === account.id) {
+            const index = sendingMessages.findIndex(s => s.message === m.message);
+            if (index !== -1) {
+                sendingMessages[index].element.remove(); 
+                sendingMessages.splice(index, 1);
+            }
+        }
+
+        addMessage(m, allUsers);
+
+        // Play sound only if not the first load
+        if (!firstMessageLoad && m.from !== account.id && m.timestamp > lastMessageTimestamp) {
+            notifAudio.play().catch(()=>{});
+        }
+
+        if (m.timestamp > lastTimestamp) lastTimestamp = m.timestamp;
+        if (m.timestamp > lastMessageTimestamp) lastMessageTimestamp = m.timestamp;
+    });
+
+    // After first fetch, disable first-load flag
+    if (firstMessageLoad) firstMessageLoad = false;
+}
+
+function addMessage(msg, allUsers, sending = false) {
+    const sender = allUsers.find(u => u.id === msg.from);
+    const displayName = sender ? sender.nickname : msg.from;
+    const username = sender ? sender.username : msg.from;
+    const avatar = sender ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}` : '';
+
+    const container = document.createElement("div");
+    container.className = "messageCard";
+    if (sending) container.classList.add("messageSending");
+
+    container.innerHTML = `
+        <img class="avatar" src="${avatar}">
+        <div class="messageContent">
+            <div class="messageHeader">
+                ${displayName} <span class="username">(${username})</span>
+            </div>
+            <div class="messageText">${msg.message}</div>
+        </div>
+    `;
+
+    const messagesDiv = document.getElementById("messages");
+    messagesDiv.appendChild(container);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    return container;
+}
+
+
+
+
+/* ================== CREATE SERVER ================== */
+async function createServer(){
+    const name = prompt("Server Name:");
+    if(!name) return;
+    await fetch(serverBase+"/create-server", { method:"POST", headers:{ "Content-Type":"application/json"}, body:JSON.stringify({ sessionId, name }) });
+    await loadServers();
+}
+
+// Login inputs
+["fileInput","fileUrl","loginPassword","serverUrl"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            login();
+        }
+    });
+});
+
+// Signup inputs
+["newName","newNick","newAbout","newPassword","confirmPassword"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            createAccount();
+        }
+    });
+});
+document.getElementById("messageInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { // Enter sends, Shift+Enter for newline
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+
+</script>
+</body>
+</html>
