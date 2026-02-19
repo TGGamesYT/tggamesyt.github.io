@@ -177,14 +177,112 @@ async function detectServer(input){
 
 
 /* ================== CRYPTO ================== */
-async function deriveKey(password,salt){ const enc=new TextEncoder(); const keyMaterial=await crypto.subtle.importKey( "raw", enc.encode(password),"PBKDF2",false,["deriveKey"] ); return crypto.subtle.deriveKey( {name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"}, keyMaterial, {name:"AES-GCM",length:256}, false, ["encrypt","decrypt"] ); } async function encryptAccount(account,password){ const enc=new TextEncoder(); const salt=crypto.getRandomValues(new Uint8Array(16)); const iv=crypto.getRandomValues(new Uint8Array(12)); const key=await deriveKey(password,salt); const encrypted=await crypto.subtle.encrypt( {name:"AES-GCM",iv:iv}, key, enc.encode(JSON.stringify(account)) ); return { salt:btoa(String.fromCharCode(...salt)), iv:btoa(String.fromCharCode(...iv)), data:btoa(String.fromCharCode(...new Uint8Array(encrypted))) }; } async function decryptAccount(raw,password){ const data=JSON.parse(raw); const salt=Uint8Array.from(atob(data.salt),c=>c.charCodeAt(0)); const iv=Uint8Array.from(atob(data.iv),c=>c.charCodeAt(0)); const encrypted=Uint8Array.from(atob(data.data),c=>c.charCodeAt(0)); const key=await deriveKey(password,salt); const decrypted=await crypto.subtle.decrypt( {name:"AES-GCM",iv:iv}, key, encrypted ); return JSON.parse(new TextDecoder().decode(decrypted)); }
+
+async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 150000,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        {
+            name: "AES-GCM",
+            length: 256
+        },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
+async function encryptAccount(account, password) {
+    const enc = new TextEncoder();
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const key = await deriveKey(password, salt);
+
+    const encrypted = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        key,
+        enc.encode(JSON.stringify(account))
+    );
+
+    return {
+        salt: btoa(String.fromCharCode(...salt)),
+        iv: btoa(String.fromCharCode(...iv)),
+        data: btoa(String.fromCharCode(...new Uint8Array(encrypted)))
+    };
+}
+
+async function decryptAccount(raw, password) {
+    const data = JSON.parse(raw);
+
+    const salt = Uint8Array.from(
+        atob(data.salt),
+        c => c.charCodeAt(0)
+    );
+
+    const iv = Uint8Array.from(
+        atob(data.iv),
+        c => c.charCodeAt(0)
+    );
+
+    const encrypted = Uint8Array.from(
+        atob(data.data),
+        c => c.charCodeAt(0)
+    );
+
+    const key = await deriveKey(password, salt);
+
+    const decrypted = await crypto.subtle.decrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        key,
+        encrypted
+    );
+
+    return JSON.parse(
+        new TextDecoder().decode(decrypted)
+    );
+}
+
 
 /* ================== AUTH ================== */
-function showLogin(){ document.getElementById("signupView").classList.add("hidden"); document.getElementById("loginView").classList.remove("hidden"); }
-function showSignup(){ document.getElementById("loginView").classList.add("hidden"); document.getElementById("signupView").classList.remove("hidden"); }
+
+function showLogin() {
+    document.getElementById("signupView").classList.add("hidden");
+    document.getElementById("loginView").classList.remove("hidden");
+}
+
+function showSignup() {
+    document.getElementById("loginView").classList.add("hidden");
+    document.getElementById("signupView").classList.remove("hidden");
+}
+
 function download() {
     // 1. Open instructions page
-    window.open('https://tggamesyt.dev/tgcord/server-instructions.html', '_blank');
+    window.open(
+        "https://tggamesyt.dev/tgcord/server-instructions.html",
+        "_blank"
+    );
 }
 
 async function createAccount(){ const username = newName.value; const nick = newNick.value; const about = newAbout.value; const pass = newPassword.value; const confirm = confirmPassword.value; if(pass!==confirm) return alert("Passwords do not match"); if(!username) return alert("Username required"); const acc = { id: crypto.randomUUID(), username: username, nick, about: about, avatar: null }; const encrypted = await encryptAccount(acc, pass); const blob = new Blob([JSON.stringify(encrypted)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = username + ".tgcord"; link.click(); }
