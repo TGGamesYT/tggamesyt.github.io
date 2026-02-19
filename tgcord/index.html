@@ -518,17 +518,17 @@ document.getElementById("messageInput").addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("load", async () => {
-    const serverip = localStorage.getItem("tgcordServerIp");
+    serverBase = localStorage.getItem("tgcordServerIp");
     const storedSession = localStorage.getItem("tgcordSessionId");
     const storedAccountId = localStorage.getItem("tgcordAccountId");
 
-    if (storedSession && storedAccountId && serverip) {
+    if (storedSession && storedAccountId && serverBase) {
         // Try to restore session
         sessionId = storedSession;
 
         // Fetch account info from server
         try {
-            const res = await fetch(`${serverip}/profile/${storedAccountId}`);
+            const res = await fetch(`${serverBase}/profile/${storedAccountId}`);
             console.log(res)
             if (res.ok) {
                 account = await res.json();
