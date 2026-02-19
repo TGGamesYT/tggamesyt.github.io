@@ -286,7 +286,7 @@ function download() {
     );
 }
 
-async function createAccount(){ const username = newName.value; const nick = newNick.value; const about = newAbout.value; const pfp = newPfp.value const pass = newPassword.value; const confirm = confirmPassword.value; if(pass!==confirm) return alert("Passwords do not match"); if(!username) return alert("Username required"); const acc = { id: crypto.randomUUID(), username: username, nickname: nick, about: about, avatar: pfp, avatar: null }; const encrypted = await encryptAccount(acc, pass); const blob = new Blob([JSON.stringify(encrypted)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = username + ".tgcord"; link.click(); }
+async function createAccount(){ const username = newName.value; const nick = newNick.value; const about = newAbout.value; const pfp = newPfp.value const pass = newPassword.value; const confirm = confirmPassword.value; if(pass!==confirm) return alert("Passwords do not match"); if(!username) return alert("Username required"); const acc = { id: crypto.randomUUID(), username: username, nickname: nick, about: about, avatar: pfp }; const encrypted = await encryptAccount(acc, pass); const blob = new Blob([JSON.stringify(encrypted)], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = username + ".tgcord"; link.click(); }
 
 async function login(){
     const file=fileInput.files[0];
