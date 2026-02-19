@@ -188,12 +188,12 @@ async function createAccount(){ const username = newName.value; const nick = new
 
 async function login(){
     const file=fileInput.files[0];
-    const url=fileUrl.value;
+    //const url=fileUrl.value;
     const pass=loginPassword.value;
     const serverInput=serverUrl.value;
     let raw;
     if(file) raw=await file.text();
-    else if(url) raw=await fetch(url).then(r=>r.text());
+    //else if(url) raw=await fetch(url).then(r=>r.text());
     else return alert("Provide account file or URL");
 
     try{ account=await decryptAccount(raw,pass); } catch { return alert("Wrong password"); }
@@ -423,7 +423,7 @@ async function createServer(){
 }
 
 // Login inputs
-["fileInput","fileUrl","loginPassword","serverUrl"].forEach(id => {
+["fileInput","loginPassword","serverUrl"].forEach(id => {
     document.getElementById(id).addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
