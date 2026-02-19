@@ -138,6 +138,7 @@ let lastMessageTimestamp = 0; // tracks newest message we've seen
 let firstMessageLoad = true; // used to suppress sound on initial load
 let showDMList = true;
 let sendingMessages = []; // array of {id, element}
+const unreadMap = new Map(); // key: userId, value: boolean
 const notifAudio = new Audio("https://tggamesyt.dev/assets/tgcord.mp3");
 
 
@@ -260,10 +261,24 @@ async function loadUsers(){
     const list=document.getElementById("userList");
     list.innerHTML="";
     users.forEach(u=>{
-        const div=document.createElement("div");
-        div.className="userCard";
-        div.innerHTML=`<img class="avatar" src="${u.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname)}"> ${u.nickname || u.username}`;
-        div.onclick=()=>selectUser(u);
+        const div = document.createElement("div");
+        div.className = "userCard";
+        div.innerHTML = `
+            <div style="position:relative; display:inline-block;">
+                <img class="avatar" src="${u.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname)}">
+                <span class="unreadBadge hidden" style="
+                    position:absolute;
+                    top:0;
+                    right:0;
+                    width:10px;
+                    height:10px;
+                    background:red;
+                    border-radius:50%;
+                "></span>
+            </div>
+            ${u.nickname || u.username}
+        `;
+        div.onclick = () => selectUser(u);
         list.appendChild(div);
     });
 }
@@ -289,11 +304,15 @@ async function loadServers(){
 
 /* ================== SELECT ================== */
 function selectUser(user){
-    selectedUser=user;
-    selectedServer=null;
+    selectedUser = user;
+    selectedServer = null;
     document.getElementById("chatHeader").innerText = user.nickname || user.username;
     document.getElementById("messages").innerHTML='<div style="opacity:0.5; text-align:center;">Loading messages...</div>';
-    lastTimestamp=0;
+    lastTimestamp = 0;
+
+    // Clear unread indicator
+    unreadMap.set(user.id, false);
+    clearUnreadBadge(user.id);
 }
 
 /* ================== SERVER ================== */
@@ -375,25 +394,33 @@ async function fetchMessages() {
     );
 
     filteredMsgs.forEach(m => {
-        // Remove placeholder if sending
-        if (m.from === account.id) {
-            const index = sendingMessages.findIndex(s => s.message === m.message);
-            if (index !== -1) {
-                sendingMessages[index].element.remove(); 
-                sendingMessages.splice(index, 1);
-            }
+    // Remove placeholder if sending
+    if (m.from === account.id) {
+        const index = sendingMessages.findIndex(s => s.message === m.message);
+        if (index !== -1) {
+            sendingMessages[index].element.remove(); 
+            sendingMessages.splice(index, 1);
         }
+    }
 
+    // Filter to only show messages with selectedUser
+    if (selectedUser && ((m.from === selectedUser.id && m.to === account.id) || (m.from === account.id && m.to === selectedUser.id))) {
         addMessage(m, allUsers);
 
-        // Play sound only for incoming messages from selected user, not first load
-        if (!firstMessageLoad && m.from === selectedUser.id && m.timestamp > lastMessageTimestamp) {
-            notifAudio.play().catch(()=>{});
-        }
+        // Play notification only for incoming messages from selectedUser
+        if (!firstMessageLoad && m.from === selectedUser.id) notifAudio.play().catch(() => {});
+    }
 
-        if (m.timestamp > lastTimestamp) lastTimestamp = m.timestamp;
-        if (m.timestamp > lastMessageTimestamp) lastMessageTimestamp = m.timestamp;
-    });
+    // Handle unread badge for messages from others
+    if (m.from !== account.id && (!selectedUser || m.from !== selectedUser.id)) {
+        unreadMap.set(m.from, true);
+        showUnreadBadge(m.from);
+    }
+
+    if (m.timestamp > lastTimestamp) lastTimestamp = m.timestamp;
+    if (m.timestamp > lastMessageTimestamp) lastMessageTimestamp = m.timestamp;
+});
+
 
     if (firstMessageLoad) firstMessageLoad = false;
 }
@@ -430,7 +457,29 @@ function logout() {
     localStorage.removeItem("tgcordAccountId");
     location.reload();
 }
+function showUnreadBadge(userId) {
+    const userList = document.getElementById("userList").children;
+    for (let card of userList) {
+        const img = card.querySelector(".avatar");
+        if (!img) continue;
+        const span = card.querySelector(".unreadBadge");
+        if (!span) continue;
+        // match by userId (we can attach it to dataset)
+        if (card.dataset.userid === userId) {
+            span.classList.remove("hidden");
+        }
+    }
+}
 
+function clearUnreadBadge(userId) {
+    const userList = document.getElementById("userList").children;
+    for (let card of userList) {
+        const span = card.querySelector(".unreadBadge");
+        if (card.dataset.userid === userId) {
+            span.classList.add("hidden");
+        }
+    }
+}
 
 /* ================== CREATE SERVER ================== */
 async function createServer(){
@@ -477,6 +526,7 @@ window.addEventListener("load", async () => {
         // Fetch account info from server
         try {
             const res = await fetch(`${serverBase}/profile/${storedAccountId}`);
+            console.log(res)
             if (res.ok) {
                 account = await res.json();
 
