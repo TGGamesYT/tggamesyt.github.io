@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TGcord Server Setup Instructions</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #313338;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+}
+h1 { color: #5865f2; }
+a.button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #5865f2;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+a.button:hover { opacity: 0.9; }
+code {
+    background: #2b2d31;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.instructions {
+    max-width: 800px;
+}
+</style>
+</head>
+<body>
+
+<div class="instructions">
+    <h1>TGcord Server Setup Instructions</h1>
+    <p>Follow these steps to set up your TGcord server:</p>
+    <ol>
+        <li>Download the server file using the button below.</li>
+        <li>Install <code>Node.js</code> (version 18 or higher recommended).</li>
+        <li>Place the downloaded <code>server.js</code> in a folder of your choice.</li>
+        <li>Open a terminal in that folder and run: <code>node server.js</code></li>
+        <li>By default, the server runs on port <code>21280</code>. You can configure it in <code>server.js</code>.</li>
+        <li>Make sure your firewall or router allows incoming connections to the chosen port.</li>
+        <li>Once the server is running, use the TGcord client to connect to it!</li>
+    </ol>
+
+    <a class="button" href="#" onclick="downloadServer()">Download server.js</a>
+</div>
+
+<script>
+function downloadServer() {
+    const link = document.createElement('a');
+    link.href = 'https://tggamesyt.dev/tgcord/latest/server.js';
+    link.download = 'tgcord-server.js';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+
+</body>
+</html>
