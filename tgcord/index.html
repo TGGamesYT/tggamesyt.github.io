@@ -1289,16 +1289,103 @@ document.addEventListener("visibilitychange", () => {
 });
 
 let eCount = 0;
-let eSoundPlayedCount = 0; // counts how many e.mp3 have played
+let eSoundPlayedCount = 0;
 let jumpScareDone = false;
 let eHeld = false;
 
-const eSound = new Audio("https://tggamesyt.dev/assets/e.mp3");
 const eeSound = new Audio("https://tggamesyt.dev/assets/ee.mp3");
 
 let overlay = null;
 let eLetter = null;
 let jumpImage = null;
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let eSource, eGain, eDist, ePitchLFO, eLfoGain;
+let eBuffer = null;
+let ePlaying = false;
+let isDeepFried = false; // NEW
+
+// load e.mp3 into buffer
+fetch("https://tggamesyt.dev/assets/e.mp3")
+  .then(r => r.arrayBuffer())
+  .then(d => audioCtx.decodeAudioData(d))
+  .then(buf => { eBuffer = buf; });
+
+// load e.mp3 into buffer
+fetch("https://tggamesyt.dev/assets/e.mp3")
+  .then(r => r.arrayBuffer())
+  .then(d => audioCtx.decodeAudioData(d))
+  .then(buf => { eBuffer = buf; });
+
+// helper: create distortion curve
+function makeDistortionCurve(amount = 50) {
+    const n = 44100, curve = new Float32Array(n);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n; ++i) {
+        const x = i * 2 / n - 1;
+        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+}
+
+// start E sound
+function playDeepFriedE() {
+    if (!eBuffer || ePlaying) return;
+    ePlaying = true;
+    isDeepFried = false;
+
+    eSource = audioCtx.createBufferSource();
+    eSource.buffer = eBuffer;
+    eSource.loop = true;
+
+    eGain = audioCtx.createGain();
+    eGain.gain.value = 0.5;
+
+    // NO distortion yet
+    eSource.connect(eGain).connect(audioCtx.destination);
+    eSource.start();
+}
+function enableDeepFry() {
+    if (!ePlaying || isDeepFried) return;
+    isDeepFried = true;
+
+    // disconnect clean chain
+    eSource.disconnect();
+    eGain.disconnect();
+
+    eDist = audioCtx.createWaveShaper();
+    eDist.curve = makeDistortionCurve(0);
+
+    ePitchLFO = audioCtx.createOscillator();
+    eLfoGain = audioCtx.createGain();
+    eLfoGain.gain.value = 0;
+
+    ePitchLFO.connect(eLfoGain);
+    eLfoGain.connect(eSource.playbackRate);
+    ePitchLFO.start();
+
+    eSource.connect(eDist).connect(eGain).connect(audioCtx.destination);
+}
+
+// update distortion over time
+function updateDeepFry(progress) {
+    if (!ePlaying) return;
+    if (eDist) eDist.curve = makeDistortionCurve(progress * 1000);
+    if (ePitchLFO) ePitchLFO.frequency.value = 2 + progress * 8;
+    if (eLfoGain) eLfoGain.gain.value = progress * 0.2;
+}
+
+// stop E sound
+function stopDeepFriedE() {
+    if (!ePlaying) return;
+    ePlaying = false;
+    if (eSource) { eSource.stop(); eSource.disconnect(); eSource = null; }
+    if (eDist) { eDist.disconnect(); eDist = null; }
+    if (eGain) { eGain.disconnect(); eGain = null; }
+    if (ePitchLFO) { ePitchLFO.disconnect(); ePitchLFO = null; }
+    if (eLfoGain) { eLfoGain.disconnect(); eLfoGain = null; }
+}
+
 
 function createOverlay() {
     if (!overlay) {
@@ -1355,7 +1442,7 @@ function resetE() {
 }
 
 function updateVisuals() {
-    if (eCount < 150 || !eHeld) {
+    if (eCount < 250 || !eHeld) {
         if (overlay) overlay.style.background = "rgba(0,0,0,0)";
         if (eLetter) eLetter.style.opacity = "0";
         return;
@@ -1363,8 +1450,8 @@ function updateVisuals() {
 
     // overlay darkening and reddening
     if (overlay) {
-        const darkProgress = Math.min((eCount - 150) / 600, 0.6); 
-        const redProgress = Math.max(0, (eCount - 500) / 250);
+        const darkProgress = Math.min((eCount - 250) / 600, 0.6); 
+        const redProgress = Math.max(0, (eCount - 600) / 250);
         overlay.style.background = `rgba(${redProgress*255},0,0,${darkProgress})`;
     }
 
@@ -1372,15 +1459,15 @@ function updateVisuals() {
     if (eLetter) {
         const minScale = 0.4; // start smaller
         const maxScale = 15;   // end larger
-        const progress = Math.min((eCount - 150)/600, 1);
+        const progress = Math.min((eCount - 250)/600, 1);
         const scale = minScale + (maxScale - minScale) * progress;
 
         eLetter.style.opacity = "1";
         eLetter.style.transform = `scale(${scale})`;
 
         // shake when red starts
-        if (eCount > 500) {
-            const intensity = Math.min((eCount - 500) / 250, 1) * 10;
+        if (eCount > 600) {
+            const intensity = Math.min((eCount - 600) / 250, 1) * 10;
             const x = (Math.random() - 0.5) * intensity;
             const y = (Math.random() - 0.5) * intensity;
             eLetter.style.transform += ` translate(${x}px, ${y}px)`;
@@ -1389,17 +1476,28 @@ function updateVisuals() {
 }
 
 function maybePlayESound() {
-    if (eCount >= (eSoundPlayedCount + 1) * 50 && !jumpScareDone) {
-        eSound.play().catch(() => {});
-        eSoundPlayedCount++;
+
+    // start normal sound after 150
+    if (eCount >= 150 && !jumpScareDone && !ePlaying) {
+        playDeepFriedE();
     }
 
-    if (eCount >= 750 && !jumpScareDone) {
+    // DO NOT deep fry until 700
+    if (eCount >= 700 && ePlaying) {
+        enableDeepFry();
+
+        const progress = Math.min((eCount - 700) / 300, 1);
+        updateDeepFry(progress);
+    }
+
+    if (eCount >= 950 && !jumpScareDone) {
         jumpScareDone = true;
         eeSound.play().catch(() => {});
-        if (jumpImage) jumpImage.style.transform = "translate(-50%, -50%) scale(4)";
+        if (jumpImage) jumpImage.style.transform =
+            "translate(-50%, -50%) scale(4)";
     }
 }
+
 
 document.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() === "e") {
@@ -1417,8 +1515,11 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keyup", (e) => {
     if (e.key.toLowerCase() === "e") {
         resetE(); // everything gone immediately on release
+        stopDeepFriedE();
     }
 });
+
+
 let rickRollBuffer = "";
 let rickRollPlayed = false;
 const RICK_ROLL_PHRASE = "rick roll";
