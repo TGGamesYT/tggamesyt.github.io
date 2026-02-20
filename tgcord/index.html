@@ -8,9 +8,39 @@
 body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#313338; color:#fff; }
 .container { display:flex; height:100vh; }
 .sidebar { width:240px; background:#2b2d31; padding:10px; overflow-y:auto; display:flex; flex-direction:column; }
-.chatArea { flex:1; display:flex; flex-direction:column; }
+.container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden; /* prevent scroll pushing sidebar down */
+}
+
+.chatArea {
+    flex: 1 1 auto; /* grow and shrink as needed */
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* allows inner flex children to shrink properly */
+    overflow: hidden; /* prevent pushing right sidebar */
+}
+
+.messages {
+    flex: 1 1 auto; /* grows to fill remaining space */
+    padding: 15px;
+    overflow-y: auto;
+    min-height: 0; /* critical for flex scroll */
+}
+
+.rightSidebar {
+    width: 260px;
+    background: #232428;
+    padding: 15px;
+    border-left: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; /* do not shrink */
+    height: 100vh; /* ensure full height */
+    overflow-y: auto;
+}
 .topbar { background:#232428; padding:12px; font-weight:bold; }
-.messages { flex:1; padding:15px; overflow-y:auto; }
 .messageInput { display:flex; padding:10px; background:#2b2d31; }
 .messageInput input { flex:1; padding:10px; border:none; border-radius:6px; }
 .messageInput button { margin-left:10px; padding:10px 15px; border:none; border-radius:6px; background:#5865f2; color:white; cursor:pointer; }
@@ -84,6 +114,26 @@ button:hover { opacity:0.9; }
 .status-online { background: #23a559; }
 .status-idle { background: #f0b232; }
 .status-offline { background: #80848e; }
+
+
+.profilePreviewAvatar {
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    margin-bottom:10px;
+}
+
+.profileSection {
+    margin-bottom:15px;
+    font-size:0.9em;
+    opacity:0.9;
+}
+
+.profileLabel {
+    font-size:0.75em;
+    opacity:0.6;
+    margin-bottom:3px;
+}
 </style>
 </head>
 <body>
@@ -132,7 +182,7 @@ button:hover { opacity:0.9; }
         <button onclick="createServer()">Create Server</button>
     </div>
 
-    <div id="ownUser" class="hidden">
+    <div id="ownUser" class="hidden" onclick="openOwnProfile()">
         <div class="avatarWrapper">
             <img class="avatar" id="ownAvatar" src="">
             <span id="ownStatusDot" class="statusDot status-online"></span>
@@ -145,10 +195,91 @@ button:hover { opacity:0.9; }
 <div class="chatArea">
 <div class="topbar" id="chatHeader">Select a user or server</div>
 <div class="messages" id="messages">Loading messages...</div>
-<div class="messageInput">
-<input type="text" id="messageInput" placeholder="Message">
-<button onclick="sendMessage()">Send</button>
+<!-- Image preview above input -->
+<div id="imageAttachmentPreview" style="
+    display:none;
+    position:relative;
+    width:120px;
+    height:120px;
+    margin-bottom:5px;
+">
+    <img id="attachedImage" style="
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        border-radius:6px;
+    ">
+    <button id="removeAttachmentBtn" style="
+        position:absolute;
+        top:2px;
+        right:2px;
+        background:red;
+        color:white;
+        border:none;
+        border-radius:50%;
+        width:20px;
+        height:20px;
+        cursor:pointer;
+        font-weight:bold;
+        line-height:16px;
+        padding:0;
+    ">×</button>
 </div>
+
+<!-- Message input row -->
+<div style="display:flex; align-items:center; gap:5px;">
+    <button id="uploadImageBtn" type="button" style="
+        padding:10px;
+        border-radius:6px;
+        border:none;
+        background:#5865f2;
+        color:white;
+        cursor:pointer;
+    ">📎</button>
+    <input type="text" id="messageInput" placeholder="Message" style="
+        flex:1; 
+        padding:10px; 
+        border-radius:6px; 
+        border:none;
+    ">
+    <button onclick="sendMessage()" style="
+        padding:10px 15px; 
+        border-radius:6px; 
+        border:none; 
+        background:#5865f2; 
+        color:white; 
+        cursor:pointer;
+    ">Send</button>
+    <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
+</div>
+</div>
+<div class="rightSidebar" id="rightSidebar">
+    <div style="text-align:center;">
+        <div class="avatarWrapper" style="display:inline-block;">
+            <img id="profileAvatar" class="profilePreviewAvatar" src="">
+            <span id="profileStatus" class="statusDot status-offline"></span>
+        </div>
+    </div>
+
+    <div class="profileSection">
+        <div class="profileLabel">DISPLAY NAME</div>
+        <div id="profileDisplay"></div>
+    </div>
+
+    <div class="profileSection">
+        <div class="profileLabel">USERNAME</div>
+        <div id="profileUsername"></div>
+    </div>
+
+    <div class="profileSection">
+        <div class="profileLabel">ABOUT</div>
+        <div id="profileAbout"></div>
+    </div>
+
+    <div class="profileSection">
+        <div class="profileLabel">CREATED</div>
+        <div id="profileCreated"></div>
+    </div>
 </div>
 </div>
 
@@ -161,7 +292,110 @@ let showDMList = true;
 let sendingMessages = []; // array of {id, element}
 const unreadMap = new Map(); // key: userId, value: boolean
 const notifAudio = new Audio("https://tggamesyt.dev/assets/tgcord.mp3");
+// Variables to store selected image and its direct URL
+let attachedImageFile = null;
+let attachedImageUrl = null;
 
+// Elements
+const uploadBtn = document.getElementById("uploadImageBtn");
+const fileInput = document.getElementById("imageFileInput");
+const previewDiv = document.getElementById("imageAttachmentPreview");
+const attachedImgEl = document.getElementById("attachedImage");
+const removeBtn = document.getElementById("removeAttachmentBtn");
+
+// Open file picker
+uploadBtn.addEventListener("click", () => {
+    fileInput.value = "";
+    fileInput.click();
+});
+
+// Handle file selection
+fileInput.addEventListener("change", () => {
+    if (!fileInput.files.length) return;
+    attachedImageFile = fileInput.files[0];
+    uploadAndPreview(attachedImageFile);
+});
+
+// Remove attachment
+removeBtn.addEventListener("click", () => {
+    attachedImageFile = null;
+    attachedImageUrl = null;
+    previewDiv.style.display = "none";
+    attachedImgEl.src = "";
+});
+
+// Upload image to PostImages and show preview
+async function uploadAndPreview(file) {
+    previewDiv.style.display = "block";
+    attachedImgEl.src = ""; // clear while uploading
+    attachedImgEl.style.opacity = "0.5";
+
+    const formData = new FormData();
+    formData.append("gallery", "");
+    formData.append("optsize", "0");
+    formData.append("expire", "0");
+    formData.append("numfiles", "1");
+    formData.append("upload_session", Date.now() + "." + Math.random());
+    formData.append("file", file);
+
+    try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://postimages.org/json");
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+        xhr.onload = async function () {
+            if (xhr.status !== 200) {
+                alert("Upload failed");
+                return;
+            }
+
+            const resp = JSON.parse(xhr.responseText);
+            let pageUrl = resp.url.split("/").slice(0, 4).join("/");
+
+            // Use CORS proxy
+            const proxyUrl = "https://proxy.corsfix.com?" + pageUrl;
+            const pageResp = await fetch(proxyUrl);
+            const html = await pageResp.text();
+
+            const match = html.match(/https:\/\/i\.postimg\.cc\/[^\s"'<>]+/i);
+            if (match) {
+                attachedImageUrl = match[0];
+                attachedImgEl.src = attachedImageUrl;
+                attachedImgEl.style.opacity = "1";
+            } else {
+                alert("Direct URL not found");
+                attachedImageUrl = null;
+            }
+        };
+        xhr.send(formData);
+    } catch (e) {
+        console.error("Upload error", e);
+        alert("Upload error");
+    }
+}
+
+// Override sendMessage to append image URL
+const originalSendMessage = sendMessage;
+sendMessage = async function () {
+    let msg = document.getElementById("messageInput").value.trim();
+    if (!msg && !attachedImageUrl) return;
+
+    // Append image URL if attached
+    if (attachedImageUrl) {
+        msg = msg ? msg + "\n" + attachedImageUrl : attachedImageUrl;
+    }
+
+    // Clear attachment
+    attachedImageFile = null;
+    attachedImageUrl = null;
+    previewDiv.style.display = "none";
+    attachedImgEl.src = "";
+
+    // Put text into input temporarily to reuse existing sendMessage
+    document.getElementById("messageInput").value = msg;
+    await originalSendMessage();
+};
 
 /* ================== SERVER DETECT ================== */
 async function detectServer(input){
@@ -485,13 +719,19 @@ async function loadServers(){
 function selectUser(user){
     selectedUser = user;
     selectedServer = null;
-    document.getElementById("chatHeader").innerText = user.nickname || user.username;
-    document.getElementById("messages").innerHTML='<div style="opacity:0.5; text-align:center;">Loading messages...</div>';
+
+    document.getElementById("chatHeader").innerText =
+        user.nickname || user.username;
+
+    document.getElementById("messages").innerHTML =
+        '<div style="opacity:0.5; text-align:center;">Loading messages...</div>';
+
     lastTimestamp = 0;
 
-    // Clear unread indicator
     unreadMap.set(user.id, false);
     clearUnreadBadge(user.id);
+
+    showProfileOnRight(user); // 👈 NEW
 }
 
 /* ================== SERVER ================== */
@@ -704,6 +944,88 @@ function clearUnreadBadge(userId) {
         }
     }
 }
+async function downloadUpdatedAccount(){
+    const password = prompt("Enter your password to re-encrypt:");
+
+    if(!password) return;
+
+    const encrypted = await encryptAccount(account, password);
+
+    const blob = new Blob(
+        [JSON.stringify(encrypted)],
+        { type: "application/json" }
+    );
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = account.username + ".tgcord";
+    link.click();
+}
+function saveProfileChanges(){
+    account.nickname = document.getElementById("editNick").value;
+    account.about = document.getElementById("editAbout").value;
+    account.avatar = document.getElementById("editAvatar").value;
+
+    document.getElementById("ownName").innerText =
+        account.nickname || account.username;
+
+    document.getElementById("ownAvatar").src =
+        account.avatar ||
+        'https://api.dicebear.com/9.x/initials/svg?seed=' +
+        encodeURIComponent(account.nickname || account.username);
+
+    showProfileOnRight(account);
+}
+function openOwnProfile(){
+    selectedUser = null;
+    selectedServer = null;
+
+    document.getElementById("chatHeader").innerText =
+        "Edit Your Profile";
+
+    document.getElementById("messages").innerHTML = `
+        <div style="padding:20px;">
+            <label>Nickname</label><br>
+            <input id="editNick" value="${account.nickname || ''}"><br><br>
+
+            <label>About</label><br>
+            <input id="editAbout" value="${account.about || ''}"><br><br>
+
+            <label>Avatar URL</label><br>
+            <input id="editAvatar" value="${account.avatar || ''}"><br><br>
+
+            <button onclick="saveProfileChanges()">Save Changes</button>
+            <button onclick="downloadUpdatedAccount()">Download .tgcord</button>
+        </div>
+    `;
+
+    showProfileOnRight(account); // preview
+}
+function showProfileOnRight(user) {
+    document.getElementById("profileDisplay").innerText =
+        user.nickname || user.username;
+
+    document.getElementById("profileUsername").innerText =
+        user.username;
+
+    document.getElementById("profileAbout").innerText =
+        user.about || "No bio yet.";
+
+    document.getElementById("profileAvatar").src =
+        user.avatar ||
+        'https://api.dicebear.com/9.x/initials/svg?seed=' +
+        encodeURIComponent(user.nickname || user.username);
+
+    document.getElementById("profileStatus").className =
+        "statusDot status-" + (user.status || "offline");
+
+    // creation date from UUID timestamp not possible
+    // so fallback if server sends createdAt
+    document.getElementById("profileCreated").innerText =
+        user.created
+            ? formatSmartTimestamp(user.created)
+            : "Unknown";
+}
 
 /* ================== CREATE SERVER ================== */
 async function createServer(){
@@ -787,6 +1109,10 @@ document.addEventListener("visibilitychange", () => {
             status
         })
     });
+    const dot = document.getElementById("ownStatusDot");
+        if (dot) {
+            dot.className = "statusDot status-" + status;
+        }
 });
 
 </script>

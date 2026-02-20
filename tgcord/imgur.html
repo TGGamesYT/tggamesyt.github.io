@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Postimages Direct Link (CORS Bypass)</title>
+  <style>
+    #progressContainer {
+      width: 400px;
+      height: 20px;
+      border: 1px solid #aaa;
+      margin-top: 10px;
+      display: none;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.2s;
+    }
+    #uploadedImage {
+      margin-top: 10px;
+      max-width: 400px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<button id="uploadBtn">Select & Upload Image</button>
+
+<div id="progressContainer">
+  <div id="progressBar"></div>
+</div>
+
+<h3>Direct Image URL:</h3>
+<pre id="directUrl"></pre>
+<img id="uploadedImage">
+
+<script>
+const uploadBtn = document.getElementById("uploadBtn");
+const directUrlEl = document.getElementById("directUrl");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const uploadedImage = document.getElementById("uploadedImage");
+
+// Hidden file input
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = "image/*";
+fileInput.style.display = "none";
+document.body.appendChild(fileInput);
+
+// Button opens file picker
+uploadBtn.addEventListener("click", () => {
+  fileInput.value = "";
+  fileInput.click();
+});
+
+// Auto upload when file selected
+fileInput.addEventListener("change", () => {
+  if (!fileInput.files.length) return;
+  uploadImage(fileInput.files[0]);
+});
+
+async function uploadImage(file) {
+  directUrlEl.textContent = "";
+  uploadedImage.style.display = "none";
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+
+  const formData = new FormData();
+  formData.append("gallery", "");
+  formData.append("optsize", "0");
+  formData.append("expire", "0");
+  formData.append("numfiles", "1");
+  formData.append("upload_session", Date.now() + "." + Math.random());
+  formData.append("file", file);
+
+  // XMLHttpRequest for upload progress
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://postimages.org/json");
+  xhr.setRequestHeader("Accept", "application/json");
+  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total) * 100;
+      progressBar.style.width = percent + "%";
+    }
+  };
+
+  xhr.onload = async function() {
+    if (xhr.status !== 200) {
+      directUrlEl.textContent = "Upload failed.";
+      return;
+    }
+
+    const uploadJson = JSON.parse(xhr.responseText);
+
+    // Keep only base gallery URL
+    let pageUrl = uploadJson.url.split("/").slice(0, 4).join("/");
+
+    // Fetch page HTML through CORS proxy
+    const proxyUrl = "https://proxy.corsfix.com?" + pageUrl;
+    const pageResp = await fetch(proxyUrl);
+    const html = await pageResp.text();
+
+    // Find the first i.postimg.cc URL (ignore sanitized or reused filenames)
+    const match = html.match(/https:\/\/i\.postimg\.cc\/[^\s"'<>]+/i);
+    if (match) {
+      const directUrl = match[0];
+      directUrlEl.textContent = directUrl;
+      uploadedImage.src = directUrl;
+      uploadedImage.style.display = "block";
+    } else {
+      directUrlEl.textContent = "Direct image URL not found.";
+    }
+  };
+
+  xhr.onerror = function() {
+    directUrlEl.textContent = "Upload error.";
+  };
+
+  xhr.send(formData);
+}
+</script>
+
+</body>
+</html>
