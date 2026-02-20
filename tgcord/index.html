@@ -939,6 +939,9 @@ function getavatarlink(account) {
         : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(account.nickname || account.username);
     }
 async function createWebsiteEmbed(url) {
+    if (url.endsWith(")")) {
+        url = url.slice(0, -1); // remove last character
+    }
     try {
         const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
         const data = await res.json();
@@ -1300,6 +1303,63 @@ document.addEventListener("keydown", (e) => {
         eCount = 0; // reset if other key pressed
     }
 });
+
+let rickRollBuffer = "";
+let rickRollPlayed = false;
+const RICK_ROLL_PHRASE = "rick roll";
+
+// Listen globally
+window.addEventListener("keydown", (e) => {
+    // Ignore modifier keys
+    if (e.key.length > 1) return;
+
+    // Add the key to buffer (lowercase)
+    rickRollBuffer += e.key.toLowerCase();
+
+    // Keep buffer length reasonable
+    if (rickRollBuffer.length > 50) {
+        rickRollBuffer = rickRollBuffer.slice(-50);
+    }
+
+    // Check if buffer contains the phrase
+    if (!rickRollPlayed && rickRollBuffer.includes(RICK_ROLL_PHRASE)) {
+        rickRollPlayed = true;
+        playRickRoll();
+    }
+});
+
+function playRickRoll() {
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.top = 0;
+    overlay.style.left = 0;
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.background = "rgba(0,0,0,0.8)";
+    overlay.style.display = "flex";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.style.zIndex = 9999;
+
+    const iframe = document.createElement("iframe");
+    iframe.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1";
+    iframe.width = "560";
+    iframe.height = "315";
+    iframe.frameBorder = "0";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allowFullscreen = true;
+    iframe.style.borderRadius = "8px";
+
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
+
+    // Remove overlay on click
+    overlay.addEventListener("click", () => {
+        overlay.remove();
+        rickRollPlayed = false;
+        rickRollBuffer = ""; // reset buffer so it can trigger again
+    });
+}
 
 </script>
 </body>
