@@ -1,4 +1,4 @@
-const VERSION = "3.0.1";
+const VERSION = "3.0.3";
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -8,6 +8,8 @@ const http = require("http");
 const https = require("https");
 const bcrypt = require("bcrypt");
 const SALT_ROUNDS = 12; // adjust for performance/security
+let presence = new Map(); 
+// userId → { lastSeen: timestamp, status: "online" | "idle" }
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(cors());
@@ -141,6 +143,7 @@ app.post("/login", async (req, res) => {
         };
 
         users.push(user);
+        rebuildCache()
         save("users.json", users);
     } else {
         // 🔐 PASSWORD CHECK
@@ -297,7 +300,15 @@ app.get("/profile/:id", (req, res) => {
     const user = getUserById(req.params.id);
     if (!user) return res.status(404).json({ error: "Not found" });
 
-    res.json(user);
+    res.json({
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        about: user.about,
+        avatar: user.avatar,
+        created: user.created,
+        status: getPresenceStatus(user.id)
+    });
 });
 
 app.get("/users", (req, res) => {
@@ -306,7 +317,9 @@ app.get("/users", (req, res) => {
         username: u.username,
         nickname: u.nickname,
         about: u.about, 
-        avatar: u.avatar
+        avatar: u.avatar,
+        created: u.created,
+        status: getPresenceStatus(u.id)
     })));
 });
 
@@ -350,7 +363,31 @@ app.get("/messages", (req, res) => {
 
     res.json(userMessages);
 });
+app.post("/presence", (req, res) => {
+    const user = requireSession(req, res);
+    if (!user) return;
 
+    const { status } = req.body;
+
+    presence.set(user.id, {
+        lastSeen: Date.now(),
+        status: status === "idle" ? "idle" : "online"
+    });
+
+    res.json({ success: true });
+});
+function getPresenceStatus(userId) {
+    const data = presence.get(userId);
+    if (!data) return "offline";
+
+    const timeout = 45000; // 45 seconds
+
+    if (Date.now() - data.lastSeen > timeout) {
+        return "offline";
+    }
+
+    return data.status;
+}
 /* ===========================
    SERVERS
 =========================== */
@@ -567,5 +604,3 @@ process.on("SIGTERM", () => {
     applyPendingUpdate();
     process.exit(0);
 });
-
-//test update

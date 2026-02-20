@@ -66,7 +66,24 @@ button:hover { opacity:0.9; }
 .messageSending {
     opacity: 0.5;
 }
+.avatarWrapper {
+    position: relative;
+    display: inline-block;
+}
 
+.statusDot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #2b2d31;
+}
+
+.status-online { background: #23a559; }
+.status-idle { background: #f0b232; }
+.status-offline { background: #80848e; }
 </style>
 </head>
 <body>
@@ -116,7 +133,10 @@ button:hover { opacity:0.9; }
     </div>
 
     <div id="ownUser" class="hidden">
-        <img class="avatar" id="ownAvatar" src="">
+        <div class="avatarWrapper">
+            <img class="avatar" id="ownAvatar" src="">
+            <span id="ownStatusDot" class="statusDot status-online"></span>
+        </div>
         <span id="ownName"></span>
         <button id="logoutBtn" onclick="logout()">log out</button>
     </div>
@@ -343,9 +363,9 @@ async function login(){
     });
     const data=await res.json();
     if(!data.success) return alert("Login failed: " + data?.error || "Unknown Error");
-
+    
     sessionId = data.sessionId;
-
+    startPresence(sessionId);
     // Save session in localStorage
     localStorage.setItem("tgcordSessionId", sessionId);
     localStorage.setItem("tgcordAccountId", account.id);
@@ -361,6 +381,30 @@ async function login(){
 
     showDMs();
     pollInterval = setInterval(fetchMessages,3000);
+}
+
+let presenceInterval;
+
+function startPresence(sessionId) {
+    function send(status) {
+        fetch(serverBase + "/presence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, status })
+        });
+
+        const dot = document.getElementById("ownStatusDot");
+        if (dot) {
+            dot.className = "statusDot status-" + status;
+        }
+    }
+
+    presenceInterval = setInterval(() => {
+        const status = document.hidden ? "idle" : "online";
+        send(status);
+    }, 20000);
+
+    send("online");
 }
 
 /* ================== USERS ================== */
@@ -387,31 +431,32 @@ async function showServers(){
 }
 
 async function loadUsers(){
-    const res=await fetch(serverBase+"/users");
-    let users=await res.json();
-    // remove self
-    users = users.filter(u=>u.id!==account.id);
+    const res = await fetch(serverBase+"/users");
+    let users = await res.json();
+    users = users.filter(u => u.id !== account.id);
 
-    const list=document.getElementById("userList");
-    list.innerHTML="";
-    users.forEach(u=>{
+    const list = document.getElementById("userList");
+    list.innerHTML = "";
+
+    users.forEach(u => {
         const div = document.createElement("div");
         div.className = "userCard";
+        div.dataset.userid = u.id;
+
+        const avatar = u.avatar || 
+            'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname);
+
         div.innerHTML = `
-            <div style="position:relative; display:inline-block;">
-                <img class="avatar" src="${u.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname)}">
-                <span class="unreadBadge hidden" style="
-                    position:absolute;
-                    top:0;
-                    right:0;
-                    width:10px;
-                    height:10px;
-                    background:red;
-                    border-radius:50%;
-                "></span>
+            <div class="avatarWrapper">
+                <img class="avatar" src="${avatar}">
+                <span class="statusDot status-${u.status || "offline"}"></span>
+                <span class="unreadBadge hidden"
+                    style="position:absolute;top:0;right:0;width:10px;height:10px;background:red;border-radius:50%;">
+                </span>
             </div>
             ${u.nickname || u.username}
         `;
+
         div.onclick = () => selectUser(u);
         list.appendChild(div);
     });
@@ -459,6 +504,7 @@ function openServer(server){
 
 /* ================== MESSAGES ================== */
 async function sendMessage() {
+    console.log(account)
     if (!showDMList) {
         alert("Server messaging not yet implemented");
         return;
@@ -474,7 +520,8 @@ async function sendMessage() {
     const sendingMsg = {
         from: account.id,
         message: msg,
-        tempId
+        tempId,
+        timestamp: new Date().getTime()
     };
 
     const elem = addMessage(sendingMsg, [account], true);
@@ -557,13 +604,54 @@ async function fetchMessages() {
 
 
     if (firstMessageLoad) firstMessageLoad = false;
+    if (showDMList) {
+        loadUsers(); // refresh statuses
+    }
+}
+
+function formatSmartTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    const isToday =
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    const isYesterday =
+        date.getFullYear() === yesterday.getFullYear() &&
+        date.getMonth() === yesterday.getMonth() &&
+        date.getDate() === yesterday.getDate();
+
+    const timeString = date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit"
+    });
+
+    if (isToday) {
+        return timeString;
+    }
+
+    if (isYesterday) {
+        return `Yesterday at ${timeString}`;
+    }
+
+    return date.toLocaleString([], {
+        month: "numeric",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+    });
 }
 
 function addMessage(msg, allUsers, sending = false) {
     const sender = allUsers.find(u => u.id === msg.from);
     const displayName = sender ? sender.nickname : msg.from;
     const username = sender ? sender.username : msg.from;
-    console.log(sender)
     const avatar = sender ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}` : '';
 
     const container = document.createElement("div");
@@ -574,7 +662,7 @@ function addMessage(msg, allUsers, sending = false) {
         <img class="avatar" src="${avatar}">
         <div class="messageContent">
             <div class="messageHeader">
-                ${displayName} <span class="username">(${username})</span>
+                ${displayName} <span class="username">(${username}) ${formatSmartTimestamp(msg.timestamp)}</span>
             </div>
             <div class="messageText">${msg.message}</div>
         </div>
@@ -659,11 +747,10 @@ window.addEventListener("load", async () => {
     if (storedSession && storedAccountId && serverBase) {
         // Try to restore session
         sessionId = storedSession;
-
+        startPresence(sessionId);
         // Fetch account info from server
         try {
             const res = await fetch(`${serverBase}/profile/${storedAccountId}`);
-            console.log(res)
             if (res.ok) {
                 account = await res.json();
 
@@ -687,6 +774,19 @@ window.addEventListener("load", async () => {
             console.error("Failed to restore session", e);
         }
     }
+});
+
+document.addEventListener("visibilitychange", () => {
+    const status = document.hidden ? "idle" : "online";
+
+    fetch(serverBase + "/presence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            sessionId,
+            status
+        })
+    });
 });
 
 </script>
