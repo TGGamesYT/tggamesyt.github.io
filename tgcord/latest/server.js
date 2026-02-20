@@ -1,43 +1,87 @@
-const express = require("express");                                         const fs = require("fs");
-const path = require("path");                                               const cors = require("cors");
-const crypto = require("crypto");                                           const http = require("http");
-const https = require("https");                                             const bcrypt = require("bcrypt");
-const SALT_ROUNDS = 12; // adjust for performance/security                  const app = express();
-app.use(express.json({ limit: "10mb" }));                                   app.use(cors());
-                                                                            /* ===========================
-   CONFIG + STORAGE                                                         =========================== */
-                                                                            const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);                       
-function load(file, fallback) {                                                 const filePath = path.join(DATA_DIR, file);
-    if (!fs.existsSync(filePath)) {                                                 fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2));
-        return fallback;                                                        }
-    return JSON.parse(fs.readFileSync(filePath));                           }
-                                                                            function save(file, data) {
+const VERSION = "3.0.1";
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const cors = require("cors");
+const crypto = require("crypto");
+const http = require("http");
+const https = require("https");
+const bcrypt = require("bcrypt");
+const SALT_ROUNDS = 12; // adjust for performance/security
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+app.use(cors());
+
+/* ===========================
+   CONFIG + STORAGE
+=========================== */
+
+const DATA_DIR = path.join(__dirname, "data");
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+function load(file, fallback) {
+    const filePath = path.join(DATA_DIR, file);
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2));
+        return fallback;
+    }
+    return JSON.parse(fs.readFileSync(filePath));
+}
+
+function save(file, data) {
     fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
-}                                                                           
-let config = load("config.json", {                                              port: 21280,
-    allowServerCreation: "admin",                                               admins: []
-});                                                                         
-let users = load("users.json", []);                                         let sessions = load("sessions.json", {});
-let messages = load("messages.json", []);                                   let servers = load("servers.json", []);
-                                                                            /* ===========================
-   CACHE LAYER                                                              =========================== */
-                                                                            let userCache = new Map();
-                                                                            function rebuildCache() {
-    userCache.clear();                                                          users.forEach(u => userCache.set(u.id, u));
-}                                                                           
-rebuildCache();                                                             
-/* ===========================                                                 UTIL
-=========================== */                                              
-function generateSession() {                                                    return crypto.randomUUID();
-}                                                                           
-function getUserById(id) {                                                      return userCache.get(id);
-}                                                                           
-function getUserByUsername(username) {                                          return users.find(u => u.username === username);
-}                                                                           
-function requireSession(req, res) {                                             const sessionId = req.body.sessionId || req.query.sessionId;
-    const userId = sessions[sessionId];                                         if (!userId) {
-        res.status(401).json({ error: "Invalid session" });                         return null;
+}
+
+let config = load("config.json", {
+    port: 21280,
+    domain: "redstonemc.net",
+    certFile: "",
+    keyFile: "",
+    autoupdate: false,
+    allowServerCreation: "admin",
+    admins: []
+});
+
+let users = load("users.json", []);
+let sessions = load("sessions.json", {});
+let messages = load("messages.json", []);
+let servers = load("servers.json", []);
+
+/* ===========================
+   CACHE LAYER
+=========================== */
+
+let userCache = new Map();
+
+function rebuildCache() {
+    userCache.clear();
+    users.forEach(u => userCache.set(u.id, u));
+}
+
+rebuildCache();
+
+/* ===========================
+   UTIL
+=========================== */
+
+function generateSession() {
+    return crypto.randomUUID();
+}
+
+function getUserById(id) {
+    return userCache.get(id);
+}
+
+function getUserByUsername(username) {
+    return users.find(u => u.username === username);
+}
+
+function requireSession(req, res) {
+    const sessionId = req.body.sessionId || req.query.sessionId;
+    const userId = sessions[sessionId];
+    if (!userId) {
+        res.status(401).json({ error: "Invalid session" });
+        return null;
     }
     return getUserById(userId);
 }
@@ -54,7 +98,7 @@ app.get("/status", (req, res) => {
         totalServers: servers.length,
         totalMessages: messages.length,
         activeSessions: Object.keys(sessions).length,
-        version: "TGcord-Server-3.0"
+        version: VERSION
     });
 });
 
@@ -68,7 +112,8 @@ app.post("/login", async (req, res) => {
     try {
         account = await decryptAccount(encryptedAccount, password);
     } catch {
-        return res.json({ success: false, error: "Invalid password or file" });                                                                             }
+        return res.json({ success: false, error: "Invalid password or file" });
+    }
 
     if (!account?.id || !account?.username) {
         return res.json({ success: false, error: "Corrupted account data" });
@@ -259,7 +304,9 @@ app.get("/users", (req, res) => {
     res.json(users.map(u => ({
         id: u.id,
         username: u.username,
-        nickname: u.nickname
+        nickname: u.nickname,
+        about: u.about, 
+        avatar: u.avatar
     })));
 });
 
@@ -361,7 +408,8 @@ app.post("/join-server", (req, res) => {
 
 app.post("/server-message", (req, res) => {
     const user = requireSession(req, res);
-    if (!user) return;                                                      
+    if (!user) return;
+
     const { serverId, message } = req.body;
     const server = servers.find(s => s.id === serverId);
 
@@ -398,10 +446,86 @@ app.get("/server-messages", (req, res) => {
     res.json(filtered);
 });
 
+let pendingUpdatePath = null;
+
+function compareVersions(a, b) {
+    const pa = a.split(".").map(Number);
+    const pb = b.split(".").map(Number);
+
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const na = pa[i] || 0;
+        const nb = pb[i] || 0;
+        if (na > nb) return 1;
+        if (na < nb) return -1;
+    }
+    return 0;
+}
+
+function checkForUpdate() {
+    if (!config.autoupdate) return;
+
+    console.log("🔎 Checking for updates...");
+
+    https.get("https://tggamesyt.dev/tgcord/latest/server.js", res => {
+        if (res.statusCode !== 200) {
+            console.log("Update check failed:", res.statusCode);
+            return;
+        }
+
+        let data = "";
+        res.on("data", chunk => data += chunk);
+
+        res.on("end", () => {
+            const match = data.match(/const VERSION = "(.*?)"/);
+
+            if (!match) {
+                console.log("⚠ Could not detect remote version.");
+                return;
+            }
+
+            const remoteVersion = match[1];
+
+            if (compareVersions(remoteVersion, VERSION) <= 0) {
+                console.log("✅ Server is up to date.");
+                return;
+            }
+
+            console.log(`🚀 Update available: ${remoteVersion}`);
+
+            const tempPath = __filename + ".update";
+            fs.writeFileSync(tempPath, data);
+
+            pendingUpdatePath = tempPath;
+
+            console.log("📦 Update staged. Will apply on shutdown.");
+        });
+    }).on("error", err => {
+        console.error("Update request failed:", err.message);
+    });
+}
+function applyPendingUpdate() {
+    if (!pendingUpdatePath) return;
+
+    try {
+        console.log("🛠 Applying update...");
+
+        const backupPath = __filename + ".backup";
+        fs.copyFileSync(__filename, backupPath);
+
+        fs.copyFileSync(pendingUpdatePath, __filename);
+        fs.unlinkSync(pendingUpdatePath);
+
+        console.log("✅ Update applied successfully.");
+    } catch (err) {
+        console.error("❌ Update failed:", err);
+    }
+}
 /* ===========================
    START
 =========================== */
-
+(async () => {
+    await checkForUpdate();
+})();
 if (config.protocol === "https") {
     let certPath = config.certFile;
     let keyPath = config.keyFile;
@@ -430,4 +554,18 @@ if (config.protocol === "https") {
     app.listen(config.port, () => {
         console.log(`TGcord HTTP server running on port ${config.port}`);
     });
-   }
+}
+
+process.on("SIGINT", () => {
+    console.log("Shutting down...");
+    applyPendingUpdate();
+    process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+    console.log("Shutting down...");
+    applyPendingUpdate();
+    process.exit(0);
+});
+
+//test update

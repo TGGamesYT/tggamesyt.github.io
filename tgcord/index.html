@@ -563,6 +563,7 @@ function addMessage(msg, allUsers, sending = false) {
     const sender = allUsers.find(u => u.id === msg.from);
     const displayName = sender ? sender.nickname : msg.from;
     const username = sender ? sender.username : msg.from;
+    console.log(sender)
     const avatar = sender ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}` : '';
 
     const container = document.createElement("div");
