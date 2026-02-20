@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>TGcord</title>
-
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#313338; color:#fff; }
 .container { display:flex; height:100vh; }
@@ -89,7 +89,6 @@ button:hover { opacity:0.9; }
 }
 
 .messageText {
-    white-space: pre-wrap; /* allows line breaks */
     word-wrap: break-word;
     font-size: 0.95em;
 }
@@ -133,6 +132,37 @@ button:hover { opacity:0.9; }
     font-size:0.75em;
     opacity:0.6;
     margin-bottom:3px;
+}
+.messageText .spoiler {
+    background-color: #555;
+    color: #555;
+    cursor: pointer;
+}
+.messageText .spoiler.revealed {
+    color: inherit;
+}
+.messageText img, .messageText video {
+    max-width: 250px;
+    border-radius: 6px;
+}
+a {
+    color: lightblue
+}
+.messageAttachments {
+    display: flex;
+    flex-direction: column;
+    margin-top: 5px;
+    gap: 5px;
+}
+
+.messageAttachments img,
+.messageAttachments video,
+.messageAttachments iframe {
+    max-width: 250px;
+    border-radius: 6px;
+}
+.messageAttachments .embedCard:hover {
+    border-color: #5865f2;
 }
 </style>
 </head>
@@ -764,7 +794,7 @@ async function sendMessage() {
         timestamp: new Date().getTime()
     };
 
-    const elem = addMessage(sendingMsg, [account], true);
+    const elem = await addMessage(sendingMsg, [account], true);
     sendingMessages.push({ tempId, element: elem, message: msg });
 
     messageInput.value = "";
@@ -887,26 +917,163 @@ function formatSmartTimestamp(timestamp) {
         minute: "2-digit"
     });
 }
+function sanitize(str) {
+    const temp = document.createElement('div');
+    temp.textContent = str;
+    return temp.innerHTML;
+}
+function createAvatar(avatarUrl) {
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.src = avatarUrl;
+    return img;
+}
+async function createWebsiteEmbed(url) {
+    try {
+        const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (!data.status || !data.data) return null;
 
-function addMessage(msg, allUsers, sending = false) {
+        const card = document.createElement("a");
+        card.href = url;
+        card.target = "_blank";
+        card.className = "embedCard";
+
+        card.style.display = "flex";
+        card.style.flexDirection = "row";
+        card.style.border = "1px solid #444";
+        card.style.borderRadius = "8px";
+        card.style.padding = "8px";
+        card.style.marginTop = "5px";
+        card.style.textDecoration = "none";
+        card.style.color = "#fff";
+        card.style.maxWidth = "250px";
+
+        const thumbnail = document.createElement("img");
+        thumbnail.src = data.data.image?.url || '';
+        thumbnail.style.width = "60px";
+        thumbnail.style.height = "60px";
+        thumbnail.style.objectFit = "cover";
+        thumbnail.style.borderRadius = "4px";
+        thumbnail.style.marginRight = "8px";
+
+        const info = document.createElement("div");
+        info.style.display = "flex";
+        info.style.flexDirection = "column";
+        info.style.justifyContent = "center";
+
+        const title = document.createElement("div");
+        title.innerText = data.data.title || url;
+        title.style.fontWeight = "bold";
+        title.style.fontSize = "0.85em";
+        title.style.marginBottom = "2px";
+
+        const desc = document.createElement("div");
+        desc.innerText = data.data.description || "";
+        desc.style.fontSize = "0.75em";
+        desc.style.opacity = "0.8";
+
+        info.appendChild(title);
+        info.appendChild(desc);
+
+        card.appendChild(thumbnail);
+        card.appendChild(info);
+
+        return card;
+    } catch (e) {
+        console.error("Embed fetch failed", e);
+        return null;
+    }
+}
+async function extractAttachments(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = text.match(urlRegex) || [];
+    let remainingText = text;
+    const attachments = [];
+
+    for (const url of urls) {
+        let el = null;
+        let removeFromText = false;
+
+        if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+            el = document.createElement("img");
+            el.src = url;
+            removeFromText = true; // remove image URLs from message
+        } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
+            el = document.createElement("video");
+            el.src = url;
+            el.controls = true;
+            removeFromText = true; // remove video URLs from message
+        } else if (url.match(/youtube\.com\/watch\?v=([^\s&]+)/) || url.match(/youtu\.be\/([^\s&]+)/)) {
+            const iframe = document.createElement("iframe");
+            iframe.src = url.replace("watch?v=", "embed/");
+            iframe.width = "250";
+            iframe.height = "150";
+            iframe.frameBorder = "0";
+            iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+            iframe.allowFullscreen = true;
+            el = iframe;
+            removeFromText = true; // optional: remove YouTube link from message text
+        } else {
+            // Generic website embed: fetch metadata
+            el = await createWebsiteEmbed(url);
+            removeFromText = false; // keep generic website URLs in text
+        }
+
+        if (el) {
+            el.style.display = "block";
+            el.style.marginTop = "5px";
+            el.style.maxWidth = "250px";
+            el.style.borderRadius = "6px";
+            attachments.push(el);
+        }
+
+        if (removeFromText) {
+            remainingText = remainingText.replace(url, '').trim();
+        }
+    }
+
+    return { remainingText, attachments };
+}
+async function addMessage(msg, allUsers, sending = false) {
     const sender = allUsers.find(u => u.id === msg.from);
     const displayName = sender ? sender.nickname : msg.from;
     const username = sender ? sender.username : msg.from;
-    const avatar = sender ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}` : '';
+    const avatar = sender
+        ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}`
+        : '';
 
     const container = document.createElement("div");
     container.className = "messageCard";
     if (sending) container.classList.add("messageSending");
 
-    container.innerHTML = `
-        <img class="avatar" src="${avatar}">
-        <div class="messageContent">
-            <div class="messageHeader">
-                ${displayName} <span class="username">(${username}) ${formatSmartTimestamp(msg.timestamp)}</span>
-            </div>
-            <div class="messageText">${msg.message}</div>
-        </div>
-    `;
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "messageContent";
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "messageHeader";
+    header.innerHTML = `${displayName} <span class="username">(${username}) ${formatSmartTimestamp(msg.timestamp)}</span>`;
+    contentDiv.appendChild(header);
+
+    // Message text + attachments
+    const textDiv = document.createElement("div");
+    textDiv.className = "messageText";
+
+    // ✅ Await extractAttachments
+    const { remainingText, attachments } = await extractAttachments(msg.message);
+
+    textDiv.innerHTML = marked.parseInline(sanitize(remainingText));
+    contentDiv.appendChild(textDiv);
+
+    // Attachments container
+    const attachmentsDiv = document.createElement("div");
+    attachmentsDiv.className = "messageAttachments";
+    attachments.forEach(att => attachmentsDiv.appendChild(att));
+    contentDiv.appendChild(attachmentsDiv);
+
+    container.appendChild(createAvatar(avatar));
+    container.appendChild(contentDiv);
 
     const messagesDiv = document.getElementById("messages");
     messagesDiv.appendChild(container);
