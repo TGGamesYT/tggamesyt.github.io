@@ -571,13 +571,21 @@ function download() {
 }
 
 async function createAccount() {
+    const pfpInput = newPfp.value.trim();
+    let pfp = null;
+
+    // 1️⃣ Check extension first
+    if (pfpInput.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+        pfp = pfpInput;
+    } else {
+        pfp = null
+        console.warn("Not a valid image URL by extension");
+    }
+    const pass = newPassword.value;
+    const confirm = confirmPassword.value;
     const username = newName.value;
     const nick = newNick.value;
     const about = newAbout.value;
-    const pfp = newPfp.value;
-    const pass = newPassword.value;
-    const confirm = confirmPassword.value;
-
     if (pass !== confirm) {
         return alert("Passwords do not match");
     }
@@ -641,8 +649,7 @@ async function login(){
 
     document.getElementById("ownUser").classList.remove("hidden");
     document.getElementById("ownName").innerText = account.nickname || account.username;
-    document.getElementById("ownAvatar").src = account.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(account.nickname||account.username);
-
+    document.getElementById("ownAvatar").src = getavatarlink(account)
     showDMs();
     pollInterval = setInterval(fetchMessages,3000);
 }
@@ -707,8 +714,7 @@ async function loadUsers(){
         div.className = "userCard";
         div.dataset.userid = u.id;
 
-        const avatar = u.avatar || 
-            'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(u.nickname);
+        const avatar = getavatarlink(u)
 
         div.innerHTML = `
             <div class="avatarWrapper">
@@ -774,7 +780,6 @@ function openServer(server){
 
 /* ================== MESSAGES ================== */
 async function sendMessage() {
-    console.log(account)
     if (!showDMList) {
         alert("Server messaging not yet implemented");
         return;
@@ -928,6 +933,11 @@ function createAvatar(avatarUrl) {
     img.src = avatarUrl;
     return img;
 }
+function getavatarlink(account) {
+    return (account.avatar && account.avatar.match(/\.(jpeg|jpg|gif|png|webp)$/i)) 
+        ? account.avatar 
+        : 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(account.nickname || account.username);
+    }
 async function createWebsiteEmbed(url) {
     try {
         const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
@@ -1039,9 +1049,7 @@ async function addMessage(msg, allUsers, sending = false) {
     const sender = allUsers.find(u => u.id === msg.from);
     const displayName = sender ? sender.nickname : msg.from;
     const username = sender ? sender.username : msg.from;
-    const avatar = sender
-        ? sender.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}`
-        : '';
+    const avatar = getavatarlink(sender);
 
     const container = document.createElement("div");
     container.className = "messageCard";
@@ -1136,10 +1144,7 @@ function saveProfileChanges(){
     document.getElementById("ownName").innerText =
         account.nickname || account.username;
 
-    document.getElementById("ownAvatar").src =
-        account.avatar ||
-        'https://api.dicebear.com/9.x/initials/svg?seed=' +
-        encodeURIComponent(account.nickname || account.username);
+    document.getElementById("ownAvatar").src = getavatarlink(account)
 
     showProfileOnRight(account);
 }
@@ -1179,9 +1184,7 @@ function showProfileOnRight(user) {
         user.about || "No bio yet.";
 
     document.getElementById("profileAvatar").src =
-        user.avatar ||
-        'https://api.dicebear.com/9.x/initials/svg?seed=' +
-        encodeURIComponent(user.nickname || user.username);
+        getavatarlink(user)
 
     document.getElementById("profileStatus").className =
         "statusDot status-" + (user.status || "offline");
@@ -1249,7 +1252,7 @@ window.addEventListener("load", async () => {
 
                 document.getElementById("ownUser").classList.remove("hidden");
                 document.getElementById("ownName").innerText = account.nickname || account.username;
-                document.getElementById("ownAvatar").src = account.avatar || 'https://api.dicebear.com/9.x/initials/svg?seed='+encodeURIComponent(account.nickname||account.username);
+                document.getElementById("ownAvatar").src = getavatarlink(account)
 
                 showDMs();
                 pollInterval = setInterval(fetchMessages, 3000);
