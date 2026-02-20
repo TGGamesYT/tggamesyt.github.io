@@ -1285,6 +1285,22 @@ document.addEventListener("visibilitychange", () => {
         }
 });
 
+let eCount = 0;
+const threshold = 50;
+const eSound = new Audio("https://tggamesyt.dev/assets/e.mp3");
+
+document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "e") {
+        eCount++;
+        if (eCount >= threshold) {
+            eSound.play();
+            eCount = 0; // reset counter
+        }
+    } else {
+        eCount = 0; // reset if other key pressed
+    }
+});
+
 </script>
 </body>
 </html>
