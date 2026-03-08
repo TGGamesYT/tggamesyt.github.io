@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Minecraft Animated Texture Converter</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+<style>
+body{
+font-family:Arial;
+background:#1e1e1e;
+color:white;
+padding:20px;
+}
+
+h1{color:#7cff7c}
+
+input,button{
+margin:5px;
+padding:8px;
+}
+
+canvas{
+background:#000;
+margin-top:10px;
+}
+
+.section{
+border:1px solid #444;
+padding:10px;
+margin-bottom:20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Minecraft Animated Texture Converter</h1>
+
+<div class="section">
+
+<h3>Upload Files</h3>
+
+PNG: <input type="file" id="pngFile"><br>
+MCMeta: <input type="file" id="mcmetaFile"><br>
+GIF: <input type="file" id="gifFile"><br>
+Video: <input type="file" id="videoFile"><br>
+
+</div>
+
+<div class="section">
+
+<h3>Load From URL</h3>
+
+PNG URL <input id="pngUrl" size="50"><br>
+MCMeta URL <input id="metaUrl" size="50"><br>
+
+<button onclick="loadFromURL()">Load</button>
+
+</div>
+
+<div class="section">
+
+<button onclick="convertToGif()">PNG + MCMETA → GIF</button>
+
+<button onclick="convertToMinecraft()">GIF/VIDEO → Minecraft Texture</button>
+
+</div>
+
+<canvas id="preview"></canvas>
+
+<br>
+
+<button onclick="downloadPNG()">Download PNG</button>
+<button onclick="downloadMCMeta()">Download MCMeta</button>
+
+<script>
+
+let canvas=document.getElementById("preview")
+let ctx=canvas.getContext("2d")
+
+let loadedImage=null
+let frametime=1
+let frames=[]
+let frameSize=0
+
+function loadPNG(file){
+
+let img=new Image()
+
+img.onload=()=>{
+
+loadedImage=img
+
+frameSize=img.width
+
+let count=Math.floor(img.height/frameSize)
+
+frames=[]
+
+for(let i=0;i<count;i++){
+frames.push(i)
+}
+
+canvas.width=frameSize
+canvas.height=frameSize
+
+drawFrame(0)
+
+}
+
+img.src=URL.createObjectURL(file)
+
+}
+
+function loadMeta(file){
+
+let reader=new FileReader()
+
+reader.onload=e=>{
+let json=JSON.parse(e.target.result)
+frametime=json.animation?.frametime || 1
+}
+
+reader.readAsText(file)
+
+}
+
+document.getElementById("pngFile").onchange=e=>{
+loadPNG(e.target.files[0])
+}
+
+document.getElementById("mcmetaFile").onchange=e=>{
+loadMeta(e.target.files[0])
+}
+
+async function loadFromURL(){
+
+let png=document.getElementById("pngUrl").value
+let meta=document.getElementById("metaUrl").value
+
+if(png){
+
+let img=new Image()
+img.crossOrigin="anonymous"
+
+img.onload=()=>{
+
+loadedImage=img
+frameSize=img.width
+let count=Math.floor(img.height/frameSize)
+
+frames=[]
+
+for(let i=0;i<count;i++) frames.push(i)
+
+canvas.width=frameSize
+canvas.height=frameSize
+
+drawFrame(0)
+
+}
+
+img.src=png
+
+}
+
+if(meta){
+
+let res=await fetch(meta)
+let json=await res.json()
+
+frametime=json.animation?.frametime || 1
+
+}
+
+}
+
+function drawFrame(i){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+ctx.drawImage(
+loadedImage,
+0,
+i*frameSize,
+frameSize,
+frameSize,
+0,
+0,
+frameSize,
+frameSize
+)
+
+}
+
+function convertToGif(){
+
+if(!loadedImage)return
+
+let fps=20/frametime
+
+let gif=new GIF({
+workers:2,
+quality:10
+})
+
+for(let i=0;i<frames.length;i++){
+
+let c=document.createElement("canvas")
+c.width=frameSize
+c.height=frameSize
+let cctx=c.getContext("2d")
+
+cctx.drawImage(
+loadedImage,
+0,
+i*frameSize,
+frameSize,
+frameSize,
+0,
+0,
+frameSize,
+frameSize
+)
+
+gif.addFrame(c,{delay:1000/fps})
+
+}
+
+gif.on("finished",blob=>{
+
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="animation.gif"
+a.click()
+
+})
+
+gif.render()
+
+}
+
+async function convertToMinecraft(){
+
+let gifFile=document.getElementById("gifFile").files[0]
+let videoFile=document.getElementById("videoFile").files[0]
+
+if(gifFile){
+
+let img=new Image()
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+ctx.drawImage(img,0,0)
+
+}
+
+img.src=URL.createObjectURL(gifFile)
+
+}
+
+if(videoFile){
+
+let video=document.createElement("video")
+video.src=URL.createObjectURL(videoFile)
+
+video.onloadeddata=()=>{
+
+frameSize=video.videoWidth
+
+let fps=20
+
+let duration=video.duration
+let frameCount=Math.floor(duration*fps)
+
+canvas.width=frameSize
+canvas.height=frameSize*frameCount
+
+let off=0
+
+function capture(){
+
+if(video.currentTime>=duration){
+
+alert("Done capturing frames")
+return
+
+}
+
+ctx.drawImage(video,0,off,frameSize,frameSize)
+
+off+=frameSize
+
+video.currentTime+=1/fps
+
+setTimeout(capture,50)
+
+}
+
+capture()
+
+}
+
+}
+
+frametime=1
+
+}
+
+function downloadPNG(){
+
+let a=document.createElement("a")
+a.href=canvas.toDataURL()
+a.download="texture.png"
+a.click()
+
+}
+
+function downloadMCMeta(){
+
+let meta={
+animation:{
+frametime:frametime
+}
+}
+
+let blob=new Blob(
+[JSON.stringify(meta,null,2)],
+{type:"application/json"}
+)
+
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="texture.png.mcmeta"
+a.click()
+
+}
+
+</script>
+
+</body>
+</html>
