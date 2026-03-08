@@ -14,23 +14,29 @@ background:#121212;
 color:white;
 display:flex;
 justify-content:center;
-padding:40px;
+padding:20px;
+margin:0;
 }
 
 .container{
 width:900px;
+max-width:95vw;
 background:#1b1b1b;
 border-radius:12px;
-padding:25px;
+padding:20px;
 box-shadow:0 0 20px rgba(0,0,0,.5);
 }
 
-h1{color:#7cff7c;margin-top:0}
+h1{
+color:#7cff7c;
+margin-top:0;
+font-size:26px;
+}
 
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
-gap:15px;
+gap:14px;
 }
 
 input{
@@ -40,6 +46,13 @@ border-radius:6px;
 border:1px solid #333;
 background:#0f0f0f;
 color:white;
+}
+
+canvas{
+background:black;
+margin-top:18px;
+border-radius:6px;
+max-width:100%;
 }
 
 button{
@@ -52,15 +65,39 @@ color:white;
 cursor:pointer;
 }
 
-button:hover{background:#3c8dff}
-
-canvas{
-background:black;
-margin-top:20px;
-border-radius:6px;
+button:hover{
+background:#3c8dff;
 }
 
-.mode{margin-top:10px;color:#7cff7c}
+.mode{
+margin-top:10px;
+color:#7cff7c;
+font-size:14px;
+}
+
+.status{
+color:#aaa;
+font-size:13px;
+margin-top:4px;
+}
+
+/* MOBILE */
+
+@media (max-width:700px){
+
+h1{
+font-size:22px;
+}
+
+.grid{
+grid-template-columns:1fr;
+}
+
+button{
+width:100%;
+}
+
+}
 
 </style>
 </head>
@@ -100,6 +137,7 @@ Video
 </div>
 
 <div class="mode" id="mode">Waiting for input</div>
+<div class="status" id="status"></div>
 
 <canvas id="preview"></canvas>
 
@@ -121,9 +159,8 @@ let frames=[]
 let frameSize=0
 let frametime=1
 
-let currentFrame=0
-let lastFrameTime=0
-let animationRunning=false
+let animationId=null
+let startTime=0
 
 let gifBlob=null
 
@@ -131,16 +168,34 @@ function setMode(t){
 document.getElementById("mode").innerText=t
 }
 
+function setStatus(t){
+document.getElementById("status").innerText=t
+}
+
+function resetAnimation(){
+
+if(animationId!==null){
+cancelAnimationFrame(animationId)
+animationId=null
+}
+
+}
+
 function parseMeta(text){
 
 try{
 let j=JSON.parse(text)
-frametime=j.animation?.frametime||1
+frametime=j.animation?.frametime || 1
 }catch{}
 
 }
 
 function loadImage(src){
+
+resetAnimation()
+
+gifBlob=null
+setStatus("Loading image...")
 
 let img=new Image()
 img.crossOrigin="anonymous"
@@ -153,19 +208,16 @@ frameSize=img.width
 let count=Math.floor(img.height/frameSize)
 
 frames=[]
-
-for(let i=0;i<count;i++){
-frames.push(i)
-}
+for(let i=0;i<count;i++) frames.push(i)
 
 canvas.width=frameSize
 canvas.height=frameSize
 
+setMode("Minecraft Animation Detected")
+setStatus("Generating GIF...")
+
 startPreview()
-
-autoGenerateGif()
-
-setMode("Minecraft texture detected")
+generateGif()
 
 }
 
@@ -175,32 +227,23 @@ img.src=src
 
 function startPreview(){
 
-animationRunning=true
-currentFrame=0
-lastFrameTime=0
-
-requestAnimationFrame(loop)
-
-}
+startTime=performance.now()
 
 function loop(time){
-
-if(!animationRunning)return
 
 let fps=20/frametime
 let frameDuration=1000/fps
 
-if(time-lastFrameTime>frameDuration){
+let elapsed=time-startTime
+let frameIndex=Math.floor(elapsed/frameDuration)%frames.length
 
-lastFrameTime=time
+drawFrame(frameIndex)
 
-drawFrame(currentFrame)
-
-currentFrame=(currentFrame+1)%frames.length
+animationId=requestAnimationFrame(loop)
 
 }
 
-requestAnimationFrame(loop)
+animationId=requestAnimationFrame(loop)
 
 }
 
@@ -222,11 +265,16 @@ frameSize
 
 }
 
-function autoGenerateGif(){
+function generateGif(){
 
 let fps=20/frametime
+let delay=1000/fps
 
-let gif=new GIF({workers:2,quality:10})
+let gif=new GIF({
+workers:2,
+quality:10,
+workerScript:"https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js"
+})
 
 for(let f of frames){
 
@@ -248,13 +296,13 @@ frameSize,
 frameSize
 )
 
-gif.addFrame(c,{delay:1000/fps})
+gif.addFrame(c,{delay:delay})
 
 }
 
-gif.on("finished",b=>{
-gifBlob=b
-setMode("GIF ready")
+gif.on("finished",blob=>{
+gifBlob=blob
+setStatus("GIF ready")
 })
 
 gif.render()
@@ -292,7 +340,10 @@ frametime:frametime
 }
 }
 
-let blob=new Blob([JSON.stringify(j,null,2)],{type:"application/json"})
+let blob=new Blob(
+[JSON.stringify(j,null,2)],
+{type:"application/json"}
+)
 
 let a=document.createElement("a")
 a.href=URL.createObjectURL(blob)
@@ -300,6 +351,8 @@ a.download="texture.png.mcmeta"
 a.click()
 
 }
+
+/* INPUT HANDLERS */
 
 document.getElementById("pngFile").onchange=e=>{
 loadImage(URL.createObjectURL(e.target.files[0]))
