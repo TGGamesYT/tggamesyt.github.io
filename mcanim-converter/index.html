@@ -2,366 +2,635 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minecraft Animation Converter</title>
-
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/gifshot@0.3.2/build/gifshot.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
 
 <style>
+*{box-sizing:border-box;margin:0;padding:0}
 
-html,body{
-margin:0;
-padding:0;
-height:100%;
-background:#121212;
-font-family:system-ui;
-color:white;
+:root{
+  --green:#5dff5d;
+  --green-dim:#2a7a2a;
+  --dark:#0d0d0d;
+  --panel:#141414;
+  --card:#1a1a1a;
+  --border:#2a2a2a;
+  --accent:#ffcc00;
+  --blue:#4a9eff;
 }
 
-.container{
-width:900px;
-max-width:100%;
-margin:auto;
-background:#1b1b1b;
-border-radius:10px;
-padding:20px;
-box-shadow:0 0 20px rgba(0,0,0,.6);
+html,body{
+  min-height:100%;
+  background:var(--dark);
+  font-family:'Space Mono',monospace;
+  color:#ccc;
+  background-image:
+    linear-gradient(rgba(93,255,93,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(93,255,93,.03) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+
+.header{
+  background:var(--panel);
+  border-bottom:2px solid var(--green-dim);
+  padding:14px 16px 10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.header-icon{
+  width:32px;height:32px;
+  background:var(--green);
+  clip-path:polygon(0 25%,25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%);
+  flex-shrink:0;
+  animation:pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(93,255,93,.4)}
+  50%{box-shadow:0 0 0 8px rgba(93,255,93,0)}
 }
 
 h1{
-margin-top:0;
-color:#7cff7c;
+  font-family:'VT323',monospace;
+  font-size:22px;
+  color:var(--green);
+  letter-spacing:1px;
+  line-height:1;
+  text-shadow:0 0 12px rgba(93,255,93,.4);
 }
 
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:12px;
+.body{
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  max-width:700px;
+  margin:auto;
 }
 
-input{
-width:100%;
-padding:8px;
-border-radius:6px;
-border:1px solid #333;
-background:#0f0f0f;
-color:white;
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:14px;
+  position:relative;
 }
+
+.card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:linear-gradient(90deg,transparent,var(--green-dim),transparent);
+}
+
+.card-label{
+  font-family:'VT323',monospace;
+  font-size:18px;
+  color:var(--green);
+  letter-spacing:2px;
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+
+.input-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+@media(max-width:500px){
+  .input-grid{grid-template-columns:1fr}
+}
+
+.input-group{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.input-group>span{
+  font-size:10px;
+  letter-spacing:2px;
+  color:#666;
+  text-transform:uppercase;
+}
+
+.file-btn{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:var(--panel);
+  border:1px dashed var(--border);
+  border-radius:3px;
+  padding:10px 12px;
+  cursor:pointer;
+  transition:border-color .2s, background .2s;
+  color:#888;
+  font-size:12px;
+  font-family:'Space Mono',monospace;
+}
+
+.file-btn:hover{
+  border-color:var(--green-dim);
+  background:#1f1f1f;
+  color:var(--green);
+}
+
+.file-btn .icon{font-size:18px;flex-shrink:0}
+
+input[type=file]{display:none}
+
+input[type=text]{
+  width:100%;
+  padding:10px 12px;
+  border-radius:3px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:#aaa;
+  font-size:12px;
+  font-family:'Space Mono',monospace;
+  transition:border-color .2s, color .2s;
+  outline:none;
+}
+
+input[type=text]:focus{border-color:var(--green-dim);color:white}
+input[type=text]::placeholder{color:#444}
+
+.btn-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+@media(max-width:500px){.btn-row{grid-template-columns:1fr}}
 
 button{
-margin-top:10px;
-padding:10px 16px;
-border:none;
-border-radius:6px;
-background:#2d7dff;
-color:white;
-cursor:pointer;
+  padding:14px 12px;
+  border:none;
+  border-radius:3px;
+  cursor:pointer;
+  font-family:'VT323',monospace;
+  font-size:18px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  transition:filter .15s, transform .1s, opacity .2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  line-height:1;
 }
 
-button:hover{
-background:#3c8dff;
+button:active{transform:scale(.97)}
+button:disabled{opacity:.35;cursor:not-allowed;filter:none!important;transform:none!important}
+
+.btn-primary{background:var(--green);color:#000;box-shadow:0 2px 0 #2a7a2a,0 0 20px rgba(93,255,93,.15)}
+.btn-primary:hover:not(:disabled){filter:brightness(1.1)}
+.btn-secondary{background:var(--card);color:#aaa;border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:#555;color:white}
+.btn-accent{background:#1a1a00;color:var(--accent);border:1px solid #3a3a00}
+.btn-accent:hover:not(:disabled){border-color:var(--accent);filter:brightness(1.1)}
+
+.status{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-left:3px solid var(--green);
+  border-radius:3px;
+  padding:10px 14px;
+  color:var(--green);
+  font-family:'VT323',monospace;
+  font-size:17px;
+  letter-spacing:1px;
+}
+
+.status.error{border-left-color:#ff5555;color:#ff5555}
+.status.working{border-left-color:var(--accent);color:var(--accent)}
+
+.canvas-wrap{
+  background:repeating-conic-gradient(#1a1a1a 0% 25%,#111 0% 50%) 0 0/16px 16px;
+  border:1px solid var(--border);
+  border-radius:3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px;
+  min-height:80px;
 }
 
 canvas{
-background:black;
-margin-top:15px;
-border-radius:6px;
-max-width:100%;
+  max-width:100%;
+  height:auto;
+  border-radius:2px;
+  image-rendering:pixelated;
 }
 
-.mode{
-margin-top:10px;
-color:#7cff7c;
+.canvas-empty{
+  color:#333;
+  font-family:'VT323',monospace;
+  font-size:20px;
+  letter-spacing:2px;
 }
 
-/* PHONE MODE */
-
-@media (max-width:700px){
-
-.container{
-width:100vw;
-height:100vh;
-border-radius:0;
-padding:15px;
-box-sizing:border-box;
-display:flex;
-flex-direction:column;
-overflow:auto;
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{
+  display:inline-block;
+  width:14px;height:14px;
+  border:2px solid currentColor;
+  border-top-color:transparent;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  vertical-align:middle;
+  margin-right:4px;
 }
-
-.grid{
-grid-template-columns:1fr;
-}
-
-button{
-width:100%;
-padding:14px;
-font-size:16px;
-}
-
-canvas{
-width:100%;
-height:auto;
-}
-
-}
-
 </style>
 </head>
-
 <body>
 
-<div class="container">
-
-<h1>Minecraft Animation Converter</h1>
-
-<div class="grid">
-
-<div>
-PNG
-<input type="file" id="pngFile">
-<input type="text" id="pngUrl" placeholder="PNG URL">
+<div class="header">
+  <div class="header-icon"></div>
+  <h1>MC Animation Converter</h1>
 </div>
 
-<div>
-.mcmeta
-<input type="file" id="metaFile">
-<input type="text" id="metaUrl" placeholder="mcmeta URL">
-</div>
+<div class="body">
 
-<div>
-GIF
-<input type="file" id="gifFile">
-</div>
+  <!-- PNG + mcmeta -->
+  <div class="card">
+    <div class="card-label">🖼️ PNG Spritesheet + mcmeta</div>
+    <div class="input-grid">
 
-<div>
-Video
-<input type="file" id="videoFile">
-</div>
+      <div class="input-group">
+        <span>PNG Texture</span>
+        <label class="file-btn" for="pngFile">
+          <span class="icon">🖼️</span> Choose PNG
+        </label>
+        <input type="file" id="pngFile" accept="image/png">
+        <input type="text" id="pngUrl" placeholder="or paste PNG URL…">
+      </div>
 
-</div>
+      <div class="input-group">
+        <span>.mcmeta File</span>
+        <label class="file-btn" for="metaFile">
+          <span class="icon">📄</span> Choose .mcmeta
+        </label>
+        <input type="file" id="metaFile">
+        <input type="text" id="metaUrl" placeholder="or paste mcmeta URL…">
+      </div>
 
-<br>
+    </div>
+  </div>
 
-<button onclick="convertToGif()">Convert → GIF</button>
-<button onclick="downloadGif()">Download GIF</button>
+  <!-- GIF + Video -->
+  <div class="card">
+    <div class="card-label">🎞️ GIF / Video → PNG + mcmeta</div>
+    <div class="input-grid">
 
-<br>
+      <div class="input-group">
+        <span>GIF Source</span>
+        <label class="file-btn" for="gifFile">
+          <span class="icon">🎞️</span> Choose GIF
+        </label>
+        <input type="file" id="gifFile" accept="image/gif">
+        <input type="text" id="gifUrl" placeholder="or paste GIF URL…">
+      </div>
 
-<button onclick="downloadPNG()">Download PNG</button>
-<button onclick="downloadMCMeta()">Download .mcmeta</button>
+      <div class="input-group">
+        <span>Video Source</span>
+        <label class="file-btn" for="videoFile">
+          <span class="icon">🎬</span> Choose Video
+        </label>
+        <input type="file" id="videoFile" accept="video/*">
+        <input type="text" id="videoUrl" placeholder="or paste Video URL…">
+      </div>
 
-<div class="mode" id="mode">Waiting for input</div>
+    </div>
+  </div>
 
-<canvas id="preview"></canvas>
+  <!-- Status -->
+  <div class="status" id="mode">▌ Waiting for input…</div>
+
+  <!-- Downloads — shown after conversion -->
+  <div class="card" id="downloadCard" style="display:none">
+    <div class="card-label">⬇️ Downloads</div>
+    <div class="btn-row" id="downloadBtns"></div>
+  </div>
+
+  <!-- Preview -->
+  <div class="canvas-wrap">
+    <span class="canvas-empty" id="canvasEmpty">[ NO PREVIEW ]</span>
+    <canvas id="preview" style="display:none"></canvas>
+  </div>
 
 </div>
 
 <script>
+const canvas = document.getElementById("preview")
+const ctx = canvas.getContext("2d")
+const canvasEmpty = document.getElementById("canvasEmpty")
+const downloadCard = document.getElementById("downloadCard")
+const downloadBtns = document.getElementById("downloadBtns")
 
-const canvas=document.getElementById("preview")
-const ctx=canvas.getContext("2d")
+let image = null
+let frames = []
+let frameSize = 0
+let frametime = 1
+let animationId = null
 
-let image=null
-let frames=[]
-let frameSize=0
-let frametime=1
-let animationId=null
-let gifData=null
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function parseMeta(text){
-
-try{
-let j=JSON.parse(text)
-frametime=j.animation?.frametime||1
-}catch{}
-
+function setStatus(msg, type = "") {
+  const el = document.getElementById("mode")
+  el.className = "status" + (type ? " " + type : "")
+  el.innerHTML = (type === "working" ? '<span class="spinner"></span>' : "▌ ") + msg
 }
 
-function stopAnimation(){
-if(animationId) cancelAnimationFrame(animationId)
+function showCanvas() {
+  canvas.style.display = "block"
+  canvasEmpty.style.display = "none"
 }
 
-function loadImage(src){
-
-stopAnimation()
-
-let img=new Image()
-img.crossOrigin="anonymous"
-
-img.onload=()=>{
-
-image=img
-
-frameSize=img.width
-let count=Math.floor(img.height/frameSize)
-
-frames=[]
-
-for(let i=0;i<count;i++) frames.push(i)
-
-canvas.width=frameSize
-canvas.height=frameSize
-
-startPreview()
-
-document.getElementById("mode").innerText="Minecraft texture loaded"
-
+function stopAnimation() {
+  if (animationId) cancelAnimationFrame(animationId)
+  animationId = null
 }
 
-img.src=src
-
+function dlLink(href, filename) {
+  const a = document.createElement("a")
+  a.href = href; a.download = filename; a.click()
 }
 
-function startPreview(){
-
-let start=performance.now()
-
-function loop(time){
-
-let fps=20/frametime
-let frameTime=1000/fps
-
-let frame=Math.floor((time-start)/frameTime)%frames.length
-
-drawFrame(frame)
-
-animationId=requestAnimationFrame(loop)
-
+function showDownloads(buttons) {
+  downloadBtns.innerHTML = ""
+  buttons.forEach(([label, cls, fn]) => {
+    const b = document.createElement("button")
+    b.className = cls; b.textContent = label; b.onclick = fn
+    downloadBtns.appendChild(b)
+  })
+  downloadCard.style.display = "block"
 }
 
-animationId=requestAnimationFrame(loop)
-
+function metaBlob(ft) {
+  return new Blob([JSON.stringify({animation:{frametime:ft}}, null, 2)], {type:"application/json"})
 }
 
-function drawFrame(i){
+// ── Sprite-sheet preview (shared by all modes) ────────────────────────────────
 
-ctx.clearRect(0,0,canvas.width,canvas.height)
-
-ctx.drawImage(
-image,
-0,
-i*frameSize,
-frameSize,
-frameSize,
-0,
-0,
-frameSize,
-frameSize
-)
-
+function startSpritePreview() {
+  stopAnimation()
+  let start = performance.now()
+  function loop(time) {
+    const fps = 20 / frametime
+    const frame = Math.floor((time - start) / (1000 / fps)) % frames.length
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(image, 0, frame * frameSize, frameSize, frameSize, 0, 0, frameSize, frameSize)
+    animationId = requestAnimationFrame(loop)
+  }
+  animationId = requestAnimationFrame(loop)
 }
 
-function convertToGif(){
+// ── PNG mode ──────────────────────────────────────────────────────────────────
 
-if(!image){
-alert("Load a Minecraft animation first")
-return
+function parseMeta(text) {
+  try { frametime = JSON.parse(text).animation?.frametime || 1 } catch {}
 }
 
-let fps=20/frametime
-
-let images=[]
-
-for(let f of frames){
-
-let c=document.createElement("canvas")
-c.width=frameSize
-c.height=frameSize
-
-let cctx=c.getContext("2d")
-
-cctx.drawImage(
-image,
-0,
-f*frameSize,
-frameSize,
-frameSize,
-0,
-0,
-frameSize,
-frameSize
-)
-
-images.push(c.toDataURL())
+function loadPNG(src) {
+  stopAnimation(); image = null
+  const img = new Image()
+  img.crossOrigin = "anonymous"
+  img.onload = () => {
+    image = img
+    frameSize = img.width
+    const count = Math.floor(img.height / frameSize)
+    frames = Array.from({length: count}, (_, i) => i)
+    canvas.width = frameSize; canvas.height = frameSize
+    showCanvas(); startSpritePreview()
+    setStatus(`PNG loaded — ${count} frames`)
+    showDownloads([
+      ["⬇ GIF", "btn-accent", generateAndDownloadGif],
+      ["⬇ PNG", "btn-secondary", () => dlLink(canvas.toDataURL(), "texture.png")],
+      ["⬇ .mcmeta", "btn-secondary", () => {
+        dlLink(URL.createObjectURL(metaBlob(frametime)), "texture.png.mcmeta")
+        setStatus(".mcmeta downloaded!")
+      }],
+    ])
+  }
+  img.onerror = () => setStatus("Failed to load PNG", "error")
+  img.src = src
 }
 
-gifshot.createGIF({
-images:images,
-gifWidth:frameSize,
-gifHeight:frameSize,
-interval:1/fps
-},function(obj){
-
-if(!obj.error){
-gifData=obj.image
-document.getElementById("mode").innerText="GIF generated"
+function generateAndDownloadGif() {
+  if (!image) return
+  setStatus("Generating GIF…", "working")
+  const fps = 20 / frametime
+  const images = frames.map(f => {
+    const c = document.createElement("canvas")
+    c.width = frameSize; c.height = frameSize
+    c.getContext("2d").drawImage(image, 0, f * frameSize, frameSize, frameSize, 0, 0, frameSize, frameSize)
+    return c.toDataURL()
+  })
+  gifshot.createGIF({images, gifWidth:frameSize, gifHeight:frameSize, interval:1/fps}, obj => {
+    if (!obj.error) { dlLink(obj.image, "animation.gif"); setStatus("GIF downloaded!") }
+    else setStatus("GIF error: " + obj.error, "error")
+  })
 }
 
-})
+// ── GIF → spritesheet ─────────────────────────────────────────────────────────
 
+async function loadGIF(src) {
+  stopAnimation(); image = null
+  setStatus("Loading GIF…", "working")
+  try {
+    const buf = await (await fetch(src)).arrayBuffer()
+    decodeGIF(new Uint8Array(buf))
+  } catch(e) {
+    setStatus("Failed to load GIF — CORS may be blocking the URL", "error")
+  }
 }
 
-function downloadGif(){
+function decodeGIF(bytes) {
+  setStatus("Decoding GIF…", "working")
+  try {
+    const gr = new GifReader(bytes)
+    const w = gr.width, h = gr.height
+    const count = gr.numFrames()
 
-if(!gifData){
-alert("Generate the GIF first")
-return
+    const sheet = document.createElement("canvas")
+    sheet.width = w; sheet.height = h * count
+    const sctx = sheet.getContext("2d")
+
+    // comp = the accumulated display canvas (what the screen shows)
+    const comp = document.createElement("canvas")
+    comp.width = w; comp.height = h
+    const cctx = comp.getContext("2d")
+
+    // backup = saved state for disposal method 3 (restore to previous)
+    const backup = document.createElement("canvas")
+    backup.width = w; backup.height = h
+    const bctx = backup.getContext("2d")
+
+    let totalDelay = 0
+
+    for (let i = 0; i < count; i++) {
+      const info = gr.frameInfo(i)
+      totalDelay += (info.delay || 10)
+
+      const fx = info.x || 0
+      const fy = info.y || 0
+      const fw = info.width || w
+      const fh = info.height || h
+
+      // Save backup before drawing (for disposal 3 of the NEXT frame)
+      bctx.clearRect(0, 0, w, h)
+      bctx.drawImage(comp, 0, 0)
+
+      // Decode this frame's patch into a temp canvas
+      const pixels = new Uint8ClampedArray(w * h * 4)
+      gr.decodeAndBlitFrameRGBA(i, pixels)
+      const tmp = document.createElement("canvas")
+      tmp.width = w; tmp.height = h
+      tmp.getContext("2d").putImageData(new ImageData(pixels, w, h), 0, 0)
+
+      // Composite patch onto comp
+      // For disposal 2 on the *previous* frame we already cleared below,
+      // so here we just overdraw the patch region.
+      cctx.drawImage(tmp, fx, fy, fw, fh, fx, fy, fw, fh)
+
+      // Snapshot the fully composited frame into the spritesheet
+      sctx.drawImage(comp, 0, i * h)
+
+      // Now apply THIS frame's disposal for the next iteration
+      const disposal = info.disposal || 0
+      if (disposal === 2) {
+        // Restore to background: clear the patch area
+        cctx.clearRect(fx, fy, fw, fh)
+      } else if (disposal === 3) {
+        // Restore to previous: roll back comp to backup
+        cctx.clearRect(0, 0, w, h)
+        cctx.drawImage(backup, 0, 0)
+      }
+      // disposal 0 or 1: leave comp as-is for next frame
+    }
+
+    // average delay in cs → MC frametime (ticks, 1 tick = 50ms = 5cs)
+    const avgDelayCentisec = totalDelay / count
+    const computedFrametime = Math.max(1, Math.round(avgDelayCentisec / 5))
+
+    frametime = computedFrametime
+    frameSize = w
+    frames = Array.from({length: count}, (_, i) => i)
+    canvas.width = w; canvas.height = h
+    showCanvas()
+
+    const pngUrl = sheet.toDataURL("image/png")
+
+    const sheetImg = new Image()
+    sheetImg.onload = () => { image = sheetImg; startSpritePreview() }
+    sheetImg.src = pngUrl
+
+    setStatus(`GIF decoded — ${count} frames, frametime ${computedFrametime}`)
+
+    showDownloads([
+      ["⬇ PNG Spritesheet", "btn-primary", () => {
+        dlLink(pngUrl, "texture.png"); setStatus("PNG downloaded!")
+      }],
+      ["⬇ .mcmeta", "btn-accent", () => {
+        dlLink(URL.createObjectURL(metaBlob(computedFrametime)), "texture.png.mcmeta")
+        setStatus(".mcmeta downloaded!")
+      }],
+    ])
+  } catch(e) {
+    setStatus("GIF decode error: " + e.message, "error")
+    console.error(e)
+  }
 }
 
-let a=document.createElement("a")
-a.href=gifData
-a.download="animation.gif"
-a.click()
+// ── Video → spritesheet ───────────────────────────────────────────────────────
 
+async function loadVideo(src) {
+  stopAnimation(); image = null
+  setStatus("Loading video…", "working")
+
+  const video = document.createElement("video")
+  video.crossOrigin = "anonymous"
+  video.muted = true; video.playsInline = true; video.preload = "auto"
+  video.onerror = () => setStatus("Failed to load video", "error")
+
+  video.onloadedmetadata = async () => {
+    const duration = video.duration
+    const targetFPS = 20
+    const totalFrames = Math.min(Math.floor(duration * targetFPS), 512)
+    const vw = video.videoWidth, vh = video.videoHeight
+    const size = Math.min(vw, vh)
+
+    const sheet = document.createElement("canvas")
+    sheet.width = size; sheet.height = size * totalFrames
+    const sctx = sheet.getContext("2d")
+
+    for (let i = 0; i < totalFrames; i++) {
+      await new Promise(res => { video.currentTime = i / targetFPS; video.onseeked = res })
+      sctx.drawImage(video, (vw-size)/2, (vh-size)/2, size, size, 0, i*size, size, size)
+      if (i % 20 === 0) setStatus(`Extracting frames… ${i}/${totalFrames}`, "working")
+    }
+
+    frameSize = size; frametime = 1
+    frames = Array.from({length: totalFrames}, (_, i) => i)
+    canvas.width = size; canvas.height = size
+    showCanvas()
+
+    const pngUrl = sheet.toDataURL("image/png")
+
+    const sheetImg = new Image()
+    sheetImg.onload = () => { image = sheetImg; startSpritePreview() }
+    sheetImg.src = pngUrl
+
+    setStatus(`Video converted — ${totalFrames} frames @ 20fps`)
+
+    showDownloads([
+      ["⬇ PNG Spritesheet", "btn-primary", () => {
+        dlLink(pngUrl, "texture.png"); setStatus("PNG downloaded!")
+      }],
+      ["⬇ .mcmeta", "btn-accent", () => {
+        dlLink(URL.createObjectURL(metaBlob(1)), "texture.png.mcmeta")
+        setStatus(".mcmeta downloaded!")
+      }],
+    ])
+  }
+
+  video.src = src; video.load()
 }
 
-function downloadPNG(){
+// ── URL helper — trigger on Enter or blur ─────────────────────────────────────
 
-let a=document.createElement("a")
-a.href=canvas.toDataURL()
-a.download="texture.png"
-a.click()
-
+function urlInput(id, handler) {
+  const el = document.getElementById(id)
+  el.addEventListener("change", e => { if(e.target.value.trim()) handler(e.target.value.trim()) })
+  el.addEventListener("keydown", e => { if(e.key==="Enter" && e.target.value.trim()) handler(e.target.value.trim()) })
 }
 
-function downloadMCMeta(){
+// ── Wire up all inputs ────────────────────────────────────────────────────────
 
-let meta={
-animation:{
-frametime:frametime
+document.getElementById("pngFile").onchange = e => loadPNG(URL.createObjectURL(e.target.files[0]))
+urlInput("pngUrl", loadPNG)
+
+document.getElementById("metaFile").onchange = e => {
+  const r = new FileReader(); r.onload = x => parseMeta(x.target.result); r.readAsText(e.target.files[0])
 }
-}
+urlInput("metaUrl", async url => { try { parseMeta(await (await fetch(url)).text()) } catch {} })
 
-let blob=new Blob([JSON.stringify(meta,null,2)],{type:"application/json"})
+document.getElementById("gifFile").onchange = e => loadGIF(URL.createObjectURL(e.target.files[0]))
+urlInput("gifUrl", loadGIF)
 
-let a=document.createElement("a")
-a.href=URL.createObjectURL(blob)
-a.download="texture.png.mcmeta"
-a.click()
-
-}
-
-document.getElementById("pngFile").onchange=e=>{
-loadImage(URL.createObjectURL(e.target.files[0]))
-}
-
-document.getElementById("pngUrl").onchange=e=>{
-loadImage(e.target.value)
-}
-
-document.getElementById("metaFile").onchange=e=>{
-let r=new FileReader()
-r.onload=x=>parseMeta(x.target.result)
-r.readAsText(e.target.files[0])
-}
-
-document.getElementById("metaUrl").onchange=async e=>{
-let res=await fetch(e.target.value)
-let txt=await res.text()
-parseMeta(txt)
-}
-
+document.getElementById("videoFile").onchange = e => loadVideo(URL.createObjectURL(e.target.files[0]))
+urlInput("videoUrl", loadVideo)
 </script>
-
 </body>
 </html>
