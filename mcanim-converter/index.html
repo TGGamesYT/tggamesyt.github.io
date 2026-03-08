@@ -4,44 +4,38 @@
 <meta charset="UTF-8">
 <title>Minecraft Animation Converter</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gifshot@0.3.2/build/gifshot.min.js"></script>
 
 <style>
 
-body{
-font-family:system-ui;
-background:#121212;
-color:white;
+html,body{
 margin:0;
-padding:15px;
-display:flex;
-justify-content:center;
+padding:0;
+height:100%;
+background:#121212;
+font-family:system-ui;
+color:white;
 }
 
 .container{
 width:900px;
 max-width:100%;
+margin:auto;
 background:#1b1b1b;
-border-radius:12px;
+border-radius:10px;
 padding:20px;
-box-shadow:0 0 20px rgba(0,0,0,.5);
+box-shadow:0 0 20px rgba(0,0,0,.6);
 }
 
 h1{
 margin-top:0;
 color:#7cff7c;
-font-size:26px;
 }
 
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:12px;
-}
-
-label{
-font-size:14px;
-color:#aaa;
 }
 
 input{
@@ -53,19 +47,14 @@ background:#0f0f0f;
 color:white;
 }
 
-.buttons{
-margin-top:15px;
-}
-
 button{
+margin-top:10px;
 padding:10px 16px;
-margin:4px;
 border:none;
 border-radius:6px;
 background:#2d7dff;
 color:white;
 cursor:pointer;
-font-size:14px;
 }
 
 button:hover{
@@ -84,21 +73,19 @@ margin-top:10px;
 color:#7cff7c;
 }
 
-.status{
-font-size:13px;
-color:#aaa;
-}
-
-/* MOBILE */
+/* PHONE MODE */
 
 @media (max-width:700px){
 
 .container{
-padding:16px;
-}
-
-h1{
-font-size:22px;
+width:100vw;
+height:100vh;
+border-radius:0;
+padding:15px;
+box-sizing:border-box;
+display:flex;
+flex-direction:column;
+overflow:auto;
 }
 
 .grid{
@@ -107,13 +94,13 @@ grid-template-columns:1fr;
 
 button{
 width:100%;
-font-size:16px;
 padding:14px;
+font-size:16px;
 }
 
-input{
-font-size:16px;
-padding:12px;
+canvas{
+width:100%;
+height:auto;
 }
 
 }
@@ -125,51 +112,45 @@ padding:12px;
 
 <div class="container">
 
-<h1>Minecraft Animated Texture Converter</h1>
+<h1>Minecraft Animation Converter</h1>
 
 <div class="grid">
 
 <div>
-<label>PNG</label>
+PNG
 <input type="file" id="pngFile">
 <input type="text" id="pngUrl" placeholder="PNG URL">
 </div>
 
 <div>
-<label>.mcmeta</label>
+.mcmeta
 <input type="file" id="metaFile">
 <input type="text" id="metaUrl" placeholder="mcmeta URL">
 </div>
 
 <div>
-<label>GIF</label>
+GIF
 <input type="file" id="gifFile">
-<input type="text" id="gifUrl" placeholder="GIF URL">
 </div>
 
 <div>
-<label>Video</label>
+Video
 <input type="file" id="videoFile">
-<input type="text" id="videoUrl" placeholder="Video URL">
 </div>
 
 </div>
-
-<div class="buttons">
-
-<button onclick="convertToGif()">Convert → GIF</button>
-<button onclick="convertToMinecraft()">Convert → Minecraft Texture</button>
 
 <br>
 
+<button onclick="convertToGif()">Convert → GIF</button>
 <button onclick="downloadGif()">Download GIF</button>
+
+<br>
+
 <button onclick="downloadPNG()">Download PNG</button>
 <button onclick="downloadMCMeta()">Download .mcmeta</button>
 
-</div>
-
 <div class="mode" id="mode">Waiting for input</div>
-<div class="status" id="status"></div>
 
 <canvas id="preview"></canvas>
 
@@ -184,26 +165,8 @@ let image=null
 let frames=[]
 let frameSize=0
 let frametime=1
-
 let animationId=null
-let startTime=0
-
-let gifBlob=null
-
-function setMode(t){
-document.getElementById("mode").innerText=t
-}
-
-function setStatus(t){
-document.getElementById("status").innerText=t
-}
-
-function stopAnimation(){
-if(animationId!==null){
-cancelAnimationFrame(animationId)
-animationId=null
-}
-}
+let gifData=null
 
 function parseMeta(text){
 
@@ -214,11 +177,13 @@ frametime=j.animation?.frametime||1
 
 }
 
+function stopAnimation(){
+if(animationId) cancelAnimationFrame(animationId)
+}
+
 function loadImage(src){
 
 stopAnimation()
-
-gifBlob=null
 
 let img=new Image()
 img.crossOrigin="anonymous"
@@ -231,14 +196,15 @@ frameSize=img.width
 let count=Math.floor(img.height/frameSize)
 
 frames=[]
-for(let i=0;i<count;i++)frames.push(i)
+
+for(let i=0;i<count;i++) frames.push(i)
 
 canvas.width=frameSize
 canvas.height=frameSize
 
-setMode("Texture Loaded")
-
 startPreview()
+
+document.getElementById("mode").innerText="Minecraft texture loaded"
 
 }
 
@@ -248,17 +214,16 @@ img.src=src
 
 function startPreview(){
 
-startTime=performance.now()
+let start=performance.now()
 
 function loop(time){
 
 let fps=20/frametime
-let frameDuration=1000/fps
+let frameTime=1000/fps
 
-let elapsed=time-startTime
-let frameIndex=Math.floor(elapsed/frameDuration)%frames.length
+let frame=Math.floor((time-start)/frameTime)%frames.length
 
-drawFrame(frameIndex)
+drawFrame(frame)
 
 animationId=requestAnimationFrame(loop)
 
@@ -275,7 +240,7 @@ ctx.clearRect(0,0,canvas.width,canvas.height)
 ctx.drawImage(
 image,
 0,
-frames[i]*frameSize,
+i*frameSize,
 frameSize,
 frameSize,
 0,
@@ -289,26 +254,20 @@ frameSize
 function convertToGif(){
 
 if(!image){
-alert("Load a Minecraft texture first")
+alert("Load a Minecraft animation first")
 return
 }
 
-setStatus("Generating GIF...")
-
 let fps=20/frametime
-let delay=1000/fps
 
-let gif=new GIF({
-workers:1,
-quality:10,
-workerScript:"https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js"
-})
+let images=[]
 
 for(let f of frames){
 
 let c=document.createElement("canvas")
 c.width=frameSize
 c.height=frameSize
+
 let cctx=c.getContext("2d")
 
 cctx.drawImage(
@@ -323,60 +282,34 @@ frameSize,
 frameSize
 )
 
-gif.addFrame(c,{delay:delay})
-
+images.push(c.toDataURL())
 }
 
-gif.on("finished",blob=>{
-gifBlob=blob
-setStatus("GIF ready")
+gifshot.createGIF({
+images:images,
+gifWidth:frameSize,
+gifHeight:frameSize,
+interval:1/fps
+},function(obj){
+
+if(!obj.error){
+gifData=obj.image
+document.getElementById("mode").innerText="GIF generated"
+}
+
 })
-
-gif.render()
-
-}
-
-function convertToMinecraft(){
-
-let gifInput=document.getElementById("gifFile").files[0]
-let videoInput=document.getElementById("videoFile").files[0]
-
-if(gifInput){
-
-let img=new Image()
-
-img.onload=()=>{
-
-canvas.width=img.width
-canvas.height=img.height
-
-ctx.drawImage(img,0,0)
-
-setMode("GIF loaded (export as Minecraft texture)")
-}
-
-img.src=URL.createObjectURL(gifInput)
-
-frametime=1
-}
-
-if(videoInput){
-
-setMode("Video conversion not implemented yet")
-
-}
 
 }
 
 function downloadGif(){
 
-if(!gifBlob){
+if(!gifData){
 alert("Generate the GIF first")
 return
 }
 
 let a=document.createElement("a")
-a.href=URL.createObjectURL(gifBlob)
+a.href=gifData
 a.download="animation.gif"
 a.click()
 
@@ -393,13 +326,13 @@ a.click()
 
 function downloadMCMeta(){
 
-let json={
+let meta={
 animation:{
 frametime:frametime
 }
 }
 
-let blob=new Blob([JSON.stringify(json,null,2)],{type:"application/json"})
+let blob=new Blob([JSON.stringify(meta,null,2)],{type:"application/json"})
 
 let a=document.createElement("a")
 a.href=URL.createObjectURL(blob)
@@ -407,8 +340,6 @@ a.download="texture.png.mcmeta"
 a.click()
 
 }
-
-/* INPUT AUTO LOAD */
 
 document.getElementById("pngFile").onchange=e=>{
 loadImage(URL.createObjectURL(e.target.files[0]))
