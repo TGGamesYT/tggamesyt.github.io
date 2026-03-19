@@ -29,10 +29,8 @@
     flex-direction: column;
     align-items: center;
     padding: 40px 20px 60px;
-    position: relative;
     overflow-x: hidden;
   }
-
 
   body::after {
     content: '';
@@ -45,10 +43,7 @@
     z-index: 9998;
   }
 
-  header {
-    text-align: center;
-    margin-bottom: 48px;
-  }
+  header { text-align: center; margin-bottom: 48px; }
 
   h1 {
     font-family: 'Press Start 2P', monospace;
@@ -60,21 +55,10 @@
     animation: flicker 6s infinite;
   }
 
-  .subtitle {
-    margin-top: 16px;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-  }
+  .subtitle { margin-top: 16px; font-size: 11px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
 
   @keyframes flicker {
-    0%,100% { opacity: 1; }
-    92% { opacity: 1; }
-    93% { opacity: 0.7; }
-    94% { opacity: 1; }
-    96% { opacity: 0.85; }
-    97% { opacity: 1; }
+    0%,100%{opacity:1}92%{opacity:1}93%{opacity:.7}94%{opacity:1}96%{opacity:.85}97%{opacity:1}
   }
 
   .workspace {
@@ -85,9 +69,7 @@
     gap: 24px;
   }
 
-  @media (max-width: 680px) {
-    .workspace { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 680px) { .workspace { grid-template-columns: 1fr; } }
 
   .panel {
     background: var(--panel);
@@ -132,57 +114,21 @@
     padding: 20px;
   }
 
-  .drop-zone:hover, .drop-zone.dragover {
-    border-color: var(--accent);
-    background: rgba(0,255,157,0.04);
-  }
-
-  .drop-zone canvas {
-    max-width: 100%;
-    max-height: 300px;
-    image-rendering: pixelated;
-    display: block;
-  }
-
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(0,255,157,0.04); }
+  .drop-zone canvas { max-width: 100%; max-height: 300px; image-rendering: pixelated; display: block; }
   .drop-icon { font-size: 36px; line-height: 1; }
   .drop-text { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
-
   input[type="file"] { display: none; }
 
-  .controls {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+  .controls { margin-top: 20px; display: flex; flex-direction: column; gap: 14px; }
 
-  .control-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
+  .control-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
-  label.ctrl-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    min-width: 120px;
-  }
+  label.ctrl-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; min-width: 120px; }
 
-  input[type="range"] {
-    flex: 1;
-    min-width: 100px;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
+  input[type="range"] { flex: 1; min-width: 100px; accent-color: var(--accent); cursor: pointer; }
 
-  .val-badge {
-    font-size: 11px;
-    color: var(--accent);
-    min-width: 40px;
-    text-align: right;
-  }
+  .val-badge { font-size: 11px; color: var(--accent); min-width: 40px; text-align: right; }
 
   select {
     background: var(--bg);
@@ -194,8 +140,50 @@
     border-radius: 2px;
     cursor: pointer;
     outline: none;
+    flex: 1;
   }
   select:focus { border-color: var(--accent); }
+
+  /* Algorithm version tabs */
+  .algo-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .algo-tab {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+
+  .algo-tab:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .algo-tab.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,157,0.07);
+  }
+
+  .algo-tab.auto-selected::after {
+    content: ' ★';
+    color: var(--accent3);
+    font-size: 9px;
+  }
+
+  .algo-hint {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
 
   .btn {
     font-family: 'Press Start 2P', monospace;
@@ -230,40 +218,18 @@
   }
   .btn-secondary:hover { box-shadow: 0 0 20px rgba(255,60,172,0.4); }
 
-  .stats-bar {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-
+  .stats-bar { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
   .stat { display: flex; flex-direction: column; gap: 4px; }
   .stat-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
   .stat-value { font-size: 14px; color: var(--accent3); font-family: 'Press Start 2P', monospace; }
 
-  /* Output area — flex column, output display fills width at correct ratio */
-  .output-area {
-    width: 100%;
-    min-height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  .output-area { width: 100%; min-height: 220px; display: flex; align-items: center; justify-content: center; }
 
-  .placeholder-msg {
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-align: center;
-  }
+  .placeholder-msg { color: var(--muted); font-size: 11px; letter-spacing: 2px; text-align: center; }
 
-  /* Wrapper that holds the checkerboard + canvas, sized to exact pixel ratio */
   #output-checker {
     display: none;
     position: relative;
-    /* width/height set by JS to match image ratio filling available space */
     background-image:
       linear-gradient(45deg, #1e1e2a 25%, transparent 25%),
       linear-gradient(-45deg, #1e1e2a 25%, transparent 25%),
@@ -275,66 +241,23 @@
     overflow: hidden;
   }
 
-  /* Display canvas fills the checker wrapper exactly */
   #output-display {
-    display: block;
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
     box-shadow: 0 0 40px rgba(0,255,157,0.15);
   }
 
-  .output-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+  .output-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
 
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .toggle-row { display: flex; align-items: center; gap: 10px; }
 
-  .toggle {
-    position: relative;
-    width: 36px;
-    height: 18px;
-    flex-shrink: 0;
-  }
+  .toggle { position: relative; width: 36px; height: 18px; flex-shrink: 0; }
   .toggle input { opacity: 0; width: 0; height: 0; }
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--border);
-    border-radius: 2px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .toggle-slider::after {
-    content: '';
-    position: absolute;
-    left: 2px; top: 2px;
-    width: 14px; height: 14px;
-    background: var(--muted);
-    border-radius: 1px;
-    transition: transform 0.2s, background 0.2s;
-  }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 2px; cursor: pointer; transition: background 0.2s; }
+  .toggle-slider::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; background: var(--muted); border-radius: 1px; transition: transform 0.2s, background 0.2s; }
   .toggle input:checked + .toggle-slider { background: rgba(0,255,157,0.2); }
-  .toggle input:checked + .toggle-slider::after {
-    transform: translateX(18px);
-    background: var(--accent);
-  }
-  .toggle-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    cursor: pointer;
-    user-select: none;
-  }
+  .toggle input:checked + .toggle-slider::after { transform: translateX(18px); background: var(--accent); }
+  .toggle-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; cursor: pointer; user-select: none; }
 </style>
 </head>
 <body>
@@ -346,7 +269,6 @@
 
 <div class="workspace">
 
-  <!-- INPUT PANEL -->
   <div class="panel">
     <div class="panel-label">01 // Input</div>
     <div class="drop-zone" id="drop-zone">
@@ -374,12 +296,19 @@
         <span class="val-badge" id="pixel-size-val">8</span>
       </div>
 
+      <!-- Algorithm version selector -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label class="ctrl-label" style="min-width:unset">ALGORITHM</label>
+        <div class="algo-tabs">
+          <button class="algo-tab" data-v="1" title="Histogram / GCD — best for perfect integer upscales">V1</button>
+          <button class="algo-tab" data-v="2" title="Autocorrelation + NMS — best for fractional scales">V2</button>
+          <button class="algo-tab" data-v="3" title="Autocorrelation + uniform grid — balanced">V3</button>
+        </div>
+        <div class="algo-hint" id="algo-hint">load an image to auto-select</div>
+      </div>
 
       <div class="toggle-row">
-        <label class="toggle">
-          <input type="checkbox" id="remove-bg">
-          <span class="toggle-slider"></span>
-        </label>
+        <label class="toggle"><input type="checkbox" id="remove-bg"><span class="toggle-slider"></span></label>
         <label class="toggle-label" for="remove-bg">Remove background color</label>
       </div>
 
@@ -387,24 +316,18 @@
     </div>
   </div>
 
-  <!-- OUTPUT PANEL -->
-  <div class="panel" id="output-panel">
+  <div class="panel">
     <div class="panel-label">02 // Output</div>
-
     <div class="output-area" id="output-area">
       <p class="placeholder-msg" id="out-placeholder">output appears here<br>after conversion</p>
-      <div id="output-checker">
-        <canvas id="output-display"></canvas>
-      </div>
+      <div id="output-checker"><canvas id="output-display"></canvas></div>
     </div>
-
     <div id="output-stats" class="stats-bar" style="display:none">
       <div class="stat"><span class="stat-label">Pixels</span><span class="stat-value" id="opx">—</span></div>
       <div class="stat"><span class="stat-label">Width</span><span class="stat-value" id="ow">—</span></div>
       <div class="stat"><span class="stat-label">Height</span><span class="stat-value" id="oh">—</span></div>
       <div class="stat"><span class="stat-label">Scale</span><span class="stat-value" id="osc">—</span></div>
     </div>
-
     <div class="output-actions" id="output-actions" style="display:none">
       <button class="btn btn-secondary" id="download-btn">⬇ DOWNLOAD PNG</button>
     </div>
@@ -412,27 +335,24 @@
 
 </div>
 
-<!-- Hidden processing canvases -->
 <canvas id="work-canvas" style="display:none"></canvas>
 <canvas id="output-canvas" style="display:none"></canvas>
 
 <script>
-  // ─── State ───────────────────────────────────────────────────────────────────
   let srcImage = null;
   let resultImageData = null;
   let detectedPixelSize = 1;
+  let selectedVersion = 1; // active algorithm version
 
-  const EDGE_IGNORE = 0.40; // fixed 40%, no slider
+  const EDGE_IGNORE = 0.40;
 
   const workCanvas    = document.getElementById('work-canvas');
   const workCtx       = workCanvas.getContext('2d', { willReadFrequently: true });
-  const outputCanvas  = document.getElementById('output-canvas');   // tiny true-size result
+  const outputCanvas  = document.getElementById('output-canvas');
   const outputCtx     = outputCanvas.getContext('2d', { willReadFrequently: true });
-  const outputDisplay = document.getElementById('output-display');  // scaled display canvas
+  const outputDisplay = document.getElementById('output-display');
   const outputDispCtx = outputDisplay.getContext('2d');
   const outputChecker = document.getElementById('output-checker');
-
-  // ─── UI refs ─────────────────────────────────────────────────────────────────
   const dropZone      = document.getElementById('drop-zone');
   const fileInput     = document.getElementById('file-input');
   const convertBtn    = document.getElementById('convert-btn');
@@ -441,25 +361,39 @@
   const pixelSizeVal  = document.getElementById('pixel-size-val');
   const removeBg      = document.getElementById('remove-bg');
   const manualSizeRow = document.getElementById('manual-size-row');
+  const algoHint      = document.getElementById('algo-hint');
 
-  // ─── UI events ───────────────────────────────────────────────────────────────
-  pixelSizeSlider.addEventListener('input', () => {
-    pixelSizeVal.textContent = pixelSizeSlider.value;
-  });
-
+  pixelSizeSlider.addEventListener('input', () => { pixelSizeVal.textContent = pixelSizeSlider.value; });
   detectMode.addEventListener('change', () => {
     manualSizeRow.style.display = detectMode.value === 'manual' ? 'flex' : 'none';
   });
 
+  // Algorithm tabs
+  document.querySelectorAll('.algo-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedVersion = parseInt(btn.dataset.v);
+      document.querySelectorAll('.algo-tab').forEach(b => { b.classList.remove('active', 'auto-selected'); });
+      btn.classList.add('active');
+      const hints = { 1: 'V1 — histogram/GCD, great for perfect integer scales', 2: 'V2 — autocorrelation + NMS, great for fractional scales', 3: 'V3 — autocorrelation + uniform grid' };
+      algoHint.textContent = hints[selectedVersion];
+    });
+  });
 
-  // ─── File input ───────────────────────────────────────────────────────────────
+  function setAutoVersion(v, reason) {
+    selectedVersion = v;
+    document.querySelectorAll('.algo-tab').forEach(b => { b.classList.remove('active', 'auto-selected'); });
+    const btn = document.querySelector(`.algo-tab[data-v="${v}"]`);
+    btn.classList.add('active', 'auto-selected');
+    algoHint.textContent = `★ auto: ${reason}`;
+  }
+
+  // ─── File loading ─────────────────────────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
   dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
+    e.preventDefault(); dropZone.classList.remove('dragover');
     if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
   });
 
@@ -468,14 +402,14 @@
     const img = new Image();
     img.onload = () => {
       srcImage = img;
-      workCanvas.width  = img.width;
-      workCanvas.height = img.height;
+      workCanvas.width = img.width; workCanvas.height = img.height;
       workCtx.drawImage(img, 0, 0);
       document.getElementById('iw').textContent = img.width;
       document.getElementById('ih').textContent = img.height;
       document.getElementById('input-stats').style.display = 'flex';
       renderDropZoneImage();
       convertBtn.disabled = false;
+      autoSelectVersion(workCtx.getImageData(0, 0, img.width, img.height).data, img.width, img.height);
       URL.revokeObjectURL(url);
     };
     img.src = url;
@@ -487,23 +421,127 @@
     dropZone.querySelector('.drop-icon').style.display = 'none';
     dropZone.querySelector('.drop-text').style.display = 'none';
     const dc = document.createElement('canvas');
-    dc.width  = srcImage.width;
-    dc.height = srcImage.height;
+    dc.width = srcImage.width; dc.height = srcImage.height;
     dc.getContext('2d').drawImage(srcImage, 0, 0);
-    dc.style.maxWidth  = '100%';
-    dc.style.maxHeight = '260px';
+    dc.style.maxWidth = '100%'; dc.style.maxHeight = '260px';
     dc.style.imageRendering = 'pixelated';
     dropZone.appendChild(dc);
   }
 
+  // ─── Auto-select: run all 3, pick whichever gives the smallest output ──────────
+  //
+  // The smallest output is almost always the correct one — over-detection
+  // (too many cells) is the common failure mode. We run each detector + grid
+  // placer on a cheap 1-D edge score pass and compare cols×rows.
+  function autoSelectVersion(data, W, H) {
+    const { colEdge, rowEdge } = buildEdgeScores(data, W, H);
 
-  function getCurrentPixelSize() {
-    if (detectMode.value === 'manual') return parseInt(pixelSizeSlider.value);
-    return detectedPixelSize || parseInt(pixelSizeSlider.value);
+    function outputSize(detectFn, pickFn) {
+      const ps = detectFn(data, W, H);
+      const cols = pickFn(colEdge, W, ps).length - 1;
+      const rows = pickFn(rowEdge, H, ps).length - 1;
+      return { cols, rows, ps };
+    }
+
+    const r1 = outputSize(detectPixelSize_v1, pickBounds_v1);
+    const r2 = outputSize(detectPixelSize_v2, pickBounds_v2);
+    const r3 = outputSize(detectPixelSize_v3, pickBounds_v3);
+
+    const sizes = [
+      { v: 1, size: r1.cols * r1.rows, label: `${r1.cols}×${r1.rows}` },
+      { v: 2, size: r2.cols * r2.rows, label: `${r2.cols}×${r2.rows}` },
+      { v: 3, size: r3.cols * r3.rows, label: `${r3.cols}×${r3.rows}` },
+    ];
+
+    sizes.sort((a, b) => a.size - b.size);
+    const winner = sizes[0];
+    setAutoVersion(winner.v, `smallest output: V${winner.v} → ${winner.label}`);
   }
 
-  // ─── Pixel size detection (autocorrelation) ───────────────────────────────────
-  function detectPixelSize(imgData, width, height) {
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VERSION 1 — Histogram / GCD detector + simple uniform-grid pickBounds
+  // Best for: perfect integer upscales (e.g. 180×260 = 9×13 @ 20×)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  function detectPixelSize_v1(imgData, width, height) {
+    const histogram = new Array(Math.min(width, height) + 1).fill(0);
+
+    const rowStep = Math.max(1, Math.floor(height / 40));
+    for (let y = 0; y < height; y += rowStep) {
+      let runLen = 1;
+      let pr = imgData[(y * width) * 4], pg = imgData[(y * width) * 4 + 1], pb = imgData[(y * width) * 4 + 2];
+      for (let x = 1; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const r = imgData[idx], g = imgData[idx+1], b = imgData[idx+2];
+        if (Math.abs(r-pr) + Math.abs(g-pg) + Math.abs(b-pb) > 15) {
+          if (runLen < histogram.length) histogram[runLen]++;
+          runLen = 1;
+        } else runLen++;
+        pr=r; pg=g; pb=b;
+      }
+      if (runLen < histogram.length) histogram[runLen]++;
+    }
+
+    const colStep = Math.max(1, Math.floor(width / 40));
+    for (let x = 0; x < width; x += colStep) {
+      let runLen = 1;
+      let pr = imgData[x * 4], pg = imgData[x * 4 + 1], pb = imgData[x * 4 + 2];
+      for (let y = 1; y < height; y++) {
+        const idx = (y * width + x) * 4;
+        const r = imgData[idx], g = imgData[idx+1], b = imgData[idx+2];
+        if (Math.abs(r-pr) + Math.abs(g-pg) + Math.abs(b-pb) > 15) {
+          if (runLen < histogram.length) histogram[runLen]++;
+          runLen = 1;
+        } else runLen++;
+        pr=r; pg=g; pb=b;
+      }
+      if (runLen < histogram.length) histogram[runLen]++;
+    }
+
+    let bestLen = 2, bestCount = 0;
+    for (let i = 2; i < histogram.length; i++) {
+      if (histogram[i] > bestCount) { bestCount = histogram[i]; bestLen = i; }
+    }
+
+    const topN = [];
+    for (let i = 2; i < Math.min(histogram.length, 65); i++)
+      if (histogram[i] > 0) topN.push({ len: i, count: histogram[i] });
+    topN.sort((a, b) => b.count - a.count);
+    const top = topN.slice(0, 5).map(x => x.len);
+    if (top.length >= 2) {
+      const g = top.reduce((a, b) => b === 0 ? a : (a % b === 0 ? a : (b % a === 0 ? b : gcd(a, b))));
+      function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+      if (g >= 2) bestLen = g;
+    }
+
+    return Math.max(2, bestLen);
+  }
+
+  function pickBounds_v1(edgeScore, total, period) {
+    const numCells = Math.round(total / period);
+    if (numCells < 1) return [0, total];
+    const bounds = [0];
+    const searchHalf = Math.max(2, Math.round(period * 0.5));
+    for (let i = 1; i < numCells; i++) {
+      const ideal = Math.round(i * total / numCells);
+      const lo = Math.max(1, ideal - searchHalf);
+      const hi = Math.min(total - 1, ideal + searchHalf);
+      let bestPos = ideal, bestScore = -1;
+      for (let p = lo; p <= hi; p++) {
+        if (edgeScore[p] > bestScore) { bestScore = edgeScore[p]; bestPos = p; }
+      }
+      bounds.push(bestPos);
+    }
+    bounds.push(total);
+    return bounds;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VERSION 2 — Autocorrelation detector + NMS pickBounds
+  // Best for: fractional scales (e.g. 360×360 = 39×39 @ ~9.23×)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  function detectPixelSize_v2(imgData, width, height) {
     const maxPeriod = Math.min(Math.floor(Math.min(width, height) / 2), 256);
 
     const hEdge = new Float32Array(width);
@@ -511,13 +549,9 @@
     let rowCount = 0;
     for (let y = 0; y < height; y += rowStep) {
       for (let x = 1; x < width; x++) {
-        const iL = (y * width + x - 1) * 4;
-        const iR = (y * width + x) * 4;
-        const aL = imgData[iL+3] / 255, aR = imgData[iR+3] / 255;
-        hEdge[x] += (Math.abs(imgData[iL]  -imgData[iR])
-                   + Math.abs(imgData[iL+1]-imgData[iR+1])
-                   + Math.abs(imgData[iL+2]-imgData[iR+2])) * Math.min(aL,aR)
-                   + Math.abs(imgData[iL+3]-imgData[iR+3]);
+        const iL = (y * width + x - 1) * 4, iR = (y * width + x) * 4;
+        const aL = imgData[iL+3]/255, aR = imgData[iR+3]/255;
+        hEdge[x] += (Math.abs(imgData[iL]-imgData[iR])+Math.abs(imgData[iL+1]-imgData[iR+1])+Math.abs(imgData[iL+2]-imgData[iR+2]))*Math.min(aL,aR)+Math.abs(imgData[iL+3]-imgData[iR+3]);
       }
       rowCount++;
     }
@@ -528,13 +562,9 @@
     let colCount = 0;
     for (let x = 0; x < width; x += colStep) {
       for (let y = 1; y < height; y++) {
-        const iT = ((y-1)*width+x)*4;
-        const iB = (y*width+x)*4;
+        const iT = ((y-1)*width+x)*4, iB = (y*width+x)*4;
         const aT = imgData[iT+3]/255, aB = imgData[iB+3]/255;
-        vEdge[y] += (Math.abs(imgData[iT]  -imgData[iB])
-                   + Math.abs(imgData[iT+1]-imgData[iB+1])
-                   + Math.abs(imgData[iT+2]-imgData[iB+2])) * Math.min(aT,aB)
-                   + Math.abs(imgData[iT+3]-imgData[iB+3]);
+        vEdge[y] += (Math.abs(imgData[iT]-imgData[iB])+Math.abs(imgData[iT+1]-imgData[iB+1])+Math.abs(imgData[iT+2]-imgData[iB+2]))*Math.min(aT,aB)+Math.abs(imgData[iT+3]-imgData[iB+3]);
       }
       colCount++;
     }
@@ -553,85 +583,40 @@
       return scores;
     }
 
-    const hAC = autocorr(hEdge, width);
-    const vAC = autocorr(vEdge, height);
+    const hAC = autocorr(hEdge, width), vAC = autocorr(vEdge, height);
     const combined = new Float32Array(maxPeriod+1);
     for (let lag = 1; lag <= maxPeriod; lag++) combined[lag] = (hAC[lag]+vAC[lag])/2;
 
     const smoothed = new Float32Array(maxPeriod+1);
     for (let lag = 2; lag <= maxPeriod; lag++) {
-      let sum=0, cnt=0;
-      for (let d=-1; d<=1; d++) {
-        const i=lag+d;
-        if (i>=2&&i<=maxPeriod){sum+=combined[i];cnt++;}
-      }
-      smoothed[lag] = sum/cnt;
+      let sum=0,cnt=0;
+      for (let d=-1;d<=1;d++){const i=lag+d;if(i>=2&&i<=maxPeriod){sum+=combined[i];cnt++;}}
+      smoothed[lag]=sum/cnt;
     }
 
-    let globalMax = 0;
+    let globalMax=0;
     for (let lag=2;lag<=maxPeriod;lag++) if(smoothed[lag]>globalMax) globalMax=smoothed[lag];
-    const threshold = globalMax*0.35;
+    const threshold=globalMax*0.35;
 
     const peaks=[];
     for (let lag=3;lag<maxPeriod;lag++) {
-      if (smoothed[lag]>threshold&&smoothed[lag]>=smoothed[lag-1]&&smoothed[lag]>=smoothed[lag+1])
+      if(smoothed[lag]>threshold&&smoothed[lag]>=smoothed[lag-1]&&smoothed[lag]>=smoothed[lag+1])
         peaks.push({lag,score:smoothed[lag]});
     }
 
-    if (peaks.length===0) {
-      let best=2;
-      for(let lag=2;lag<=maxPeriod;lag++) if(smoothed[lag]>smoothed[best]) best=lag;
-      return Math.max(2,best);
-    }
+    if(peaks.length===0){let best=2;for(let lag=2;lag<=maxPeriod;lag++)if(smoothed[lag]>smoothed[best])best=lag;return Math.max(2,best);}
 
     peaks.sort((a,b)=>a.lag-b.lag);
-    for (let pi=0;pi<peaks.length;pi++) {
+    for(let pi=0;pi<peaks.length;pi++){
       const c=peaks[pi].lag;
-      const hasHarmonic=peaks.some(p=>p!==peaks[pi]&&(
-        Math.abs(p.lag-c*2)<=Math.max(2,c*0.15)||
-        Math.abs(p.lag-c*3)<=Math.max(2,c*0.2)
-      ));
-      if (hasHarmonic||peaks[pi].score>globalMax*0.7) return Math.max(2,c);
+      const hasHarmonic=peaks.some(p=>p!==peaks[pi]&&(Math.abs(p.lag-c*2)<=Math.max(2,c*0.15)||Math.abs(p.lag-c*3)<=Math.max(2,c*0.2)));
+      if(hasHarmonic||peaks[pi].score>globalMax*0.7) return Math.max(2,c);
     }
     peaks.sort((a,b)=>b.score-a.score);
     return Math.max(2,peaks[0].lag);
   }
 
-  // ─── Segmentation ─────────────────────────────────────────────────────────────
-  function segmentImage(imgData, width, height, nominalSize) {
-    const colEdge = new Float32Array(width+1);
-    for (let x=1;x<width;x++) {
-      let diff=0, count=0;
-      const step=Math.max(1,Math.floor(height/100));
-      for (let y=0;y<height;y+=step) {
-        const iL=(y*width+x-1)*4, iR=(y*width+x)*4;
-        const aL=imgData[iL+3],aR=imgData[iR+3];
-        diff+=(Math.abs(imgData[iL]-imgData[iR])+Math.abs(imgData[iL+1]-imgData[iR+1])+Math.abs(imgData[iL+2]-imgData[iR+2]))*(Math.min(aL,aR)/255)+Math.abs(aL-aR);
-        count++;
-      }
-      colEdge[x]=diff/count;
-    }
-
-    const rowEdge = new Float32Array(height+1);
-    for (let y=1;y<height;y++) {
-      let diff=0, count=0;
-      const step=Math.max(1,Math.floor(width/100));
-      for (let x=0;x<width;x+=step) {
-        const iT=((y-1)*width+x)*4, iB=(y*width+x)*4;
-        const aT=imgData[iT+3],aB=imgData[iB+3];
-        diff+=(Math.abs(imgData[iT]-imgData[iB])+Math.abs(imgData[iT+1]-imgData[iB+1])+Math.abs(imgData[iT+2]-imgData[iB+2]))*(Math.min(aT,aB)/255)+Math.abs(aT-aB);
-        count++;
-      }
-      rowEdge[y]=diff/count;
-    }
-
-    return {
-      colBounds: pickBounds(colEdge, width, nominalSize),
-      rowBounds: pickBounds(rowEdge, height, nominalSize)
-    };
-  }
-
-  function pickBounds(edgeScore, total, period) {
+  function pickBounds_v2(edgeScore, total, period) {
     const minSep  = Math.max(2, Math.round(period*0.4));
     const maxGap  = period*1.6;
     const halfWin = Math.max(1, Math.round(period*0.25));
@@ -649,54 +634,166 @@
 
     const peaks=[];
     let windowStart=1;
-    while (windowStart<total) {
+    while(windowStart<total){
       const windowEnd=Math.min(total-1,windowStart+minSep-1);
       let bestPos=-1,bestVal=threshold;
-      for (let i=windowStart;i<=windowEnd;i++) if(smooth[i]>bestVal){bestVal=smooth[i];bestPos=i;}
-      if (bestPos!==-1) {
+      for(let i=windowStart;i<=windowEnd;i++) if(smooth[i]>bestVal){bestVal=smooth[i];bestPos=i;}
+      if(bestPos!==-1){
         const lo=Math.max(1,bestPos-Math.floor(minSep/2));
         const hi=Math.min(total-1,bestPos+Math.floor(minSep/2));
         let isMax=true;
-        for (let i=lo;i<=hi;i++) if(i!==bestPos&&smooth[i]>smooth[bestPos]){isMax=false;break;}
-        if (isMax) peaks.push(bestPos);
+        for(let i=lo;i<=hi;i++) if(i!==bestPos&&smooth[i]>smooth[bestPos]){isMax=false;break;}
+        if(isMax) peaks.push(bestPos);
       }
       windowStart=windowEnd+1;
     }
 
     const all=[0,...peaks,total];
     const filled=[0];
-    for (let i=1;i<all.length;i++) {
+    for(let i=1;i<all.length;i++){
       const prev=all[i-1],curr=all[i],gap=curr-prev;
-      const isLastSegment=(curr===total);
-      // Never gap-fill the trailing remainder between last real peak and image edge.
-      if (!isLastSegment && gap>maxGap) {
+      if(gap>maxGap){
         const needed=Math.round(gap/period)-1;
-        for (let k=1;k<=needed;k++) {
+        for(let k=1;k<=needed;k++){
           const expected=Math.round(prev+k*(gap/(needed+1)));
           const lo=Math.max(prev+minSep,expected-Math.round(period*0.4));
           const hi=Math.min(curr-minSep,expected+Math.round(period*0.4));
-          if (lo>=hi){filled.push(expected);continue;}
+          if(lo>=hi){filled.push(expected);continue;}
           let bestPos=expected,bestVal=-1;
-          for (let p=lo;p<=hi;p++) if(smooth[p]>bestVal){bestVal=smooth[p];bestPos=p;}
+          for(let p=lo;p<=hi;p++) if(smooth[p]>bestVal){bestVal=smooth[p];bestPos=p;}
           filled.push(bestPos);
         }
       }
-      if (curr<total) filled.push(curr);
+      if(curr<total) filled.push(curr);
     }
     filled.push(total);
-    // Drop the last interior boundary if the trailing cell is narrower than
-    // half a period — it's a fractional-scale remainder, not a real pixel.
-    while (filled.length>2 && (total-filled[filled.length-2])<period*0.5)
-      filled.splice(filled.length-2,1);
 
     const merged=[0];
-    for (let i=1;i<filled.length-1;i++) {
+    for(let i=1;i<filled.length-1;i++){
       const prev=merged[merged.length-1],curr=filled[i];
-      if (curr-prev<minSep) { if(smooth[curr]>smooth[prev]) merged[merged.length-1]=curr; }
+      if(curr-prev<minSep){if(smooth[curr]>smooth[prev])merged[merged.length-1]=curr;}
       else merged.push(curr);
     }
     merged.push(total);
     return merged;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VERSION 3 — Autocorrelation detector + uniform-grid pickBounds
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // V3 reuses V2's detector but V1's pickBounds approach
+  function detectPixelSize_v3(imgData, width, height) {
+    return detectPixelSize_v2(imgData, width, height);
+  }
+
+  function pickBounds_v3(edgeScore, total, period) {
+    // NMS-based boundary detection with trailing-trim fix.
+    // This is the version that correctly handles both fractional scales (250x250→16x16)
+    // and perfect integer scales.
+    const minSep  = Math.max(2, Math.round(period * 0.4));
+    const maxGap  = period * 1.6;
+    const halfWin = Math.max(1, Math.round(period * 0.25));
+
+    const smooth = new Float32Array(total + 1);
+    for (let i = 1; i < total; i++) {
+      let s = 0, c = 0;
+      for (let d = -halfWin; d <= halfWin; d++) {
+        const j = i + d;
+        if (j >= 1 && j < total) { s += edgeScore[j]; c++; }
+      }
+      smooth[i] = c > 0 ? s / c : 0;
+    }
+
+    let globalMax = 0;
+    for (let i = 1; i < total; i++) if (smooth[i] > globalMax) globalMax = smooth[i];
+    const threshold = globalMax * 0.08;
+
+    const peaks = [];
+    let windowStart = 1;
+    while (windowStart < total) {
+      const windowEnd = Math.min(total - 1, windowStart + minSep - 1);
+      let bestPos = -1, bestVal = threshold;
+      for (let i = windowStart; i <= windowEnd; i++)
+        if (smooth[i] > bestVal) { bestVal = smooth[i]; bestPos = i; }
+      if (bestPos !== -1) {
+        const lo = Math.max(1, bestPos - Math.floor(minSep / 2));
+        const hi = Math.min(total - 1, bestPos + Math.floor(minSep / 2));
+        let isMax = true;
+        for (let i = lo; i <= hi; i++)
+          if (i !== bestPos && smooth[i] > smooth[bestPos]) { isMax = false; break; }
+        if (isMax) peaks.push(bestPos);
+      }
+      windowStart = windowEnd + 1;
+    }
+
+    const all = [0, ...peaks, total];
+    const filled = [0];
+    for (let i = 1; i < all.length; i++) {
+      const prev = all[i-1], curr = all[i], gap = curr - prev;
+      const isLastSegment = (curr === total);
+      if (!isLastSegment && gap > maxGap) {
+        const needed = Math.round(gap / period) - 1;
+        for (let k = 1; k <= needed; k++) {
+          const expected = Math.round(prev + k * (gap / (needed + 1)));
+          const lo = Math.max(prev + minSep, expected - Math.round(period * 0.4));
+          const hi = Math.min(curr - minSep, expected + Math.round(period * 0.4));
+          if (lo >= hi) { filled.push(expected); continue; }
+          let bestPos = expected, bestVal = -1;
+          for (let p = lo; p <= hi; p++)
+            if (smooth[p] > bestVal) { bestVal = smooth[p]; bestPos = p; }
+          filled.push(bestPos);
+        }
+      }
+      if (curr < total) filled.push(curr);
+    }
+    filled.push(total);
+
+    // Drop trailing cells narrower than half a period (fractional-scale remainder)
+    while (filled.length > 2 && (total - filled[filled.length - 2]) < period * 0.5)
+      filled.splice(filled.length - 2, 1);
+
+    const merged = [0];
+    for (let i = 1; i < filled.length - 1; i++) {
+      const prev = merged[merged.length - 1], curr = filled[i];
+      if (curr - prev < minSep) {
+        if (smooth[curr] > smooth[prev]) merged[merged.length - 1] = curr;
+      } else {
+        merged.push(curr);
+      }
+    }
+    merged.push(total);
+    return merged;
+  }
+
+  // ─── Shared edge score builder ────────────────────────────────────────────────
+  function buildEdgeScores(imgData, width, height) {
+    const colEdge = new Float32Array(width + 1);
+    for (let x = 1; x < width; x++) {
+      let diff=0, count=0;
+      const step=Math.max(1,Math.floor(height/100));
+      for (let y=0;y<height;y+=step) {
+        const iL=(y*width+x-1)*4, iR=(y*width+x)*4;
+        const aL=imgData[iL+3], aR=imgData[iR+3];
+        diff+=(Math.abs(imgData[iL]-imgData[iR])+Math.abs(imgData[iL+1]-imgData[iR+1])+Math.abs(imgData[iL+2]-imgData[iR+2]))*(Math.min(aL,aR)/255)+Math.abs(aL-aR);
+        count++;
+      }
+      colEdge[x]=diff/count;
+    }
+
+    const rowEdge = new Float32Array(height + 1);
+    for (let y = 1; y < height; y++) {
+      let diff=0, count=0;
+      const step=Math.max(1,Math.floor(width/100));
+      for (let x=0;x<width;x+=step) {
+        const iT=((y-1)*width+x)*4, iB=(y*width+x)*4;
+        const aT=imgData[iT+3], aB=imgData[iB+3];
+        diff+=(Math.abs(imgData[iT]-imgData[iB])+Math.abs(imgData[iT+1]-imgData[iB+1])+Math.abs(imgData[iT+2]-imgData[iB+2]))*(Math.min(aT,aB)/255)+Math.abs(aT-aB);
+        count++;
+      }
+      rowEdge[y]=diff/count;
+    }
+    return { colEdge, rowEdge };
   }
 
   // ─── Cell sampling ────────────────────────────────────────────────────────────
@@ -719,10 +816,7 @@
           const idx=(sy*width+sx)*4;
           r+=imgData[idx];g+=imgData[idx+1];b+=imgData[idx+2];a+=imgData[idx+3];count++;
         }
-        if (count===0) {
-          const idx=(cy*width+cx)*4;
-          r=imgData[idx];g=imgData[idx+1];b=imgData[idx+2];a=imgData[idx+3];count=1;
-        }
+        if(count===0){const idx=(cy*width+cx)*4;r=imgData[idx];g=imgData[idx+1];b=imgData[idx+2];a=imgData[idx+3];count=1;}
         rowPixels.push([Math.round(r/count),Math.round(g/count),Math.round(b/count),Math.round(a/count)]);
       }
       pixels.push(rowPixels);
@@ -731,88 +825,81 @@
   }
 
   // ─── Background removal ───────────────────────────────────────────────────────
-  function colorDist(a, b) {
-    return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);
-  }
+  function colorDist(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);}
 
-  function removeBackground(pixels, cols, rows) {
-    const tolerance = 30;
-    // Collect all border-cell colors
+  function removeBackground(pixels,cols,rows){
+    const tolerance=30;
     const borderSamples=[];
-    for (let c=0;c<cols;c++){borderSamples.push(pixels[0][c]);borderSamples.push(pixels[rows-1][c]);}
-    for (let r=1;r<rows-1;r++){borderSamples.push(pixels[r][0]);borderSamples.push(pixels[r][cols-1]);}
-
-    // Find the most common border color by majority voting within tolerance
-    let bestColor=borderSamples[0], bestCount=0;
-    for (const candidate of borderSamples) {
-      if (candidate[3]<10) continue;
+    for(let c=0;c<cols;c++){borderSamples.push(pixels[0][c]);borderSamples.push(pixels[rows-1][c]);}
+    for(let r=1;r<rows-1;r++){borderSamples.push(pixels[r][0]);borderSamples.push(pixels[r][cols-1]);}
+    let bestColor=borderSamples[0],bestCount=0;
+    for(const candidate of borderSamples){
+      if(candidate[3]<10) continue;
       let count=0;
-      for (const s of borderSamples) if(colorDist(candidate,s)<tolerance) count++;
-      if (count>bestCount){bestCount=count;bestColor=candidate;}
+      for(const s of borderSamples) if(colorDist(candidate,s)<tolerance) count++;
+      if(count>bestCount){bestCount=count;bestColor=candidate;}
     }
-
-    return pixels.map(row=>row.map(px=>
-      colorDist(px,bestColor)<tolerance ? [px[0],px[1],px[2],0] : px
-    ));
+    return pixels.map(row=>row.map(px=>colorDist(px,bestColor)<tolerance?[px[0],px[1],px[2],0]:px));
   }
 
-  // ─── Output rendering — fills available width, preserves ratio ───────────────
+  // ─── Output rendering ─────────────────────────────────────────────────────────
   function renderOutputPreview() {
-    if (!resultImageData) return;
-    const cols = outputCanvas.width;
-    const rows = outputCanvas.height;
-
-    // Available width inside the output panel's content area
-    const outputArea = document.getElementById('output-area');
-    const availW = outputArea.clientWidth;
-    const dispH  = Math.round(rows * (availW / cols));
-
-    // Size the checker wrapper to the exact rendered dimensions
-    outputChecker.style.width  = availW + 'px';
-    outputChecker.style.height = dispH  + 'px';
-
-    // outputDisplay canvas always has the pixel-exact internal resolution
-    // but is CSS-stretched to fill the wrapper via width/height:100%
-    outputDisplay.width  = cols;
-    outputDisplay.height = rows;
-
-    // Blit from the true-size hidden canvas
-    outputDispCtx.clearRect(0, 0, cols, rows);
-    outputDispCtx.drawImage(outputCanvas, 0, 0);
+    if(!resultImageData) return;
+    const cols=outputCanvas.width, rows=outputCanvas.height;
+    const availW=document.getElementById('output-area').clientWidth;
+    const dispH=Math.round(rows*(availW/cols));
+    outputChecker.style.width=availW+'px';
+    outputChecker.style.height=dispH+'px';
+    outputDisplay.width=cols; outputDisplay.height=rows;
+    outputDispCtx.clearRect(0,0,cols,rows);
+    outputDispCtx.drawImage(outputCanvas,0,0);
   }
 
-  window.addEventListener('resize', () => { if (resultImageData) renderOutputPreview(); });
+  window.addEventListener('resize', () => { if(resultImageData) renderOutputPreview(); });
 
   // ─── Convert ─────────────────────────────────────────────────────────────────
   convertBtn.addEventListener('click', () => {
-    if (!srcImage) return;
+    if(!srcImage) return;
 
-    const imgData = workCtx.getImageData(0,0,srcImage.width,srcImage.height);
+    const imgData=workCtx.getImageData(0,0,srcImage.width,srcImage.height);
     const data=imgData.data, W=srcImage.width, H=srcImage.height;
 
     let ps;
-    if (detectMode.value==='auto') {
-      ps = detectPixelSize(data,W,H);
-      detectedPixelSize = ps;
-      pixelSizeSlider.value = ps;
-      pixelSizeVal.textContent = ps;
+    if(detectMode.value==='auto'){
+      if(selectedVersion===1) ps=detectPixelSize_v1(data,W,H);
+      else if(selectedVersion===2) ps=detectPixelSize_v2(data,W,H);
+      else ps=detectPixelSize_v3(data,W,H);
+      detectedPixelSize=ps;
+      pixelSizeSlider.value=Math.round(ps);
+      pixelSizeVal.textContent=Math.round(ps);
     } else {
-      ps = parseInt(pixelSizeSlider.value);
+      ps=parseInt(pixelSizeSlider.value);
     }
 
-    const {colBounds,rowBounds} = segmentImage(data,W,H,ps);
-    const cols=colBounds.length-1, rows=rowBounds.length-1;
+    const {colEdge,rowEdge}=buildEdgeScores(data,W,H);
 
-    let pixels = sampleCells(data,W,colBounds,rowBounds);
-    if (removeBg.checked) pixels = removeBackground(pixels,cols,rows);
+    let colBounds, rowBounds;
+    if(selectedVersion===1){
+      colBounds=pickBounds_v1(colEdge,W,ps);
+      rowBounds=pickBounds_v1(rowEdge,H,ps);
+    } else if(selectedVersion===2){
+      colBounds=pickBounds_v2(colEdge,W,ps);
+      rowBounds=pickBounds_v2(rowEdge,H,ps);
+    } else {
+      colBounds=pickBounds_v3(colEdge,W,ps);
+      rowBounds=pickBounds_v3(rowEdge,H,ps);
+    }
+
+    const cols=colBounds.length-1, rows=rowBounds.length-1;
+    let pixels=sampleCells(data,W,colBounds,rowBounds);
+    if(removeBg.checked) pixels=removeBackground(pixels,cols,rows);
 
     outputCanvas.width=cols; outputCanvas.height=rows;
     const outImg=outputCtx.createImageData(cols,rows);
-    for (let row=0;row<rows;row++) for (let col=0;col<cols;col++) {
+    for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){
       const [r,g,b,a]=pixels[row][col];
       const idx=(row*cols+col)*4;
-      outImg.data[idx]=r; outImg.data[idx+1]=g;
-      outImg.data[idx+2]=b; outImg.data[idx+3]=a;
+      outImg.data[idx]=r;outImg.data[idx+1]=g;outImg.data[idx+2]=b;outImg.data[idx+3]=a;
     }
     outputCtx.putImageData(outImg,0,0);
     resultImageData=outImg;
@@ -820,9 +907,8 @@
     document.getElementById('opx').textContent=cols*rows;
     document.getElementById('ow').textContent=cols;
     document.getElementById('oh').textContent=rows;
-    document.getElementById('osc').textContent=`~${ps}×`;
+    document.getElementById('osc').textContent=`~${Math.round(ps)}×`;
     document.getElementById('output-stats').style.display='flex';
-
     document.getElementById('out-placeholder').style.display='none';
     outputChecker.style.display='block';
     document.getElementById('output-actions').style.display='flex';
@@ -832,7 +918,7 @@
 
   // ─── Download ─────────────────────────────────────────────────────────────────
   document.getElementById('download-btn').addEventListener('click', () => {
-    if (!resultImageData) return;
+    if(!resultImageData) return;
     const link=document.createElement('a');
     link.download='pixel-art-converted.png';
     link.href=outputCanvas.toDataURL('image/png');
