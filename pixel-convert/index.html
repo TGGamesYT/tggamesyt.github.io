@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Art Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Press+Start+2P&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --panel: #13131a;
+    --border: #2a2a3a;
+    --accent: #00ff9d;
+    --accent2: #ff3cac;
+    --accent3: #ffe200;
+    --text: #e0e0f0;
+    --muted: #5a5a7a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+
+  body::after {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+    z-index: 9998;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(12px, 3vw, 20px);
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent), 0 0 40px rgba(0,255,157,0.3);
+    letter-spacing: 2px;
+    line-height: 1.6;
+    animation: flicker 6s infinite;
+  }
+
+  .subtitle {
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  @keyframes flicker {
+    0%,100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.7; }
+    94% { opacity: 1; }
+    96% { opacity: 0.85; }
+    97% { opacity: 1; }
+  }
+
+  .workspace {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 680px) {
+    .workspace { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent3));
+  }
+
+  .panel-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0,255,157,0.04);
+  }
+
+  .drop-zone canvas {
+    max-width: 100%;
+    max-height: 300px;
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  .drop-icon { font-size: 36px; line-height: 1; }
+  .drop-text { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+  input[type="file"] { display: none; }
+
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  label.ctrl-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    min-width: 120px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .val-badge {
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0,255,157,0.4);
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { box-shadow: 0 0 30px rgba(0,255,157,0.7); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    box-shadow: 0 0 10px rgba(255,60,172,0.2);
+    font-size: 7px;
+    padding: 8px 14px;
+  }
+  .btn-secondary:hover { box-shadow: 0 0 20px rgba(255,60,172,0.4); }
+
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat { display: flex; flex-direction: column; gap: 4px; }
+  .stat-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .stat-value { font-size: 14px; color: var(--accent3); font-family: 'Press Start 2P', monospace; }
+
+  /* Output area — flex column, output display fills width at correct ratio */
+  .output-area {
+    width: 100%;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .placeholder-msg {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  /* Wrapper that holds the checkerboard + canvas, sized to exact pixel ratio */
+  #output-checker {
+    display: none;
+    position: relative;
+    /* width/height set by JS to match image ratio filling available space */
+    background-image:
+      linear-gradient(45deg, #1e1e2a 25%, transparent 25%),
+      linear-gradient(-45deg, #1e1e2a 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1e1e2a 75%),
+      linear-gradient(-45deg, transparent 75%, #1e1e2a 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  /* Display canvas fills the checker wrapper exactly */
+  #output-display {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    box-shadow: 0 0 40px rgba(0,255,157,0.15);
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 2px;
+    width: 14px; height: 14px;
+    background: var(--muted);
+    border-radius: 1px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: rgba(0,255,157,0.2); }
+  .toggle input:checked + .toggle-slider::after {
+    transform: translateX(18px);
+    background: var(--accent);
+  }
+  .toggle-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    cursor: pointer;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PIXEL ART<br>CONVERTER</h1>
+  <p class="subtitle">upscaled → original resolution</p>
+</header>
+
+<div class="workspace">
+
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <div class="panel-label">01 // Input</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">🖼</div>
+      <div class="drop-text">DROP IMAGE HERE<br>or click to browse</div>
+      <input type="file" id="file-input" accept="image/*">
+    </div>
+    <div id="input-stats" class="stats-bar" style="display:none">
+      <div class="stat"><span class="stat-label">Width</span><span class="stat-value" id="iw">—</span></div>
+      <div class="stat"><span class="stat-label">Height</span><span class="stat-value" id="ih">—</span></div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <label class="ctrl-label">DETECT MODE</label>
+        <select id="detect-mode">
+          <option value="auto">Auto-detect pixel size</option>
+          <option value="manual">Manual pixel size</option>
+        </select>
+      </div>
+
+      <div class="control-row" id="manual-size-row" style="display:none">
+        <label class="ctrl-label">PIXEL SIZE (px)</label>
+        <input type="range" id="pixel-size" min="2" max="64" value="8">
+        <span class="val-badge" id="pixel-size-val">8</span>
+      </div>
+
+
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="remove-bg">
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-label" for="remove-bg">Remove background color</label>
+      </div>
+
+      <button class="btn btn-primary" id="convert-btn" disabled>▶ CONVERT</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="panel" id="output-panel">
+    <div class="panel-label">02 // Output</div>
+
+    <div class="output-area" id="output-area">
+      <p class="placeholder-msg" id="out-placeholder">output appears here<br>after conversion</p>
+      <div id="output-checker">
+        <canvas id="output-display"></canvas>
+      </div>
+    </div>
+
+    <div id="output-stats" class="stats-bar" style="display:none">
+      <div class="stat"><span class="stat-label">Pixels</span><span class="stat-value" id="opx">—</span></div>
+      <div class="stat"><span class="stat-label">Width</span><span class="stat-value" id="ow">—</span></div>
+      <div class="stat"><span class="stat-label">Height</span><span class="stat-value" id="oh">—</span></div>
+      <div class="stat"><span class="stat-label">Scale</span><span class="stat-value" id="osc">—</span></div>
+    </div>
+
+    <div class="output-actions" id="output-actions" style="display:none">
+      <button class="btn btn-secondary" id="download-btn">⬇ DOWNLOAD PNG</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Hidden processing canvases -->
+<canvas id="work-canvas" style="display:none"></canvas>
+<canvas id="output-canvas" style="display:none"></canvas>
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────────────────
+  let srcImage = null;
+  let resultImageData = null;
+  let detectedPixelSize = 1;
+
+  const EDGE_IGNORE = 0.40; // fixed 40%, no slider
+
+  const workCanvas    = document.getElementById('work-canvas');
+  const workCtx       = workCanvas.getContext('2d', { willReadFrequently: true });
+  const outputCanvas  = document.getElementById('output-canvas');   // tiny true-size result
+  const outputCtx     = outputCanvas.getContext('2d', { willReadFrequently: true });
+  const outputDisplay = document.getElementById('output-display');  // scaled display canvas
+  const outputDispCtx = outputDisplay.getContext('2d');
+  const outputChecker = document.getElementById('output-checker');
+
+  // ─── UI refs ─────────────────────────────────────────────────────────────────
+  const dropZone      = document.getElementById('drop-zone');
+  const fileInput     = document.getElementById('file-input');
+  const convertBtn    = document.getElementById('convert-btn');
+  const detectMode    = document.getElementById('detect-mode');
+  const pixelSizeSlider = document.getElementById('pixel-size');
+  const pixelSizeVal  = document.getElementById('pixel-size-val');
+  const removeBg      = document.getElementById('remove-bg');
+  const manualSizeRow = document.getElementById('manual-size-row');
+
+  // ─── UI events ───────────────────────────────────────────────────────────────
+  pixelSizeSlider.addEventListener('input', () => {
+    pixelSizeVal.textContent = pixelSizeSlider.value;
+  });
+
+  detectMode.addEventListener('change', () => {
+    manualSizeRow.style.display = detectMode.value === 'manual' ? 'flex' : 'none';
+  });
+
+
+  // ─── File input ───────────────────────────────────────────────────────────────
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+  });
+
+  function loadImage(file) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      srcImage = img;
+      workCanvas.width  = img.width;
+      workCanvas.height = img.height;
+      workCtx.drawImage(img, 0, 0);
+      document.getElementById('iw').textContent = img.width;
+      document.getElementById('ih').textContent = img.height;
+      document.getElementById('input-stats').style.display = 'flex';
+      renderDropZoneImage();
+      convertBtn.disabled = false;
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function renderDropZoneImage() {
+    const old = dropZone.querySelector('canvas');
+    if (old) old.remove();
+    dropZone.querySelector('.drop-icon').style.display = 'none';
+    dropZone.querySelector('.drop-text').style.display = 'none';
+    const dc = document.createElement('canvas');
+    dc.width  = srcImage.width;
+    dc.height = srcImage.height;
+    dc.getContext('2d').drawImage(srcImage, 0, 0);
+    dc.style.maxWidth  = '100%';
+    dc.style.maxHeight = '260px';
+    dc.style.imageRendering = 'pixelated';
+    dropZone.appendChild(dc);
+  }
+
+
+  function getCurrentPixelSize() {
+    if (detectMode.value === 'manual') return parseInt(pixelSizeSlider.value);
+    return detectedPixelSize || parseInt(pixelSizeSlider.value);
+  }
+
+  // ─── Pixel size detection (autocorrelation) ───────────────────────────────────
+  function detectPixelSize(imgData, width, height) {
+    const maxPeriod = Math.min(Math.floor(Math.min(width, height) / 2), 256);
+
+    const hEdge = new Float32Array(width);
+    const rowStep = Math.max(1, Math.floor(height / 60));
+    let rowCount = 0;
+    for (let y = 0; y < height; y += rowStep) {
+      for (let x = 1; x < width; x++) {
+        const iL = (y * width + x - 1) * 4;
+        const iR = (y * width + x) * 4;
+        const aL = imgData[iL+3] / 255, aR = imgData[iR+3] / 255;
+        hEdge[x] += (Math.abs(imgData[iL]  -imgData[iR])
+                   + Math.abs(imgData[iL+1]-imgData[iR+1])
+                   + Math.abs(imgData[iL+2]-imgData[iR+2])) * Math.min(aL,aR)
+                   + Math.abs(imgData[iL+3]-imgData[iR+3]);
+      }
+      rowCount++;
+    }
+    for (let x = 0; x < width; x++) hEdge[x] /= rowCount;
+
+    const vEdge = new Float32Array(height);
+    const colStep = Math.max(1, Math.floor(width / 60));
+    let colCount = 0;
+    for (let x = 0; x < width; x += colStep) {
+      for (let y = 1; y < height; y++) {
+        const iT = ((y-1)*width+x)*4;
+        const iB = (y*width+x)*4;
+        const aT = imgData[iT+3]/255, aB = imgData[iB+3]/255;
+        vEdge[y] += (Math.abs(imgData[iT]  -imgData[iB])
+                   + Math.abs(imgData[iT+1]-imgData[iB+1])
+                   + Math.abs(imgData[iT+2]-imgData[iB+2])) * Math.min(aT,aB)
+                   + Math.abs(imgData[iT+3]-imgData[iB+3]);
+      }
+      colCount++;
+    }
+    for (let y = 0; y < height; y++) vEdge[y] /= colCount;
+
+    function autocorr(signal, len) {
+      const scores = new Float32Array(maxPeriod + 1);
+      let z = 0;
+      for (let i = 0; i < len; i++) z += signal[i]*signal[i];
+      if (z === 0) return scores;
+      for (let lag = 1; lag <= maxPeriod; lag++) {
+        let s = 0;
+        for (let i = 0; i < len-lag; i++) s += signal[i]*signal[i+lag];
+        scores[lag] = s/z;
+      }
+      return scores;
+    }
+
+    const hAC = autocorr(hEdge, width);
+    const vAC = autocorr(vEdge, height);
+    const combined = new Float32Array(maxPeriod+1);
+    for (let lag = 1; lag <= maxPeriod; lag++) combined[lag] = (hAC[lag]+vAC[lag])/2;
+
+    const smoothed = new Float32Array(maxPeriod+1);
+    for (let lag = 2; lag <= maxPeriod; lag++) {
+      let sum=0, cnt=0;
+      for (let d=-1; d<=1; d++) {
+        const i=lag+d;
+        if (i>=2&&i<=maxPeriod){sum+=combined[i];cnt++;}
+      }
+      smoothed[lag] = sum/cnt;
+    }
+
+    let globalMax = 0;
+    for (let lag=2;lag<=maxPeriod;lag++) if(smoothed[lag]>globalMax) globalMax=smoothed[lag];
+    const threshold = globalMax*0.35;
+
+    const peaks=[];
+    for (let lag=3;lag<maxPeriod;lag++) {
+      if (smoothed[lag]>threshold&&smoothed[lag]>=smoothed[lag-1]&&smoothed[lag]>=smoothed[lag+1])
+        peaks.push({lag,score:smoothed[lag]});
+    }
+
+    if (peaks.length===0) {
+      let best=2;
+      for(let lag=2;lag<=maxPeriod;lag++) if(smoothed[lag]>smoothed[best]) best=lag;
+      return Math.max(2,best);
+    }
+
+    peaks.sort((a,b)=>a.lag-b.lag);
+    for (let pi=0;pi<peaks.length;pi++) {
+      const c=peaks[pi].lag;
+      const hasHarmonic=peaks.some(p=>p!==peaks[pi]&&(
+        Math.abs(p.lag-c*2)<=Math.max(2,c*0.15)||
+        Math.abs(p.lag-c*3)<=Math.max(2,c*0.2)
+      ));
+      if (hasHarmonic||peaks[pi].score>globalMax*0.7) return Math.max(2,c);
+    }
+    peaks.sort((a,b)=>b.score-a.score);
+    return Math.max(2,peaks[0].lag);
+  }
+
+  // ─── Segmentation ─────────────────────────────────────────────────────────────
+  function segmentImage(imgData, width, height, nominalSize) {
+    const colEdge = new Float32Array(width+1);
+    for (let x=1;x<width;x++) {
+      let diff=0, count=0;
+      const step=Math.max(1,Math.floor(height/100));
+      for (let y=0;y<height;y+=step) {
+        const iL=(y*width+x-1)*4, iR=(y*width+x)*4;
+        const aL=imgData[iL+3],aR=imgData[iR+3];
+        diff+=(Math.abs(imgData[iL]-imgData[iR])+Math.abs(imgData[iL+1]-imgData[iR+1])+Math.abs(imgData[iL+2]-imgData[iR+2]))*(Math.min(aL,aR)/255)+Math.abs(aL-aR);
+        count++;
+      }
+      colEdge[x]=diff/count;
+    }
+
+    const rowEdge = new Float32Array(height+1);
+    for (let y=1;y<height;y++) {
+      let diff=0, count=0;
+      const step=Math.max(1,Math.floor(width/100));
+      for (let x=0;x<width;x+=step) {
+        const iT=((y-1)*width+x)*4, iB=(y*width+x)*4;
+        const aT=imgData[iT+3],aB=imgData[iB+3];
+        diff+=(Math.abs(imgData[iT]-imgData[iB])+Math.abs(imgData[iT+1]-imgData[iB+1])+Math.abs(imgData[iT+2]-imgData[iB+2]))*(Math.min(aT,aB)/255)+Math.abs(aT-aB);
+        count++;
+      }
+      rowEdge[y]=diff/count;
+    }
+
+    return {
+      colBounds: pickBounds(colEdge, width, nominalSize),
+      rowBounds: pickBounds(rowEdge, height, nominalSize)
+    };
+  }
+
+  function pickBounds(edgeScore, total, period) {
+    const minSep  = Math.max(2, Math.round(period*0.4));
+    const maxGap  = period*1.6;
+    const halfWin = Math.max(1, Math.round(period*0.25));
+
+    const smooth = new Float32Array(total+1);
+    for (let i=1;i<total;i++) {
+      let s=0,c=0;
+      for (let d=-halfWin;d<=halfWin;d++){const j=i+d;if(j>=1&&j<total){s+=edgeScore[j];c++;}}
+      smooth[i]=c>0?s/c:0;
+    }
+
+    let globalMax=0;
+    for (let i=1;i<total;i++) if(smooth[i]>globalMax) globalMax=smooth[i];
+    const threshold=globalMax*0.08;
+
+    const peaks=[];
+    let windowStart=1;
+    while (windowStart<total) {
+      const windowEnd=Math.min(total-1,windowStart+minSep-1);
+      let bestPos=-1,bestVal=threshold;
+      for (let i=windowStart;i<=windowEnd;i++) if(smooth[i]>bestVal){bestVal=smooth[i];bestPos=i;}
+      if (bestPos!==-1) {
+        const lo=Math.max(1,bestPos-Math.floor(minSep/2));
+        const hi=Math.min(total-1,bestPos+Math.floor(minSep/2));
+        let isMax=true;
+        for (let i=lo;i<=hi;i++) if(i!==bestPos&&smooth[i]>smooth[bestPos]){isMax=false;break;}
+        if (isMax) peaks.push(bestPos);
+      }
+      windowStart=windowEnd+1;
+    }
+
+    const all=[0,...peaks,total];
+    const filled=[0];
+    for (let i=1;i<all.length;i++) {
+      const prev=all[i-1],curr=all[i],gap=curr-prev;
+      const isLastSegment=(curr===total);
+      // Never gap-fill the trailing remainder between last real peak and image edge.
+      if (!isLastSegment && gap>maxGap) {
+        const needed=Math.round(gap/period)-1;
+        for (let k=1;k<=needed;k++) {
+          const expected=Math.round(prev+k*(gap/(needed+1)));
+          const lo=Math.max(prev+minSep,expected-Math.round(period*0.4));
+          const hi=Math.min(curr-minSep,expected+Math.round(period*0.4));
+          if (lo>=hi){filled.push(expected);continue;}
+          let bestPos=expected,bestVal=-1;
+          for (let p=lo;p<=hi;p++) if(smooth[p]>bestVal){bestVal=smooth[p];bestPos=p;}
+          filled.push(bestPos);
+        }
+      }
+      if (curr<total) filled.push(curr);
+    }
+    filled.push(total);
+    // Drop the last interior boundary if the trailing cell is narrower than
+    // half a period — it's a fractional-scale remainder, not a real pixel.
+    while (filled.length>2 && (total-filled[filled.length-2])<period*0.5)
+      filled.splice(filled.length-2,1);
+
+    const merged=[0];
+    for (let i=1;i<filled.length-1;i++) {
+      const prev=merged[merged.length-1],curr=filled[i];
+      if (curr-prev<minSep) { if(smooth[curr]>smooth[prev]) merged[merged.length-1]=curr; }
+      else merged.push(curr);
+    }
+    merged.push(total);
+    return merged;
+  }
+
+  // ─── Cell sampling ────────────────────────────────────────────────────────────
+  function sampleCells(imgData, width, colBounds, rowBounds) {
+    const cols=colBounds.length-1, rows=rowBounds.length-1;
+    const pixels=[];
+    for (let row=0;row<rows;row++) {
+      const y0=rowBounds[row],y1=rowBounds[row+1];
+      const ch=y1-y0, insetY=Math.floor(ch*EDGE_IGNORE);
+      const cy=Math.floor((y0+y1)/2);
+      const rowPixels=[];
+      for (let col=0;col<cols;col++) {
+        const x0=colBounds[col],x1=colBounds[col+1];
+        const cw=x1-x0, insetX=Math.floor(cw*EDGE_IGNORE);
+        const cx=Math.floor((x0+x1)/2);
+        const sX0=Math.min(x0+insetX,cx), sX1=Math.max(x1-insetX,cx+1);
+        const sY0=Math.min(y0+insetY,cy), sY1=Math.max(y1-insetY,cy+1);
+        let r=0,g=0,b=0,a=0,count=0;
+        for (let sy=sY0;sy<sY1;sy++) for (let sx=sX0;sx<sX1;sx++) {
+          const idx=(sy*width+sx)*4;
+          r+=imgData[idx];g+=imgData[idx+1];b+=imgData[idx+2];a+=imgData[idx+3];count++;
+        }
+        if (count===0) {
+          const idx=(cy*width+cx)*4;
+          r=imgData[idx];g=imgData[idx+1];b=imgData[idx+2];a=imgData[idx+3];count=1;
+        }
+        rowPixels.push([Math.round(r/count),Math.round(g/count),Math.round(b/count),Math.round(a/count)]);
+      }
+      pixels.push(rowPixels);
+    }
+    return pixels;
+  }
+
+  // ─── Background removal ───────────────────────────────────────────────────────
+  function colorDist(a, b) {
+    return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);
+  }
+
+  function removeBackground(pixels, cols, rows) {
+    const tolerance = 30;
+    // Collect all border-cell colors
+    const borderSamples=[];
+    for (let c=0;c<cols;c++){borderSamples.push(pixels[0][c]);borderSamples.push(pixels[rows-1][c]);}
+    for (let r=1;r<rows-1;r++){borderSamples.push(pixels[r][0]);borderSamples.push(pixels[r][cols-1]);}
+
+    // Find the most common border color by majority voting within tolerance
+    let bestColor=borderSamples[0], bestCount=0;
+    for (const candidate of borderSamples) {
+      if (candidate[3]<10) continue;
+      let count=0;
+      for (const s of borderSamples) if(colorDist(candidate,s)<tolerance) count++;
+      if (count>bestCount){bestCount=count;bestColor=candidate;}
+    }
+
+    return pixels.map(row=>row.map(px=>
+      colorDist(px,bestColor)<tolerance ? [px[0],px[1],px[2],0] : px
+    ));
+  }
+
+  // ─── Output rendering — fills available width, preserves ratio ───────────────
+  function renderOutputPreview() {
+    if (!resultImageData) return;
+    const cols = outputCanvas.width;
+    const rows = outputCanvas.height;
+
+    // Available width inside the output panel's content area
+    const outputArea = document.getElementById('output-area');
+    const availW = outputArea.clientWidth;
+    const dispH  = Math.round(rows * (availW / cols));
+
+    // Size the checker wrapper to the exact rendered dimensions
+    outputChecker.style.width  = availW + 'px';
+    outputChecker.style.height = dispH  + 'px';
+
+    // outputDisplay canvas always has the pixel-exact internal resolution
+    // but is CSS-stretched to fill the wrapper via width/height:100%
+    outputDisplay.width  = cols;
+    outputDisplay.height = rows;
+
+    // Blit from the true-size hidden canvas
+    outputDispCtx.clearRect(0, 0, cols, rows);
+    outputDispCtx.drawImage(outputCanvas, 0, 0);
+  }
+
+  window.addEventListener('resize', () => { if (resultImageData) renderOutputPreview(); });
+
+  // ─── Convert ─────────────────────────────────────────────────────────────────
+  convertBtn.addEventListener('click', () => {
+    if (!srcImage) return;
+
+    const imgData = workCtx.getImageData(0,0,srcImage.width,srcImage.height);
+    const data=imgData.data, W=srcImage.width, H=srcImage.height;
+
+    let ps;
+    if (detectMode.value==='auto') {
+      ps = detectPixelSize(data,W,H);
+      detectedPixelSize = ps;
+      pixelSizeSlider.value = ps;
+      pixelSizeVal.textContent = ps;
+    } else {
+      ps = parseInt(pixelSizeSlider.value);
+    }
+
+    const {colBounds,rowBounds} = segmentImage(data,W,H,ps);
+    const cols=colBounds.length-1, rows=rowBounds.length-1;
+
+    let pixels = sampleCells(data,W,colBounds,rowBounds);
+    if (removeBg.checked) pixels = removeBackground(pixels,cols,rows);
+
+    outputCanvas.width=cols; outputCanvas.height=rows;
+    const outImg=outputCtx.createImageData(cols,rows);
+    for (let row=0;row<rows;row++) for (let col=0;col<cols;col++) {
+      const [r,g,b,a]=pixels[row][col];
+      const idx=(row*cols+col)*4;
+      outImg.data[idx]=r; outImg.data[idx+1]=g;
+      outImg.data[idx+2]=b; outImg.data[idx+3]=a;
+    }
+    outputCtx.putImageData(outImg,0,0);
+    resultImageData=outImg;
+
+    document.getElementById('opx').textContent=cols*rows;
+    document.getElementById('ow').textContent=cols;
+    document.getElementById('oh').textContent=rows;
+    document.getElementById('osc').textContent=`~${ps}×`;
+    document.getElementById('output-stats').style.display='flex';
+
+    document.getElementById('out-placeholder').style.display='none';
+    outputChecker.style.display='block';
+    document.getElementById('output-actions').style.display='flex';
+
+    renderOutputPreview();
+  });
+
+  // ─── Download ─────────────────────────────────────────────────────────────────
+  document.getElementById('download-btn').addEventListener('click', () => {
+    if (!resultImageData) return;
+    const link=document.createElement('a');
+    link.download='pixel-art-converted.png';
+    link.href=outputCanvas.toDataURL('image/png');
+    link.click();
+  });
+</script>
+</body>
+</html>
