@@ -522,19 +522,11 @@
         // Special V2 vs V3 rules:
         // Same size: equal score → V2 wins; else V3 needs >0.2 advantage to win.
         // Different size (V3 smaller): V3 wins unless V2 is >0.2 better.
-        const sameSize = top2V2.size === top2V3.size;
         const equal = top2V2.score === top2V3.score;
-        console.log(`[auto] V2 vs V3 — sameSize:${sameSize} V2.score:${top2V2.score} (raw:${top2V2.score}) V3.score:${top2V3.score} (raw:${top2V3.score}) equal:${equal}`);
-        if (sameSize) {
-          const v3biased = top2V3.score - 0.2;
-          const v3wins = v3biased < top2V2.score;
-          console.log(`[auto] sameSize path — V3biased:${v3biased} < V2:${top2V2.score}? ${v3wins} → winner: V${equal ? 2 : (v3wins ? 3 : 2)}`);
-          winner = equal ? top2V2 : (v3wins ? top2V3 : top2V2);
-        } else {
-          const v2wins = !equal && top2V2.score < top2V3.score - 0.2;
-          console.log(`[auto] diffSize path — V2:${top2V2.score} < V3-0.2:${top2V3.score - 0.2}? ${v2wins} → winner: V${v2wins ? 2 : 3}`);
-          winner = v2wins ? top2V2 : top2V3;
-        }
+        const v3biased = top2V3.score - 0.2;
+        const v3wins = !equal && v3biased < top2V2.score;
+        console.log(`[auto] V2:${top2V2.score} V3:${top2V3.score} equal:${equal} V3biased:${v3biased} v3wins:${v3wins}`);
+        winner = v3wins ? top2V3 : top2V2;
       } else {
         winner = top2.slice().sort((a, b) => a.score - b.score)[0];
       }
