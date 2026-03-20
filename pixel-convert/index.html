@@ -436,26 +436,112 @@
   function autoSelectVersion(data, W, H) {
     const { colEdge, rowEdge } = buildEdgeScores(data, W, H);
 
-    function outputSize(detectFn, pickFn) {
+    // For each version: detect → segment → sample → nearest-neighbour upscale
+    // back to original resolution → measure mean absolute difference vs original.
+    // The version whose re-upscaled output is closest to the original wins.
+    function scoreVersion(detectFn, pickFn) {
+      const ps = detectFn(data, W, H);
+      const colBounds = pickFn(colEdge, W, ps);
+      const rowBounds = pickFn(rowEdge, H, ps);
+      const cols = colBounds.length - 1;
+      const rows = rowBounds.length - 1;
+      if (cols < 1 || rows < 1) return { score: Infinity, cols, rows, label: `${cols}×${rows}` };
+
+      // Sample cell colors (centre patch, 40% edge ignore)
+      const pixels = sampleCells(data, W, colBounds, rowBounds);
+
+      // Nearest-neighbour upscale: for each original pixel (ox,oy),
+      // find which cell it maps to and read that cell's sampled colour.
+      // Compare to original pixel. Sample on a stride to keep this fast.
+      const stride = Math.max(1, Math.floor(Math.min(W, H) / 80));
+      let totalDiff = 0, count = 0;
+      for (let oy = 0; oy < H; oy += stride) {
+        // Which row cell does oy fall in?
+        let row = 0;
+        while (row < rows - 1 && rowBounds[row + 1] <= oy) row++;
+        for (let ox = 0; ox < W; ox += stride) {
+          let col = 0;
+          while (col < cols - 1 && colBounds[col + 1] <= ox) col++;
+          const [pr, pg, pb] = pixels[row][col];
+          const idx = (oy * W + ox) * 4;
+          totalDiff += Math.abs(data[idx]   - pr)
+                     + Math.abs(data[idx+1] - pg)
+                     + Math.abs(data[idx+2] - pb);
+          count++;
+        }
+      }
+      const score = count > 0 ? totalDiff / count : Infinity;
+      return { score, cols, rows, label: `${cols}×${rows}` };
+    }
+
+    // Step 1: get output sizes for all 3 (cheap — no pixel sampling yet)
+    function getSize(detectFn, pickFn) {
       const ps = detectFn(data, W, H);
       const cols = pickFn(colEdge, W, ps).length - 1;
       const rows = pickFn(rowEdge, H, ps).length - 1;
-      return { cols, rows, ps };
+      return { ps, cols, rows, size: cols * rows };
     }
 
-    const r1 = outputSize(detectPixelSize_v1, pickBounds_v1);
-    const r2 = outputSize(detectPixelSize_v2, pickBounds_v2);
-    const r3 = outputSize(detectPixelSize_v3, pickBounds_v3);
+    const s1 = { v: 1, ...getSize(detectPixelSize_v1, pickBounds_v1) };
+    const s2 = { v: 2, ...getSize(detectPixelSize_v2, pickBounds_v2) };
+    const s3 = { v: 3, ...getSize(detectPixelSize_v3, pickBounds_v3) };
+    const all = [s1, s2, s3];
 
-    const sizes = [
-      { v: 1, size: r1.cols * r1.rows, label: `${r1.cols}×${r1.rows}` },
-      { v: 2, size: r2.cols * r2.rows, label: `${r2.cols}×${r2.rows}` },
-      { v: 3, size: r3.cols * r3.rows, label: `${r3.cols}×${r3.rows}` },
-    ];
+    // Step 2: sort by size, take the 2 smallest, run pixel-similarity on those only
+    all.sort((a, b) => a.size - b.size);
 
-    sizes.sort((a, b) => a.size - b.size);
-    const winner = sizes[0];
-    setAutoVersion(winner.v, `smallest output: V${winner.v} → ${winner.label}`);
+    const allVersions = [s1, s2, s3];
+
+    // Score all 3 for display purposes
+    const allScored = allVersions.map(s => {
+      const detectFn = s.v === 1 ? detectPixelSize_v1 : s.v === 2 ? detectPixelSize_v2 : detectPixelSize_v3;
+      const pickFn   = s.v === 1 ? pickBounds_v1      : s.v === 2 ? pickBounds_v2      : pickBounds_v3;
+      return { ...s, ...scoreVersion(detectFn, pickFn) };
+    });
+
+    // Round all scores to 1dp so comparisons match exactly what's displayed
+    allScored.forEach(s => { s.score = Math.round(s.score * 10) / 10; });
+
+    // Sort by size, take the 2 smallest as the comparison pool.
+    // Exception: if V2 is 3rd-smallest but within 10% of 2nd, swap it in
+    // to protect V2 from being excluded by a single pixel difference.
+    const bySize = [...allScored].sort((a, b) => a.size - b.size);
+    let top2 = bySize.slice(0, 2);
+    if (bySize.length > 2 && bySize[2].v === 2 && bySize[2].size < bySize[1].size * 1.1) {
+      top2 = [bySize[0], bySize[2]];
+    }
+
+    let winner;
+    if (top2[1].size >= top2[0].size * 4) {
+      // 4x size difference — smallest wins outright, no need to compare pixels
+      winner = top2[0];
+    } else {
+      const top2V2 = top2.find(s => s.v === 2);
+      const top2V3 = top2.find(s => s.v === 3);
+      if (top2V2 && top2V3) {
+        // Special V2 vs V3 rules:
+        // Same size: equal score → V2 wins; else V3 needs >0.2 advantage to win.
+        // Different size (V3 smaller): V3 wins unless V2 is >0.2 better.
+        const sameSize = top2V2.size === top2V3.size;
+        const equal = top2V2.score === top2V3.score;
+        console.log(`[auto] V2 vs V3 — sameSize:${sameSize} V2.score:${top2V2.score} (raw:${top2V2.score}) V3.score:${top2V3.score} (raw:${top2V3.score}) equal:${equal}`);
+        if (sameSize) {
+          const v3biased = top2V3.score - 0.2;
+          const v3wins = v3biased < top2V2.score;
+          console.log(`[auto] sameSize path — V3biased:${v3biased} < V2:${top2V2.score}? ${v3wins} → winner: V${equal ? 2 : (v3wins ? 3 : 2)}`);
+          winner = equal ? top2V2 : (v3wins ? top2V3 : top2V2);
+        } else {
+          const v2wins = !equal && top2V2.score < top2V3.score - 0.2;
+          console.log(`[auto] diffSize path — V2:${top2V2.score} < V3-0.2:${top2V3.score - 0.2}? ${v2wins} → winner: V${v2wins ? 2 : 3}`);
+          winner = v2wins ? top2V2 : top2V3;
+        }
+      } else {
+        winner = top2.slice().sort((a, b) => a.score - b.score)[0];
+      }
+    }
+
+    const errStr = [...allScored].sort((a,b)=>a.v-b.v).map(s => `V${s.v}:${s.score.toFixed(1)}`).join(' ');
+    setAutoVersion(winner.v, `V${winner.v} → ${winner.cols}×${winner.rows} | ${errStr}`);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
