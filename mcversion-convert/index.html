@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC Version Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --grass:#5d9e3a; --grass-dark:#3a6b1e;
+    --stone:#8c8c8c; --stone-dark:#5a5a5a;
+    --gold:#f0c020; --diamond:#4ee3e3;
+    --bg:#0d0d0d; --panel:#1a1a1a; --panel2:#222;
+    --border:#333; --text:#e8e8e0; --muted:#888; --px:2px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:2rem 1rem 4rem;
+    background-image:
+      repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(255,255,255,.015) 31px,rgba(255,255,255,.015) 32px),
+      repeating-linear-gradient(90deg,transparent,transparent 31px,rgba(255,255,255,.015) 31px,rgba(255,255,255,.015) 32px);
+  }
+  header{text-align:center;margin-bottom:2.5rem;animation:fadeDown .5s ease both}
+  .logo{
+    font-family:'Press Start 2P',monospace;font-size:clamp(.85rem,3vw,1.35rem);
+    color:var(--grass);text-shadow:2px 2px 0 var(--grass-dark),4px 4px 0 rgba(0,0,0,.5);line-height:1.7
+  }
+  .logo span{color:var(--gold);text-shadow:2px 2px 0 #a08000,4px 4px 0 rgba(0,0,0,.5)}
+  .subtitle{margin-top:.6rem;font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase}
+
+  .card{
+    width:100%;max-width:800px;background:var(--panel);
+    border:var(--px) solid var(--stone-dark);padding:2rem;
+    position:relative;animation:fadeUp .5s .1s ease both
+  }
+  .card::before{content:'';position:absolute;inset:-4px;border:var(--px) solid rgba(255,255,255,.05);pointer-events:none}
+
+  .grid{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:start}
+  @media(max-width:540px){.grid{grid-template-columns:1fr}}
+
+  .col-label{font-family:'Press Start 2P',monospace;font-size:.48rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem;transition:color .3s;color:var(--muted)}
+  .cl-src-old{color:var(--grass)!important}
+  .cl-src-new{color:var(--diamond)!important}
+  .cl-dst-new{color:rgba(93,158,58,.5)!important}
+  .cl-dst-old{color:rgba(78,227,227,.5)!important}
+
+  .vpanel{background:var(--panel2);border:var(--px) solid var(--border);padding:1.25rem;transition:border-color .3s}
+  .vp-src-old{border-color:var(--grass)!important}
+  .vp-src-new{border-color:var(--diamond)!important}
+  .vp-dst-new{border-color:rgba(93,158,58,.3)!important}
+  .vp-dst-old{border-color:rgba(78,227,227,.3)!important}
+
+  .vi{
+    width:100%;background:transparent;border:none;
+    border-bottom:2px solid var(--border);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:600;
+    padding:.5rem 0;outline:none;transition:border-color .2s
+  }
+  #srcInput:focus{border-color:var(--grass)}
+  #dstInput{pointer-events:none;color:var(--diamond);border-color:transparent}
+
+  .bd{margin-top:1rem;font-size:.7rem;color:var(--muted);line-height:2;min-height:4.5rem}
+  .br{display:flex;gap:.5rem}
+  .bk{color:var(--gold);font-weight:600;min-width:3.2rem}
+
+  .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:2.4rem;gap:.5rem}
+  .arw{font-size:1.4rem;color:var(--stone);user-select:none}
+  .swap{
+    background:var(--panel2);border:var(--px) solid var(--border);color:var(--gold);
+    font-family:'Press Start 2P',monospace;font-size:.5rem;padding:.55rem .6rem;
+    cursor:pointer;transition:background .15s,transform .1s;letter-spacing:.05em;line-height:1.5
+  }
+  .swap:hover{background:var(--border)}.swap:active{transform:scale(.95)}
+
+  .sbar{
+    margin-top:1.5rem;padding:.75rem 1rem;background:var(--panel2);
+    border-left:3px solid var(--stone-dark);font-size:.72rem;color:var(--muted);
+    min-height:2.5rem;display:flex;align-items:center;gap:.6rem;transition:border-color .2s,color .2s
+  }
+  .sbar.ok  {border-color:var(--diamond);color:var(--diamond)}
+  .sbar.warn{border-color:var(--gold);color:var(--gold)}
+  .sbar.err {border-color:#c04040;color:#e07070}
+  .sdot{width:6px;height:6px;background:currentColor;flex-shrink:0}
+
+  .div{height:2px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:1.75rem 0}
+
+  .opts{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+  .tgl{display:flex;align-items:center;gap:.65rem;cursor:pointer;user-select:none;font-size:.72rem;color:var(--muted);transition:color .2s}
+  .tgl:hover{color:var(--text)}.tgl input{display:none}
+  .tt{width:36px;height:18px;background:var(--panel2);border:var(--px) solid var(--border);position:relative;transition:background .2s,border-color .2s;flex-shrink:0}
+  .th{position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--stone);transition:transform .2s,background .2s}
+  .tgl input:checked~.tt{background:rgba(93,158,58,.2);border-color:var(--grass)}
+  .tgl input:checked~.tt .th{transform:translateX(18px);background:var(--grass)}
+  #loadSt{font-size:.62rem;color:var(--stone-dark);margin-left:auto}
+
+  .stitle{font-family:'Press Start 2P',monospace;font-size:.5rem;color:var(--muted);letter-spacing:.15em;margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem}
+  .stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  .vlist{display:flex;flex-wrap:wrap;gap:.4rem;max-height:210px;overflow-y:auto;padding-right:.25rem}
+  .vlist::-webkit-scrollbar{width:4px}
+  .vlist::-webkit-scrollbar-track{background:var(--panel2)}
+  .vlist::-webkit-scrollbar-thumb{background:var(--border)}
+
+  .chip{background:var(--panel2);border:1px solid var(--border);padding:.28rem .65rem;font-size:.68rem;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .chip.rel:hover     {border-color:var(--grass);  color:var(--grass);  background:rgba(93,158,58,.08)}
+  .chip.rel.nw:hover  {border-color:var(--diamond);color:var(--diamond);background:rgba(78,227,227,.06)}
+  .chip.rel.nw        {border-color:#1a3030}
+  .chip.snp           {border-color:#2a2a1a}
+  .chip.snp:hover     {border-color:var(--gold);color:var(--gold);background:rgba(240,192,32,.08)}
+
+  .msg{font-size:.7rem;color:var(--muted);padding:.4rem}
+  .msg.err{color:#c04040}
+
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp  {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+  @keyframes flash   {0%{color:var(--gold)}100%{color:var(--diamond)}}
+  .flashed{animation:flash .4s ease}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">MC VERSION<br><span>CONVERTER</span></div>
+  <div class="subtitle">Old Format ↔ New Format · Mojang Manifest</div>
+</header>
+
+<div class="card">
+  <div class="grid">
+    <div>
+      <div class="col-label cl-src-old" id="srcLabel">Old Format (source)</div>
+      <div class="vpanel vp-src-old" id="srcPanel">
+        <input class="vi" id="srcInput" placeholder="e.g. 1.21.4" spellcheck="false" autocomplete="off">
+        <div class="bd" id="srcBD"><span style="color:var(--stone-dark)">Type a version…</span></div>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="arw">→</div>
+      <button class="swap" id="swapBtn">SWAP<br>DIR</button>
+    </div>
+    <div>
+      <div class="col-label cl-dst-new" id="dstLabel">New Format (result)</div>
+      <div class="vpanel vp-dst-new" id="dstPanel">
+        <input class="vi" id="dstInput" placeholder="result…" readonly>
+        <div class="bd" id="dstBD"><span style="color:var(--stone-dark)">Result appears here…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbar" id="sbar"><div class="sdot"></div><span id="stext">Loading Mojang manifest…</span></div>
+
+  <div class="div"></div>
+
+  <div class="opts">
+    <label class="tgl"><input type="checkbox" id="snapTgl"><div class="tt"><div class="th"></div></div>Show snapshots</label>
+    <label class="tgl"><input type="checkbox" id="preRcTgl"><div class="tt"><div class="th"></div></div>Show pre / rc</label>
+    <div id="loadSt">fetching…</div>
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <div class="stitle">Click a version to convert</div>
+    <div class="vlist" id="vlist"><div class="msg">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────────
+let dir = 'old-to-new'; // 'old-to-new' | 'new-to-old'
+let versions = [];      // raw manifest array, newest-first
+
+// Lookup maps built once manifest loads
+// All keyed by exact manifest id strings
+const toNew = new Map(); // old-id  → new-id
+const toOld = new Map(); // new-id  → old-id
+
+// ─────────────────────────────────────────────────────────────
+//  Manifest loading
+// ─────────────────────────────────────────────────────────────
+async function loadManifest() {
+  try {
+    const r = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    versions = data.versions || [];
+    buildMaps(versions);
+    document.getElementById('loadSt').textContent = `${versions.length} versions loaded`;
+    setStatus('Ready.', '');
+    renderList();
+  } catch(e) {
+    document.getElementById('loadSt').textContent = 'failed';
+    document.getElementById('vlist').innerHTML = `<div class="msg err">⚠ ${e.message}</div>`;
+    setStatus('Could not load manifest: ' + e.message, 'err');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Build bidirectional maps from manifest
+// ─────────────────────────────────────────────────────────────
+function isNewFmt(id) { return /^\d{2}\./.test(id); }
+function isOldRel(id) { return /^1\.\d+(\.\d+)?$/.test(id); }
+function isOldSnap(id){ return /^\d{2}w\d{2}[a-z]$/.test(id); }
+function isOldPre(id) { return /^1\.\d+(\.\d+)?-(pre|rc)\d+$/i.test(id); }
+function isNewSnap(id){ return /^\d{2}\.\d+-(snapshot|pre|rc)-\d+$/i.test(id); }
+
+function isoWeek(dateStr) {
+  // Returns "YYYY-Www" e.g. "2026-W03"
+  const d = new Date(dateStr);
+  const jan4 = new Date(d.getFullYear(), 0, 4);
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+  const weekNum = Math.floor((d - startOfWeek1) / 604800000) + 1;
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+}
+
+function buildMaps(vs) {
+  // Sort oldest-first for counting
+  const sorted = [...vs].sort((a,b) => new Date(a.releaseTime) - new Date(b.releaseTime));
+
+  // ── Releases ────────────────────────────────────────────
+  // Count releases per year to assign drop number.
+  // "year" = calendar year of releaseTime.
+  // Both old-format and new-format releases count together.
+  const releasesByYear = {}; // year(4-digit) → [id, ...]
+  for (const v of sorted) {
+    if (v.type !== 'release') continue;
+    const yr = new Date(v.releaseTime).getFullYear();
+    if (!releasesByYear[yr]) releasesByYear[yr] = [];
+    releasesByYear[yr].push(v.id);
+  }
+
+  // For each year, drop N = position in that year's release list (1-indexed)
+  // new-format id for that drop = "YY.N"
+  // Find last old-format release to continue hotfix numbering from
+  const allOldRels = sorted.filter(v => v.type === 'release' && isOldRel(v.id));
+  const lastOldRel = allOldRels[allOldRels.length - 1];
+  let lastOldMinor = 21, lastOldHotfix = 0;
+  if (lastOldRel) {
+    const lm = lastOldRel.id.match(/^1\.(\d+)(?:\.(\d+))?$/);
+    if (lm) { lastOldMinor = +lm[1]; lastOldHotfix = lm[2] !== undefined ? +lm[2] : 0; }
+  }
+  let newSysCount = 0;
+
+  // Sort years ascending so newSysCount increments in release order
+  for (const yr4 of Object.keys(releasesByYear).sort()) {
+    const ids = releasesByYear[yr4];
+    const yr2 = String(yr4).slice(2);
+    ids.forEach((id, i) => {
+      const drop = i + 1;
+      const newId = `${yr2}.${drop}`;
+      if (isOldRel(id)) {
+        toNew.set(id, newId);
+        toOld.set(newId, id);
+      } else if (isNewFmt(id)) {
+        // Continue hotfix count from where old system left off
+        newSysCount++;
+        const oldEquiv = `1.${lastOldMinor}.${lastOldHotfix + newSysCount}`;
+        toOld.set(id, oldEquiv);
+        toNew.set(oldEquiv, id);
+      }
+    });
+  }
+
+  // ── Pre / RC ────────────────────────────────────────────
+  // Old: 1.21.4-pre1 → find what new-id the base maps to, emit base-pre-N
+  // New: 26.1-pre-1  → already canonical; find old via base
+  for (const v of sorted) {
+    if (v.type === 'release') continue;
+
+    if (isOldPre(v.id)) {
+      const m = v.id.match(/^(1\.\d+(?:\.\d+)?)-(pre|rc)(\d+)$/i);
+      const baseNew = toNew.get(m[1]);
+      if (baseNew) {
+        const newId = `${baseNew}-${m[2].toLowerCase()}-${m[3]}`;
+        toNew.set(v.id, newId);
+        toOld.set(newId, v.id);
+      }
+    } else if (isNewFmt(v.id) && isNewSnap(v.id)) {
+      const m = v.id.match(/^(\d{2}\.\d+)-(pre|rc)-(\d+)$/i);
+      if (m) {
+        // Try to find old equivalent via toOld[base]
+        const baseOld = toOld.get(m[1]);
+        if (baseOld) {
+          const oldId = `${baseOld}-${m[2].toLowerCase()}${m[3]}`;
+          toNew.set(oldId, v.id);
+          toOld.set(v.id, oldId);
+        }
+      }
+    }
+  }
+
+  // ── Snapshots ───────────────────────────────────────────
+  // Old snapshot (25w32a): look up which new-format snapshot was released in the SAME ISO week.
+  // New snapshot (26.1-snapshot-4): look up which old-format snapshot was in the same week.
+
+  // Build week → [version] index for all non-release versions
+  const weekIndex = {}; // "2026-W03" → [{id, isNew}]
+  for (const v of sorted) {
+    if (v.type === 'release') continue;
+    if (!v.releaseTime) continue;
+    const wk = isoWeek(v.releaseTime);
+    if (!weekIndex[wk]) weekIndex[wk] = [];
+    weekIndex[wk].push(v);
+  }
+
+  // For each old snapshot, find the new-format snapshot(s) in the same week
+  for (const v of sorted) {
+    if (!isOldSnap(v.id) || !v.releaseTime) continue;
+    const wk = isoWeek(v.releaseTime);
+    const peers = (weekIndex[wk] || []).filter(p => isNewFmt(p.id) && isNewSnap(p.id) && /snapshot/.test(p.id));
+    if (peers.length > 0) {
+      // Pick the closest one by time
+      peers.sort((a,b) => Math.abs(new Date(a.releaseTime)-new Date(v.releaseTime)) - Math.abs(new Date(b.releaseTime)-new Date(v.releaseTime)));
+      toNew.set(v.id, peers[0].id);
+    }
+  }
+
+  // For each new snapshot, find the old-format snapshot in the same week,
+  // or synthesize a YYwWWa id from the release date if none exists.
+  // Track how many snapshots we've synthesized per week so we can increment the letter.
+  const synthesizedPerWeek = {};
+
+  // Collect new snapshots sorted oldest-first so letter assignment is stable
+  const newSnaps = sorted.filter(v => isNewFmt(v.id) && isNewSnap(v.id) && /snapshot/.test(v.id) && v.releaseTime);
+  for (const v of newSnaps) {
+    if (toOld.has(v.id)) continue; // already mapped via manifest peer
+    const wk = isoWeek(v.releaseTime);
+    const peers = (weekIndex[wk] || []).filter(p => isOldSnap(p.id));
+    if (peers.length > 0) {
+      peers.sort((a,b) => Math.abs(new Date(a.releaseTime)-new Date(v.releaseTime)) - Math.abs(new Date(b.releaseTime)-new Date(v.releaseTime)));
+      toOld.set(v.id, peers[0].id);
+    } else {
+      // Synthesize: get 2-digit year and ISO week number from releaseTime
+      const d = new Date(v.releaseTime);
+      const yr2 = String(d.getFullYear()).slice(2);
+      const wkNum = String(+wk.split('-W')[1]).padStart(2, '0');
+      const wkKey = `${yr2}w${wkNum}`;
+      synthesizedPerWeek[wkKey] = (synthesizedPerWeek[wkKey] || 0) + 1;
+      const letter = String.fromCharCode(96 + synthesizedPerWeek[wkKey]); // 1→a, 2→b…
+      const synthId = `${wkKey}${letter}`;
+      toOld.set(v.id, synthId);
+      // Don't add synthId to toNew — it's not a real manifest entry
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Convert
+// ─────────────────────────────────────────────────────────────
+function convert(id, direction) {
+  if (direction === 'old-to-new') {
+    if (toNew.has(id)) {
+      const r = toNew.get(id);
+      return r ? { result: r, ok: true } : fail(`No new-format equivalent for "${id}"`);
+    }
+    return fail(`"${id}" not found in manifest.`);
+  } else {
+    if (toOld.has(id)) {
+      const r = toOld.get(id);
+      return r ? { result: r, ok: true } : fail(`"${id}" has no old-format equivalent (new-system release).`);
+    }
+    // New-format releases not in toOld because they map to themselves:
+    // compute old equivalent on the fly
+    if (isNewFmt(id) && isOldRel_new(id)) {
+      const oldId = computeOldForNew(id);
+      return oldId ? { result: oldId, ok: true } : fail(`Cannot compute old equivalent for "${id}"`);
+    }
+    return fail(`"${id}" not found in manifest.`);
+  }
+}
+
+function isOldRel_new(id) { return /^\d{2}\.\d+$/.test(id); }
+
+function computeOldForNew(newId) {
+  // Find it in the release-year lists
+  const sorted = [...versions].sort((a,b) => new Date(a.releaseTime) - new Date(b.releaseTime));
+  const releasesByYear = {};
+  for (const v of sorted) {
+    if (v.type !== 'release') continue;
+    const yr = new Date(v.releaseTime).getFullYear();
+    if (!releasesByYear[yr]) releasesByYear[yr] = [];
+    releasesByYear[yr].push(v.id);
+  }
+  for (const [yr4, ids] of Object.entries(releasesByYear)) {
+    const yr2 = String(yr4).slice(2);
+    const idx = ids.findIndex(id => id === newId || `${yr2}.${ids.indexOf(id)+1}` === newId);
+    // Find by computed newId
+    for (let i = 0; i < ids.length; i++) {
+      const computedNew = `${yr2}.${i+1}`;
+      if (computedNew === newId) {
+        return ids[i]; // this is the manifest id (could be old or new format)
+      }
+    }
+  }
+  return null;
+}
+
+function fail(e) { return { ok: false, error: e }; }
+
+// ─────────────────────────────────────────────────────────────
+//  Breakdown display
+// ─────────────────────────────────────────────────────────────
+function br(k, v) { return `<div class="br"><span class="bk">${k}</span><span>${v}</span></div>`; }
+function dim(t)   { return `<span style="color:var(--stone-dark)">${t}</span>`; }
+
+function breakdown(id, asOld) {
+  if (!id) return dim('—');
+  const v = versions.find(x => x.id === id);
+  const date = v ? v.releaseTime.slice(0,10) : '?';
+
+  if (asOld) {
+    // Displaying an old-format id
+    let m;
+    if ((m = id.match(/^(1\.\d+(?:\.\d+)?)-(pre|rc)(\d+)$/i)))
+      return br('TYPE', m[2].toUpperCase()) + br('BASE', m[1]) + br('#', m[3]) + br('DATE', date) + br('→ NEW', toNew.get(id)||'?');
+    if ((m = id.match(/^(\d{2})w(\d{2})([a-z])$/)))
+      return br('TYPE','Snapshot') + br('YEAR',`20${m[1]}`) + br('WEEK',`Week ${+m[2]}`) +
+             br('LETTER',`${m[3].toUpperCase()} (#${m[3].charCodeAt(0)-96})`) + br('DATE',date) + br('→ NEW',toNew.get(id)||'?');
+    if ((m = id.match(/^1\.(\d+)(?:\.(\d+))?$/)))
+      return br('TYPE','Release') + br('UPDATE',`1.${m[1]}`) +
+             (m[2]!==undefined ? br('HOTFIX',m[2]) : '') + br('DATE',date) + br('→ NEW',toNew.get(id)||'?');
+    return dim('Unknown old format');
+  } else {
+    // Displaying a new-format id
+    let m;
+    if ((m = id.match(/^(\d{2})\.(\d+)-(snapshot|pre|rc)-(\d+)$/i)))
+      return br('TYPE',m[3].toUpperCase()) + br('YEAR',`20${m[1]}`) + br('DROP',`#${m[2]}`) +
+             br('NUM',`#${m[4]}`) + br('DATE',date) + br('→ OLD',toOld.get(id)||computeOldForNew(id)||'?');
+    if ((m = id.match(/^(\d{2})\.(\d+)$/))) {
+      const oldEq = toOld.get(id) || computeOldForNew(id) || '?';
+      return br('TYPE','Release') + br('YEAR',`20${m[1]}`) + br('DROP',`Drop #${m[2]} of 20${m[1]}`) +
+             br('DATE',date) + br('→ OLD',oldEq);
+    }
+    return dim('Unknown new format');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UI helpers
+// ─────────────────────────────────────────────────────────────
+function setStatus(msg, type) {
+  document.getElementById('sbar').className = 'sbar ' + (type||'');
+  document.getElementById('stext').textContent = msg;
+}
+
+function applyDir() {
+  const sl = document.getElementById('srcLabel');
+  const dl = document.getElementById('dstLabel');
+  const sp = document.getElementById('srcPanel');
+  const dp = document.getElementById('dstPanel');
+  const si = document.getElementById('srcInput');
+
+  if (dir === 'old-to-new') {
+    sl.className='col-label cl-src-old'; sl.textContent='Old Format (source)';
+    dl.className='col-label cl-dst-new'; dl.textContent='New Format (result)';
+    sp.className='vpanel vp-src-old'; dp.className='vpanel vp-dst-new';
+    si.placeholder='e.g. 1.21.4 or 25w32a';
+    document.getElementById('dstInput').placeholder='result…';
+  } else {
+    sl.className='col-label cl-src-new'; sl.textContent='New Format (source)';
+    dl.className='col-label cl-dst-old'; dl.textContent='Old Format (result)';
+    sp.className='vpanel vp-src-new'; dp.className='vpanel vp-dst-old';
+    si.placeholder='e.g. 26.1 or 26.1-snapshot-4';
+    document.getElementById('dstInput').placeholder='result…';
+  }
+}
+
+function runConvert() {
+  const src = document.getElementById('srcInput').value.trim();
+  const di  = document.getElementById('dstInput');
+  const sbd = document.getElementById('srcBD');
+  const dbd = document.getElementById('dstBD');
+
+  if (!src) {
+    di.value=''; sbd.innerHTML=dim('Type a version…'); dbd.innerHTML=dim('Result appears here…');
+    setStatus('Enter a version or click one below.',''); return;
+  }
+
+  const asOld = (dir === 'old-to-new');
+  sbd.innerHTML = breakdown(src, asOld);
+
+  const {result, ok, error} = convert(src, dir);
+
+  if (ok) {
+    di.value = result;
+    dbd.innerHTML = breakdown(result, !asOld);
+    di.classList.remove('flashed'); void di.offsetWidth; di.classList.add('flashed');
+    setStatus(`✓  ${src}  →  ${result}`, 'ok');
+  } else {
+    di.value=''; dbd.innerHTML=dim('No result');
+    setStatus(error||'Unknown error', 'err');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Version list
+// ─────────────────────────────────────────────────────────────
+function renderList() {
+  const showSnap  = document.getElementById('snapTgl').checked;
+  const showPreRc = document.getElementById('preRcTgl').checked;
+  const list = document.getElementById('vlist');
+
+  const filtered = versions.filter(v => {
+    if (v.type === 'release') return true;
+    const isPreRc = /(pre|rc)[-\d]/i.test(v.id);
+    return isPreRc ? showPreRc : showSnap;
+  });
+
+  if (!filtered.length) { list.innerHTML='<div class="msg">No versions match filters</div>'; return; }
+
+  list.innerHTML = filtered.map(v => {
+    const nw      = isNewFmt(v.id);
+    const isPreRc = /(pre|rc)[-\d]/i.test(v.id);
+    const isSnap  = v.type==='snapshot' && !isPreRc;
+    const date    = v.releaseTime ? v.releaseTime.slice(0,10) : '';
+    const cls     = isSnap ? 'chip snp' : ('chip rel' + (nw?' nw':''));
+    return `<div class="${cls}" data-id="${v.id}" data-new="${nw}" title="${v.type} · ${date}">${v.id}</div>`;
+  }).join('');
+
+  list.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id   = chip.dataset.id;
+      const isnw = chip.dataset.new === 'true';
+      dir = isnw ? 'new-to-old' : 'old-to-new';
+      applyDir();
+      document.getElementById('srcInput').value = id;
+      runConvert();
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Wire
+// ─────────────────────────────────────────────────────────────
+document.getElementById('srcInput').addEventListener('input', runConvert);
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+  const prev = document.getElementById('dstInput').value;
+  dir = dir === 'old-to-new' ? 'new-to-old' : 'old-to-new';
+  applyDir();
+  document.getElementById('srcInput').value = prev;
+  runConvert();
+});
+
+document.getElementById('snapTgl').addEventListener('change', renderList);
+document.getElementById('preRcTgl').addEventListener('change', renderList);
+
+applyDir();
+loadManifest();
+</script>
+</body>
+</html>
