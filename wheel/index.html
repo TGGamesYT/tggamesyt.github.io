@@ -317,23 +317,26 @@
 
   // ── Spin logic ───────────────────────────────────────────
   function getTargetAngle() {
-    const n = entries.length;
     const sa = sliceAngle();
-    const totalSpins = (5 + Math.random() * 5) * 2 * Math.PI; // 5–10 full rotations
+    const fullSpins = (5 + Math.floor(Math.random() * 6)) * 2 * Math.PI;
 
     if (forcedWinner) {
       const idx = entries.findIndex(e => e.trim().toLowerCase() === forcedWinner.trim().toLowerCase());
       if (idx !== -1) {
-        const sliceCenter = idx * sa + sa / 2;
-        // Add a tiny random nudge within the slice so it doesn't always land dead-center
-        const nudge = (Math.random() - 0.5) * sa * 0.5;
-        const base = ((-sliceCenter - currentAngle + nudge) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-        return currentAngle + totalSpins + base;
+        // Nudge randomly within the middle 60% of the slice
+        const nudge = (Math.random() - 0.5) * sa * 0.6;
+        // Desired final resting angle (mod 2π) so pointer (angle=0) hits slice idx
+        const desiredRest = (-(idx * sa + sa / 2 + nudge) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        // Current angle normalised
+        const curNorm = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        // Extra rotation needed beyond full spins
+        let extra = desiredRest - curNorm;
+        if (extra < 0) extra += 2 * Math.PI;
+        return currentAngle + fullSpins + extra;
       }
     }
 
-    // Fully random
-    return currentAngle + totalSpins + Math.random() * 2 * Math.PI;
+    return currentAngle + fullSpins + Math.random() * 2 * Math.PI;
   }
 
   function easeOut(t) {
