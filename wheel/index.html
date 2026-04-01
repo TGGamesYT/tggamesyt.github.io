@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin the Wheel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #18181c;
+    --border: #2e2e38;
+    --accent: #f0c040;
+    --accent2: #e84040;
+    --text: #f0ede8;
+    --muted: #888;
+    --radius: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    gap: 2rem;
+  }
+
+  /* Subtle noise texture */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(240,192,64,0.3);
+    position: relative;
+    z-index: 1;
+  }
+
+  .layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+    align-items: flex-start;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 960px;
+  }
+
+  /* ── Wheel area ── */
+  .wheel-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .wheel-container {
+    position: relative;
+    width: 380px;
+    height: 380px;
+  }
+
+  canvas#wheel {
+    border-radius: 50%;
+    box-shadow: 0 0 0 6px var(--border), 0 0 60px rgba(240,192,64,0.15);
+    display: block;
+  }
+
+  /* Pointer */
+  .pointer {
+    position: absolute;
+    top: 50%;
+    right: -18px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 18px solid transparent;
+    border-bottom: 18px solid transparent;
+    border-right: 38px solid var(--accent);
+    filter: drop-shadow(0 0 8px rgba(240,192,64,0.7));
+    z-index: 10;
+  }
+
+  /* Center cap */
+  .center-cap {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 4px solid var(--accent);
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(240,192,64,0.4);
+  }
+
+  .spin-btn {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 0.12em;
+    padding: 0.6em 2.4em;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 4px 24px rgba(240,192,64,0.35);
+  }
+
+  .spin-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(240,192,64,0.5); }
+  .spin-btn:active { transform: translateY(1px); }
+  .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Result banner */
+  .result {
+    min-height: 2.4rem;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s, transform 0.4s;
+    text-shadow: 0 0 20px rgba(232,64,64,0.5);
+  }
+  .result.show { opacity: 1; transform: translateY(0); }
+
+  /* Rigged badge */
+  .rigged-badge {
+    display: none;
+    background: var(--accent2);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    position: relative;
+    z-index: 1;
+  }
+  .rigged-badge.visible { display: inline-block; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 260px;
+  }
+
+  .sidebar label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  textarea {
+    width: 100%;
+    height: 260px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 0.9rem 1rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.7;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+
+
+  .count-info {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    top: -10px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 9999;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎡 Spin the Wheel</h1>
+<span class="rigged-badge" id="riggedBadge">⚡ Rigged Mode</span>
+
+<div class="layout">
+  <div class="wheel-wrap">
+    <div class="wheel-container">
+      <canvas id="wheel" width="380" height="380"></canvas>
+      <div class="pointer"></div>
+      <div class="center-cap"></div>
+    </div>
+    <button class="spin-btn" id="spinBtn">SPIN</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <div class="sidebar">
+    <label for="entries">Entries (one per line)</label>
+    <textarea id="entries" spellcheck="false"></textarea>
+<span class="count-info" id="countInfo"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ── Defaults ──────────────────────────────────────────────
+  const DEFAULT_ENTRIES = [
+    "Alice", "Bob", "Carol", "Dave",
+    "Eve", "Frank", "Grace", "Hank"
+  ];
+
+  // ── Palette (dark, vibrant, distinct) ────────────────────
+  const PALETTE = [
+    "#e84040","#f0c040","#40c0e8","#a040e8",
+    "#40e880","#e88040","#e840a0","#40a0e8",
+    "#c0e840","#e04080","#40e8c0","#8040e8"
+  ];
+
+  // ── State ─────────────────────────────────────────────────
+  let entries = [...DEFAULT_ENTRIES];
+  let spinning = false;
+  let currentAngle = 0; // radians, top of wheel = 0
+
+  // ── URL param ─────────────────────────────────────────────
+  const params = new URLSearchParams(location.search);
+  const forcedWinner = params.get("win") || null;
+  if (forcedWinner) {
+    document.getElementById("riggedBadge").classList.add("visible");
+  }
+
+  // ── Canvas setup ─────────────────────────────────────────
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+  const CX = canvas.width / 2, CY = canvas.height / 2, R = CX - 4;
+
+  function sliceAngle() { return (2 * Math.PI) / entries.length; }
+
+  function drawWheel(angle) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const n = entries.length;
+    const sa = sliceAngle();
+
+    for (let i = 0; i < n; i++) {
+      const start = angle + i * sa;
+      const end = start + sa;
+      const color = PALETTE[i % PALETTE.length];
+
+      // Slice
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.arc(CX, CY, R, start, end);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      ctx.save();
+      ctx.translate(CX, CY);
+      ctx.rotate(start + sa / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 4;
+      const label = entries[i].length > 16 ? entries[i].slice(0, 15) + "…" : entries[i];
+      const fontSize = Math.min(16, Math.max(9, Math.floor(R * sa / (label.length * 0.7 + 1))));
+      ctx.font = `700 ${fontSize}px 'DM Sans', sans-serif`;
+      ctx.fillText(label, R - 14, fontSize / 3);
+      ctx.restore();
+    }
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, 2 * Math.PI);
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // ── Pointer is on the RIGHT side (3 o'clock = 0 rad)
+  // Winning slice = the one covering angle 0 (right) when spin stops.
+  function winnerIndex(angle) {
+    const n = entries.length;
+    const sa = sliceAngle();
+    // Pointer at angle=0 (right). Normalise angle to [0, 2π)
+    const norm = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    // Which slice contains 0?
+    // Slice i spans [norm + i*sa, norm + (i+1)*sa], but we want which i has 0 in it.
+    // Equivalent: i = floor((-norm mod 2π) / sa)
+    const offset = ((-norm) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    return Math.floor(offset / sa) % n;
+  }
+
+  // ── Spin logic ───────────────────────────────────────────
+  function getTargetAngle() {
+    const n = entries.length;
+    const sa = sliceAngle();
+    const totalSpins = (5 + Math.random() * 5) * 2 * Math.PI; // 5–10 full rotations
+
+    if (forcedWinner) {
+      const idx = entries.findIndex(e => e.trim().toLowerCase() === forcedWinner.trim().toLowerCase());
+      if (idx !== -1) {
+        // We want slice idx to be under the pointer (angle 0).
+        // Slice idx starts at currentAngle + idx*sa.
+        // We want currentAngle + idx*sa + sa/2 ≡ 0 (mod 2π)  (center of slice at pointer)
+        // => target = -(idx*sa + sa/2) - currentAngle + k*2π
+        const sliceCenter = idx * sa + sa / 2;
+        const base = ((-sliceCenter - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        return currentAngle + totalSpins + base;
+      }
+    }
+
+    // Fully random
+    return currentAngle + totalSpins + Math.random() * 2 * Math.PI;
+  }
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
+
+  function spin() {
+    if (spinning || entries.length < 2) return;
+    spinning = true;
+    document.getElementById("spinBtn").disabled = true;
+    document.getElementById("result").classList.remove("show");
+
+    const startAngle = currentAngle;
+    const target = getTargetAngle();
+    const duration = 4000 + Math.random() * 1500;
+    const start = performance.now();
+
+    function frame(now) {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      currentAngle = startAngle + (target - startAngle) * easeOut(t);
+      drawWheel(currentAngle);
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        currentAngle = target;
+        drawWheel(currentAngle);
+        spinning = false;
+        document.getElementById("spinBtn").disabled = false;
+
+        const idx = winnerIndex(currentAngle);
+        const winner = entries[idx];
+        const resultEl = document.getElementById("result");
+        resultEl.textContent = "🎉 " + winner + " wins!";
+        resultEl.classList.add("show");
+        launchConfetti();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ── Confetti ─────────────────────────────────────────────
+  function launchConfetti() {
+    const colors = ["#f0c040","#e84040","#40c0e8","#a040e8","#40e880","#ffffff"];
+    for (let i = 0; i < 80; i++) {
+      const el = document.createElement("div");
+      el.className = "confetti-piece";
+      el.style.cssText = `
+        left: ${Math.random() * 100}vw;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        width: ${6 + Math.random() * 8}px;
+        height: ${6 + Math.random() * 8}px;
+        border-radius: ${Math.random() > 0.5 ? "50%" : "2px"};
+        animation-duration: ${1.5 + Math.random() * 2}s;
+        animation-delay: ${Math.random() * 0.6}s;
+      `;
+      document.body.appendChild(el);
+      el.addEventListener("animationend", () => el.remove());
+    }
+  }
+
+  // ── Entries update ───────────────────────────────────────
+  function parseEntries(text) {
+    return text.split("\n").map(s => s.trim()).filter(Boolean);
+  }
+
+  function updateWheel() {
+    const raw = document.getElementById("entries").value;
+    const parsed = parseEntries(raw);
+    if (parsed.length < 2) { document.getElementById("countInfo").textContent = "Need at least 2 entries"; return; }
+    entries = parsed;
+    currentAngle = 0;
+    document.getElementById("countInfo").textContent = `${entries.length} entries`;
+    document.getElementById("result").classList.remove("show");
+    drawWheel(currentAngle);
+  }
+
+  let debounceTimer;
+  document.getElementById("entries").addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updateWheel, 300);
+  });
+  document.getElementById("spinBtn").addEventListener("click", spin);
+
+  // Allow Enter key to not trigger update (natural textarea behavior)
+
+  // ── Init ─────────────────────────────────────────────────
+  document.getElementById("entries").value = DEFAULT_ENTRIES.join("\n");
+  document.getElementById("countInfo").textContent = `${entries.length} entries`;
+  drawWheel(currentAngle);
+
+})();
+</script>
+</body>
+</html>
