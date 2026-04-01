@@ -323,7 +323,7 @@
 
     <div class="controls">
       <label class="toggle-wrap" id="toggleLabel">
-        <div class="toggle" id="toggle"></div>
+        <div class="toggle active" id="toggle"></div>
         REVERSE ORDER
       </label>
       <button class="btn-copy" id="copyBtn" onclick="copyText()">
@@ -364,9 +364,12 @@
     return map[c] !== undefined ? map[c] : c;
   }
 
+  const segmenter = new Intl.Segmenter();
+
   function transform(text) {
     const flipped = text.split('').map(flipChar).join('');
-    return reversed ? flipped.split('').reverse().join('') : flipped;
+    if (!reversed) return flipped;
+    return [...segmenter.segment(flipped)].map(s => s.segment).reverse().join('');
   }
 
   function update() {
