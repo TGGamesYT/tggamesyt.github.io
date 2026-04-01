@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ʇxǝʇ uʍop ǝpısdn</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --border: #2a2a24;
+    --green: #b8f04a;
+    --green-dim: #4a6018;
+    --green-glow: rgba(184, 240, 74, 0.15);
+    --text: #d4e8a0;
+    --muted: #5a6a38;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* scanlines */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 720px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 7vw, 4.2rem);
+    color: var(--green);
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 18px rgba(184,240,74,0.5), 0 0 40px rgba(184,240,74,0.2);
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.25em;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .panel-label {
+    font-size: 0.6rem;
+    color: var(--green);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    opacity: 0.7;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    caret-color: var(--green);
+  }
+
+  textarea::placeholder {
+    color: var(--muted);
+  }
+
+  .output-text {
+    min-height: 110px;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--green);
+    text-shadow: 0 0 8px rgba(184,240,74,0.3);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .output-text.empty {
+    color: var(--muted);
+    text-shadow: none;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    color: var(--muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .toggle-wrap:hover {
+    color: var(--text);
+  }
+
+  .toggle {
+    width: 36px;
+    height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+    border: 1px solid var(--green-dim);
+  }
+
+  .toggle.active {
+    background: var(--green-dim);
+    box-shadow: 0 0 8px rgba(184,240,74,0.25);
+  }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--muted);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.25s, background 0.25s;
+  }
+
+  .toggle.active::after {
+    transform: translateX(18px);
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(184,240,74,0.6);
+  }
+
+  .btn-copy {
+    background: transparent;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    padding: 0.45rem 1.2rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-copy::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--green-glow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s;
+  }
+
+  .btn-copy:hover::before {
+    transform: scaleX(1);
+  }
+
+  .btn-copy:hover {
+    box-shadow: 0 0 12px rgba(184,240,74,0.2);
+    border-color: var(--green);
+  }
+
+  .btn-copy span { position: relative; z-index: 1; }
+
+  .btn-copy.copied {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 0.5em;
+    height: 1.1em;
+    background: var(--green);
+    animation: blink 1.1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    opacity: 0;
+  }
+
+  .output-text:not(.empty) ~ .cursor-blink,
+  .output-text.has-cursor { }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
+  .corner {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: var(--green-dim);
+    border-style: solid;
+    opacity: 0.5;
+  }
+  .corner.tl { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+  .corner.tr { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
+  .corner.bl { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
+  .corner.br { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+  .status {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-align: center;
+    margin-top: 1.5rem;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="title">ʇxǝʇ uʍop ǝpısdn</div>
+    <div class="subtitle">terminal flip utility // v1.0</div>
+  </header>
+
+  <div class="panel">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div class="panel-label">// input</div>
+    <textarea id="input" placeholder="Type something here..." autocomplete="off" spellcheck="false"></textarea>
+  </div>
+
+  <div class="divider">FLIP</div>
+
+  <div class="panel">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div class="panel-label">// output</div>
+    <div class="output-text empty" id="output">ʇndʇno ɹnoʎ ǝɹǝɥ ɹǝǝddɐ llıʍ</div>
+
+    <div class="controls">
+      <label class="toggle-wrap" id="toggleLabel">
+        <div class="toggle" id="toggle"></div>
+        REVERSE ORDER
+      </label>
+      <button class="btn-copy" id="copyBtn" onclick="copyText()">
+        <span id="copyLabel">[ COPY ]</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="status">// chars supported: A–Z a–z 0–9 ! ? . — unsupported chars pass through</div>
+</div>
+
+<script>
+  const PAIRS = [
+    ['A','Ɐ'], ['B','ꓭ'], ['C','Ɔ'], ['D','ꓷ'], ['E','Ǝ'], ['F','Ⅎ'], ['G','ꓨ'], ['H','H'],
+    ['I','I'], ['J','ſ'], ['K','ꓘ'], ['L','ꓶ'], ['M','W'], ['N','N'], ['O','O'], ['P','Ԁ'],
+    ['Q','Ꝺ'], ['R','ꓤ'], ['S','S'], ['T','ꓕ'], ['U','ꓵ'], ['V','ꓥ'], ['W','M'], ['X','X'],
+    ['Y','⅄'], ['Z','Z'],
+    ['a','ɐ'], ['b','q'], ['c','ɔ'], ['d','p'], ['e','ǝ'], ['f','ɟ'], ['g','ƃ'], ['h','ɥ'],
+    ['i','ı̣'], ['j','ɾ̣'], ['k','ʞ'], ['l','ן'], ['m','ɯ'], ['n','u'], ['o','o'], ['p','d'],
+    ['q','b'], ['r','ɹ'], ['s','s'], ['t','ʇ'], ['u','n'], ['v','ʌ'], ['w','ʍ'], ['x','x'],
+    ['y','ʎ'], ['z','z'],
+    ['!','¡'], ['?','¿'], ['1','⇂'], ['2','ᘔ'], ['3','Ɛ'], ['4','߈'], ['5','5'], ['6','9'],
+    ['7','ㄥ'], ['8','8'], ['9','6'], ['0','0'], ['.','˙'],
+  ];
+
+  // Build map
+  const map = {};
+  for (const [from, to] of PAIRS) map[from] = to;
+
+  let reversed = true;
+
+  const inputEl  = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const toggle   = document.getElementById('toggle');
+  const toggleLabel = document.getElementById('toggleLabel');
+
+  function flipChar(c) {
+    return map[c] !== undefined ? map[c] : c;
+  }
+
+  function transform(text) {
+    const flipped = text.split('').map(flipChar).join('');
+    return reversed ? flipped.split('').reverse().join('') : flipped;
+  }
+
+  function update() {
+    const val = inputEl.value;
+    if (!val) {
+      outputEl.textContent = 'ʇndʇno ɹnoʎ ǝɹǝɥ ɹǝǝddɐ llıʍ';
+      outputEl.classList.add('empty');
+    } else {
+      outputEl.textContent = transform(val);
+      outputEl.classList.remove('empty');
+    }
+  }
+
+  inputEl.addEventListener('input', update);
+
+  toggleLabel.addEventListener('click', () => {
+    reversed = !reversed;
+    toggle.classList.toggle('active', reversed);
+    update();
+  });
+
+  function copyText() {
+    const text = outputEl.textContent;
+    if (!text || outputEl.classList.contains('empty')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      const lbl = document.getElementById('copyLabel');
+      btn.classList.add('copied');
+      lbl.textContent = '[ COPIED ]';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        lbl.textContent = '[ COPY ]';
+      }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
