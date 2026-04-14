@@ -1,0 +1,297 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Color Remapper PRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+body { font-family: Arial; padding: 20px; background:#111; color:#eee; }
+.section { margin-bottom:20px; }
+.palette { display:flex; gap:6px; flex-wrap:wrap; }
+.colorBox { width:30px; height:30px; border:2px solid #333; cursor:pointer; }
+.previewRow { display:flex; gap:20px; margin-bottom:15px; align-items:center; }
+.previewCanvas { border:1px solid #444; image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+</head>
+<body><h2>🎨 Color Remapper PRO</h2><div class="section">
+<label>Upload Images:</label>
+<input type="file" id="images" multiple accept="image/*">
+</div><div class="section">
+<label>OR Upload ZIP:</label>
+<input type="file" id="zipInput" accept=".zip">
+</div><div class="section">
+<label>Palette Image:</label>
+<input type="file" id="palette" accept="image/*">
+</div><div class="section">
+<label>Leave-Out Image (colors to protect):</label>
+<input type="file" id="exclude" accept="image/*">
+</div><div class="section">
+<button onclick="loadInputs()">Load Inputs</button>
+<button onclick="applyRemap()">Apply Remap</button>
+</div><h3>Palette Editor</h3>
+<div id="paletteUI" class="palette"></div><div class="section">
+<label>Rename (also applies to ZIP paths):</label>
+<input type="text" id="find" placeholder="find">
+<input type="text" id="replace" placeholder="replace">
+</div><div class="section">
+<button onclick="downloadZip()">Download ZIP</button>
+</div><h3>Comparison Preview</h3>
+<div id="preview"></div><script>
+let images = [];
+let basePalette = [];
+let remappedImages = [];
+let excludeColors = new Set();
+
+// dynamic preview sizing (40% width per image)
+const PREVIEW_FRACTION = 0.4;
+
+async function getImageDataFromBlob(blob, name, path=""){
+ return new Promise(resolve=>{
+  const img = new Image();
+  img.onload = ()=>{
+   const canvas = document.createElement('canvas');
+   canvas.width = img.width;
+   canvas.height = img.height;
+   const ctx = canvas.getContext('2d');
+   ctx.imageSmoothingEnabled = false;
+   ctx.drawImage(img,0,0);
+   resolve({canvas, ctx, original: ctx.getImageData(0,0,img.width,img.height), data: ctx.getImageData(0,0,img.width,img.height), name, path});
+  };
+  img.src = URL.createObjectURL(blob);
+ });
+}
+
+function brightness(c){ return c[0]+c[1]+c[2]; }
+
+function extractPalette(data){
+ const map = {};
+ for(let i=0;i<data.length;i+=4){
+  const a = data[i+3];
+  if(a === 0) continue; // ignore fully transparent pixels
+  map[`${data[i]},${data[i+1]},${data[i+2]}`]=true;
+ }
+ return Object.keys(map).map(c=>c.split(',').map(Number)).sort((a,b)=>brightness(a)-brightness(b));
+};
+ for(let i=0;i<data.length;i+=4){
+  map[`${data[i]},${data[i+1]},${data[i+2]}`]=true;
+ }
+ return Object.keys(map).map(c=>c.split(',').map(Number)).sort((a,b)=>brightness(a)-brightness(b));
+}
+
+function extractColorSet(data){
+ const set = new Set();
+ for(let i=0;i<data.length;i+=4){
+  const a = data[i+3];
+  if(a === 0) continue; // ignore transparent
+  set.add(`${data[i]},${data[i+1]},${data[i+2]}`);
+ }
+ return set;
+},${data[i+1]},${data[i+2]}`);
+ }
+ return set;
+}
+
+async function loadInputs(){
+ images = [];
+ excludeColors.clear();
+
+ const files = document.getElementById('images').files;
+ for (let f of files){
+  const img = await getImageDataFromBlob(f, f.name);
+  img.colors = extractPalette(img.data.data);
+  images.push(img);
+ }
+
+ const zipFile = document.getElementById('zipInput').files[0];
+ if (zipFile){
+  const zip = await JSZip.loadAsync(zipFile);
+  for (let path in zip.files){
+   const file = zip.files[path];
+   if (!file.dir && path.match(/\.(png|jpg|jpeg)$/i)){
+    const blob = await file.async('blob');
+    const img = await getImageDataFromBlob(blob, path.split('/').pop(), path);
+    img.colors = extractPalette(img.data.data);
+    images.push(img);
+   }
+  }
+ }
+
+ const pfile = document.getElementById('palette').files[0];
+ if (pfile){
+  const pimg = await getImageDataFromBlob(pfile, pfile.name);
+  basePalette = extractPalette(pimg.data.data);
+ }
+
+ const exfile = document.getElementById('exclude').files[0];
+ if (exfile){
+  const eximg = await getImageDataFromBlob(exfile, exfile.name);
+  excludeColors = extractColorSet(eximg.data.data);
+ }
+
+ renderPaletteUI();
+ renderPreview();
+}
+
+function renderPaletteUI(){
+ const ui = document.getElementById('paletteUI');
+ ui.innerHTML='';
+ basePalette.forEach((c,i)=>{
+  const div=document.createElement('div');
+  div.className='colorBox';
+  div.style.background=`rgb(${c})`;
+
+  div.onclick=()=>{
+   const inp=document.createElement('input');
+   inp.type='color';
+   inp.value=rgbToHex(c);
+   inp.oninput=e=>{
+    basePalette[i]=hexToRgb(e.target.value);
+    renderPaletteUI();
+   };
+   inp.click();
+  };
+
+  div.draggable=true;
+  div.ondragstart=e=>e.dataTransfer.setData('i',i);
+  div.ondragover=e=>e.preventDefault();
+  div.ondrop=e=>{
+   const from=+e.dataTransfer.getData('i');
+   const tmp=basePalette[from];
+   basePalette.splice(from,1);
+   basePalette.splice(i,0,tmp);
+   renderPaletteUI();
+  };
+
+  ui.appendChild(div);
+ });
+}
+
+function rgbToHex(c){ return '#'+c.map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function hexToRgb(h){ const v=parseInt(h.slice(1),16); return [(v>>16)&255,(v>>8)&255,v&255]; }
+
+function interpolatePalette(base, target){
+ const res=[];
+ for(let i=0;i<base.length;i++){
+  const t=i/(base.length-1);
+  const idx=t*(target.length-1);
+  const l=Math.floor(idx), h=Math.ceil(idx), r=idx-l;
+  const c1=target[l], c2=target[h];
+  res.push([
+   c1[0]*(1-r)+c2[0]*r,
+   c1[1]*(1-r)+c2[1]*r,
+   c1[2]*(1-r)+c2[2]*r
+  ].map(v=>Math.round(v)));
+ }
+ return res;
+}
+
+function dist(a,b){ return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2; }
+function findClosest(c,p){ let b,d=1e9; for(let x of p){let dd=dist(c,x); if(dd<d){d=dd;b=x}} return b; }
+
+function applyRemap(){
+ remappedImages=[];
+ if(!basePalette.length) return alert('No palette');
+
+ images.forEach(img=>{
+  const newPalette=interpolatePalette(img.colors,basePalette);
+  const d=new Uint8ClampedArray(img.original.data);
+
+  for(let i=0;i<d.length;i+=4){
+   const alpha = d[i+3];
+
+   // preserve transparency
+   if(alpha === 0) continue;
+
+   const key = `${d[i]},${d[i+1]},${d[i+2]}`;
+
+   // 🚫 skip excluded colors
+   if(excludeColors.has(key)) continue;
+
+   const old=[d[i],d[i+1],d[i+2]];
+   const closest=findClosest(old,img.colors);
+   const idx=img.colors.findIndex(c=>dist(c,closest)<1);
+   const nc=newPalette[idx]||old;
+   d[i]=nc[0]; d[i+1]=nc[1]; d[i+2]=nc[2];
+},${d[i+1]},${d[i+2]}`;
+
+   // 🚫 skip excluded colors
+   if(excludeColors.has(key)) continue;
+
+   const old=[d[i],d[i+1],d[i+2]];
+   const closest=findClosest(old,img.colors);
+   const idx=img.colors.findIndex(c=>dist(c,closest)<1);
+   const nc=newPalette[idx]||old;
+   d[i]=nc[0]; d[i+1]=nc[1]; d[i+2]=nc[2];
+  }
+
+  const newCanvas=document.createElement('canvas');
+  newCanvas.width=img.canvas.width;
+  newCanvas.height=img.canvas.height;
+  const ctx=newCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.putImageData(new ImageData(d,img.canvas.width,img.canvas.height),0,0);
+
+  remappedImages.push({...img, remapCanvas:newCanvas});
+ });
+
+ renderPreview();
+}
+
+function createPreviewCanvas(sourceCanvas){
+ const maxWidth = window.innerWidth * PREVIEW_FRACTION;
+ const scale = maxWidth / sourceCanvas.width;
+ const c=document.createElement('canvas');
+ c.width = sourceCanvas.width * scale;
+ c.height = sourceCanvas.height * scale;
+ const ctx=c.getContext('2d');
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(sourceCanvas,0,0,c.width,c.height);
+ c.className='previewCanvas';
+ return c;
+}
+
+function renderPreview(){
+ const p=document.getElementById('preview');
+ p.innerHTML='';
+
+ remappedImages.forEach(img=>{
+  const row=document.createElement('div');
+  row.className='previewRow';
+
+  const origCanvas=document.createElement('canvas');
+  origCanvas.width=img.canvas.width;
+  origCanvas.height=img.canvas.height;
+  origCanvas.getContext('2d').putImageData(img.original,0,0);
+
+  const origScaled=createPreviewCanvas(origCanvas);
+  const remapScaled=createPreviewCanvas(img.remapCanvas);
+
+  row.appendChild(origScaled);
+  row.appendChild(remapScaled);
+  p.appendChild(row);
+ });
+}
+
+function rename(path){
+ const find=document.getElementById('find').value;
+ const replace=document.getElementById('replace').value;
+ return path.replaceAll(find,replace);
+}
+
+function downloadZip(){
+ const zip=new JSZip();
+ let done=0;
+
+ remappedImages.forEach(img=>{
+  img.remapCanvas.toBlob(b=>{
+   const fullPath = img.path || img.name;
+   zip.file(rename(fullPath), b);
+   done++;
+   if(done===remappedImages.length){
+    zip.generateAsync({type:'blob'}).then(c=>saveAs(c,'remapped.zip'));
+   }
+  });
+ });
+}
+</script></body>
+</html>
