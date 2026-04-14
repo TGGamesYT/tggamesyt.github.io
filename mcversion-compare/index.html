@@ -1,0 +1,253 @@
+<!DOCTYPE html><html>
+<head>
+  <title>Minecraft Asset Compare</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body { font-family: Arial; }img {
+  width: 50vw;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+  image-rendering: pixelated;
+}
+
+.added { color: green; }
+.removed { color: red; }
+
+.progress-container { width: 100%; background: #eee; margin: 10px 0; }
+.progress-bar { height: 20px; width: 0%; background: #4caf50; }
+
+pre { background:#111; color:#0f0; padding:10px; max-height:200px; overflow:auto; }
+.row { margin-bottom: 15px; }
+
+  </style>
+</head>
+<body><h1>Minecraft Asset Compare</h1><label>
+  <input type="checkbox" id="autoPrev" onchange="toggleMode()"> Compare with previous version
+</label>
+<br><br><select id="v1"></select> <select id="v2"></select>
+
+<select id="category" onchange="renderResults()"></select>
+
+<button onclick="compare()">Compare</button>
+
+<div class="progress-container">
+  <div id="progress" class="progress-bar"></div>
+</div>
+<div id="status"></div><h2>Results</h2>
+<div id="results"></div><script>
+const manifestURL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+
+let versions = [];
+let zipCache = {};
+
+let globalData = {
+  added: [],
+  removed: [],
+  zip1: null,
+  zip2: null
+};
+
+function toggleMode() {
+  const auto = document.getElementById("autoPrev").checked;
+  document.getElementById("v1").style.display = auto ? "none" : "inline";
+}
+
+function setProgress(percent, text) {
+  document.getElementById("progress").style.width = percent + "%";
+  document.getElementById("status").textContent = text;
+}
+
+async function fetchWithProgress(url, labelStart, labelEnd) {
+  setProgress(0, labelStart);
+
+  const response = await fetch(url);
+  const reader = response.body.getReader();
+
+  let received = 0;
+  let chunks = [];
+
+  while(true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    chunks.push(value);
+    received += value.length;
+  }
+
+  let chunksAll = new Uint8Array(received);
+  let position = 0;
+  for (let chunk of chunks) {
+    chunksAll.set(chunk, position);
+    position += chunk.length;
+  }
+
+  setProgress(100, labelEnd);
+  return chunksAll.buffer;
+}
+
+async function loadVersions() {
+  const res = await fetch(manifestURL);
+  const data = await res.json();
+  versions = data.versions;
+
+  const v1 = document.getElementById("v1");
+  const v2 = document.getElementById("v2");
+
+  versions.forEach(v => {
+    v1.add(new Option(v.id, v.url));
+    v2.add(new Option(v.id, v.url));
+  });
+}
+
+function getPreviousVersion(url) {
+  const index = versions.findIndex(v => v.url === url);
+  if (index === -1 || index === versions.length - 1) return null;
+  return versions[index + 1]; // list is newest first
+}
+
+async function getJar(url) {
+  if (zipCache[url]) return zipCache[url];
+
+  const versionMeta = await fetch(url).then(r => r.json());
+  const jarUrl = versionMeta.downloads.client.url;
+
+  const jarData = await fetchWithProgress(jarUrl, "Downloading...", "Done");
+  const zip = await JSZip.loadAsync(jarData);
+
+  zipCache[url] = zip;
+  return zip;
+}
+
+function getAssetFiles(zip) {
+  return Object.keys(zip.files)
+    .filter(f => f.startsWith("assets/minecraft/") && !zip.files[f].dir);
+}
+
+function extractCategory(path) {
+  return path.split("/")[2] || "unknown";
+}
+
+function updateCategoryDropdown(categories) {
+  const select = document.getElementById("category");
+  select.innerHTML = "";
+
+  select.add(new Option("All", "all"));
+  [...categories].sort().forEach(c => select.add(new Option(c, c)));
+}
+
+function filter(files, category) {
+  if (category === "all") return files;
+  return files.filter(f => extractCategory(f) === category);
+}
+
+function sortAlpha(arr) {
+  return arr.sort((a,b)=>a.localeCompare(b));
+}
+
+async function showFile(zip, path, container, btn) {
+  if (btn) btn.remove();
+  const file = zip.file(path);
+
+  if (path.endsWith(".png")) {
+    const blob = await file.async("blob");
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(blob);
+    container.appendChild(img);
+  } else {
+    const text = await file.async("text");
+    const pre = document.createElement("pre");
+    pre.textContent = text.slice(0,2000);
+    container.appendChild(pre);
+  }
+}
+
+function renderResults() {
+  const { added, removed, zip1, zip2 } = globalData;
+  const category = document.getElementById("category").value;
+
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+
+  const a = sortAlpha(filter(added, category));
+  const r = sortAlpha(filter(removed, category));
+
+  const addDiv = document.createElement("div");
+  addDiv.innerHTML = `<h3 class='added'>Added (${a.length})</h3>`;
+
+  for (const f of a) {
+    const div = document.createElement("div");
+    div.className = "added row";
+    div.textContent = f;
+
+    if (f.endsWith(".png")) showFile(zip2, f, div);
+    else {
+      const btn = document.createElement("button");
+      btn.textContent = "View";
+      btn.onclick = () => showFile(zip2, f, div, btn);
+      div.appendChild(btn);
+    }
+
+    addDiv.appendChild(div);
+  }
+
+  const remDiv = document.createElement("div");
+  remDiv.innerHTML = `<h3 class='removed'>Removed (${r.length})</h3>`;
+
+  for (const f of r) {
+    const div = document.createElement("div");
+    div.className = "removed row";
+    div.textContent = f;
+
+    if (f.endsWith(".png")) showFile(zip1, f, div);
+    else {
+      const btn = document.createElement("button");
+      btn.textContent = "View";
+      btn.onclick = () => showFile(zip1, f, div, btn);
+      div.appendChild(btn);
+    }
+
+    remDiv.appendChild(div);
+  }
+
+  results.appendChild(addDiv);
+  results.appendChild(remDiv);
+}
+
+async function compare() {
+  let url1 = document.getElementById("v1").value;
+  const url2 = document.getElementById("v2").value;
+
+  if (document.getElementById("autoPrev").checked) {
+    const prev = getPreviousVersion(url2);
+    if (!prev) {
+      alert("No previous version found");
+      return;
+    }
+    url1 = prev.url;
+  }
+
+  const zip1 = await getJar(url1);
+  const zip2 = await getJar(url2);
+
+  const files1 = getAssetFiles(zip1);
+  const files2 = getAssetFiles(zip2);
+
+  const set1 = new Set(files1);
+  const set2 = new Set(files2);
+
+  const added = files2.filter(f => !set1.has(f));
+  const removed = files1.filter(f => !set2.has(f));
+
+  const cats = new Set([...added, ...removed].map(extractCategory));
+  updateCategoryDropdown(cats);
+
+  globalData = { added, removed, zip1, zip2 };
+
+  renderResults();
+}
+
+loadVersions();
+</script></body>
+</html>
