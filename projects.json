@@ -1,4 +1,63 @@
 {
+  "cameramod": {
+    "name": "Minecraft Virtualcam",
+    "description": "adds cameras into the game, which's view is streamed into a virtual camera in Windows",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "source": {
+        "text": "Source",
+        "url": "https://github.com/tggamesyt/cameramod"
+      }
+    }
+  },
+  "szar": {
+    "name": "Szar Mod",
+    "description": "a random Minecraft mod I made, containing all kinds of crazy shit",
+    "type": "JAVA / Minecraft Mod",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://ciganyok.com/szar"
+      },
+      "source": {
+        "text": "Source",
+        "url": "https://gitea.tggamesyt.dev/tggamesyt/szar"
+      }
+    }
+  },
+  "mcversioncompare": {
+    "name": "Minecraft Version Compare",
+    "description": "compare the assets of minecraft version jar-s",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/mcversion-compare"
+      }
+    }
+  },
+  "mcnews": {
+    "name": "Minecraft News",
+    "description": "shows news from mojang's news api",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/mc-news"
+      }
+    }
+  },
+  "panorama": {
+    "name": "Minecraft Panorama Converter",
+    "description": "convert 360° photo spheres into minecraft panoramas",
+    "type": "JS / HTML",
+    "links": {
+      "site": {
+        "text": "Site",
+        "url": "https://tggamesyt.dev/panorama"
+      }
+    }
+  },
   "redstone-launcher": {
     "name": "Redstone Launcher",
     "description": "An Electron application that is an all-in-one minecraft launcher with a launcher, server manager, modrinth integration, a profile manager and much more!",
