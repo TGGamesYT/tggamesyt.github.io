@@ -40,33 +40,31 @@
 <video id="video" autoplay playsinline></video>
 
 <script>
-let devices = [];
+let currentStream = null;
 
 async function detectCameras() {
     try {
-        // Ask permission first
         await navigator.mediaDevices.getUserMedia({ video: true });
 
-        const allDevices = await navigator.mediaDevices.enumerateDevices();
-        devices = allDevices.filter(d => d.kind === "videoinput");
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(d => d.kind === "videoinput");
 
         const select = document.getElementById("cameraList");
         select.innerHTML = "";
 
-        devices.forEach((device, i) => {
+        cameras.forEach((device, i) => {
             const option = document.createElement("option");
             option.value = device.deviceId;
             option.text = device.label || `Camera ${i+1}`;
             select.appendChild(option);
         });
 
-        // Auto-select if only one camera (but DO NOT start it)
-        if (devices.length === 1) {
+        if (cameras.length === 1) {
             select.selectedIndex = 0;
         }
 
     } catch (err) {
-        alert("Camera permission denied or error: " + err.message);
+        alert("Error: " + err.message);
     }
 }
 
@@ -80,14 +78,20 @@ async function startCamera() {
     }
 
     try {
+        // 🔴 STOP previous stream (this is the fix)
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: deviceId } }
         });
 
+        currentStream = stream;
+
         const video = document.getElementById("video");
         video.srcObject = stream;
 
-        // Hide controls, show video fullscreen
         document.getElementById("controls").style.display = "none";
         video.style.display = "block";
 
