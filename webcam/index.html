@@ -32,7 +32,9 @@
 <div id="controls">
     <button onclick="detectCameras()">Detect Camera</button>
     <br>
-    <select id="cameraList" onchange="startCamera()"></select>
+    <select id="cameraList"></select>
+    <br>
+    <button onclick="startCamera()">Start Camera</button>
 </div>
 
 <video id="video" autoplay playsinline></video>
@@ -58,8 +60,9 @@ async function detectCameras() {
             select.appendChild(option);
         });
 
+        // Auto-select if only one camera (but DO NOT start it)
         if (devices.length === 1) {
-            startCamera();
+            select.selectedIndex = 0;
         }
 
     } catch (err) {
@@ -71,18 +74,26 @@ async function startCamera() {
     const select = document.getElementById("cameraList");
     const deviceId = select.value;
 
-    if (!deviceId) return;
+    if (!deviceId) {
+        alert("Please select a camera first.");
+        return;
+    }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId } }
-    });
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId } }
+        });
 
-    const video = document.getElementById("video");
-    video.srcObject = stream;
+        const video = document.getElementById("video");
+        video.srcObject = stream;
 
-    // Hide controls, show video fullscreen
-    document.getElementById("controls").style.display = "none";
-    video.style.display = "block";
+        // Hide controls, show video fullscreen
+        document.getElementById("controls").style.display = "none";
+        video.style.display = "block";
+
+    } catch (err) {
+        alert("Failed to start camera: " + err.message);
+    }
 }
 </script>
 
