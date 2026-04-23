@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Camera Detector</title>
+<title>Camera Selector</title>
 <style>
     body {
-        font-family: Arial, sans-serif;
-        text-align: center;
+        margin: 0;
         background: #111;
         color: white;
-        margin: 0;
+        font-family: Arial;
+        text-align: center;
     }
     #controls {
-        margin-top: 50px;
+        margin-top: 40px;
     }
     video {
         width: 100vw;
@@ -22,7 +22,7 @@
     }
     select, button {
         padding: 10px;
-        margin: 10px;
+        margin: 8px;
         font-size: 16px;
     }
 </style>
@@ -30,7 +30,7 @@
 <body>
 
 <div id="controls">
-    <button onclick="detectCameras()">Detect Camera</button>
+    <button onclick="detectCameras()">Detect Cameras</button>
     <br>
     <select id="cameraList"></select>
     <br>
@@ -44,7 +44,17 @@ let currentStream = null;
 
 async function detectCameras() {
     try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        // 🔴 Step 1: request permission ONLY to unlock device labels
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+        // 🔴 Step 2: HARD STOP everything immediately
+        tempStream.getTracks().forEach(t => {
+            t.stop();
+            tempStream.removeTrack?.(t);
+        });
+
+        // extra safety: clear reference
+        await new Promise(r => setTimeout(r, 100));
 
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cameras = devices.filter(d => d.kind === "videoinput");
@@ -52,11 +62,11 @@ async function detectCameras() {
         const select = document.getElementById("cameraList");
         select.innerHTML = "";
 
-        cameras.forEach((device, i) => {
-            const option = document.createElement("option");
-            option.value = device.deviceId;
-            option.text = device.label || `Camera ${i+1}`;
-            select.appendChild(option);
+        cameras.forEach((cam, i) => {
+            const opt = document.createElement("option");
+            opt.value = cam.deviceId;
+            opt.text = cam.label || `Camera ${i + 1}`;
+            select.appendChild(opt);
         });
 
         if (cameras.length === 1) {
@@ -64,39 +74,40 @@ async function detectCameras() {
         }
 
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Camera permission failed: " + err.message);
     }
 }
 
 async function startCamera() {
-    const select = document.getElementById("cameraList");
-    const deviceId = select.value;
+    const deviceId = document.getElementById("cameraList").value;
+    const video = document.getElementById("video");
 
-    if (!deviceId) {
-        alert("Please select a camera first.");
-        return;
-    }
+    if (!deviceId) return alert("Select a camera first");
 
     try {
-        // 🔴 STOP previous stream (this is the fix)
+        // 🔴 FULL STOP previous stream
         if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
         }
+
+        // 🔴 Reset video completely (important)
+        video.pause();
+        video.srcObject = null;
+        video.load?.();
 
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: deviceId } }
         });
 
         currentStream = stream;
-
-        const video = document.getElementById("video");
         video.srcObject = stream;
 
         document.getElementById("controls").style.display = "none";
         video.style.display = "block";
 
     } catch (err) {
-        alert("Failed to start camera: " + err.message);
+        alert("Start camera failed: " + err.message);
     }
 }
 </script>
