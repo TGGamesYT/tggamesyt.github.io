@@ -30,7 +30,6 @@
         font-size: 16px;
     }
 
-    /* Background canvas */
     #bg {
         position: fixed;
         inset: 0;
@@ -39,7 +38,6 @@
         z-index: 0;
     }
 
-    /* Main video */
     #video {
         position: fixed;
         top: 0;
@@ -47,8 +45,8 @@
         width: 100vw;
         height: 100vh;
         object-fit: contain;
-        background: transparent;
         z-index: 1;
+        background: transparent;
     }
 </style>
 </head>
@@ -66,14 +64,19 @@
 <script>
 let currentStream = null;
 let animId = null;
+let hasPermission = false;
 
 async function listCameras() {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const select = document.getElementById("cameraList");
+    updateCameraList(devices);
+}
 
+function updateCameraList(devices) {
+    const select = document.getElementById("cameraList");
     select.innerHTML = "";
 
     let count = 1;
+
     devices.forEach(device => {
         if (device.kind === "videoinput") {
             const option = document.createElement("option");
@@ -89,7 +92,8 @@ async function listCameras() {
 }
 
 async function startCamera() {
-    const deviceId = document.getElementById("cameraList").value;
+    const select = document.getElementById("cameraList");
+    const deviceId = select.value;
     const video = document.getElementById("video");
 
     if (!deviceId) {
@@ -98,12 +102,10 @@ async function startCamera() {
     }
 
     try {
+        // Stop previous
         if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-            currentStream = null;
+            currentStream.getTracks().forEach(t => t.stop());
         }
-
-        video.srcObject = null;
 
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: deviceId } }
@@ -112,14 +114,19 @@ async function startCamera() {
         currentStream = stream;
         video.srcObject = stream;
 
+        // ✅ Now we have permission → refresh labels
+        if (!hasPermission) {
+            hasPermission = true;
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            updateCameraList(devices);
+        }
+
         document.getElementById("controls").style.display = "none";
 
-        video.onloadeddata = () => {
-            startBlur(video);
-        };
+        video.onloadeddata = () => startBlur(video);
 
     } catch (err) {
-        alert("Failed to start camera: " + err.message);
+        alert("Failed: " + err.message);
     }
 }
 
@@ -132,11 +139,8 @@ function startBlur(video) {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            // 🔥 Apply blur directly in canvas rendering
             ctx.filter = "blur(40px) brightness(0.6)";
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Reset filter for safety
             ctx.filter = "none";
         }
 
