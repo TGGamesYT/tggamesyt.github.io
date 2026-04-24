@@ -41,7 +41,7 @@
         z-index: 0;
     }
 
-    /* Main video (fixed: no gaps, no stretch) */
+    /* Main video */
     #video {
         position: fixed;
         top: 0;
@@ -69,7 +69,6 @@
 let currentStream = null;
 let animId = null;
 
-// ✅ No getUserMedia here → no auto-start issue
 async function listCameras() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const select = document.getElementById("cameraList");
@@ -77,7 +76,6 @@ async function listCameras() {
     select.innerHTML = "";
 
     let count = 1;
-
     devices.forEach(device => {
         if (device.kind === "videoinput") {
             const option = document.createElement("option");
@@ -102,13 +100,11 @@ async function startCamera() {
     }
 
     try {
-        // Stop previous stream
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
         }
 
-        // Reset video
         video.pause();
         video.srcObject = null;
 
@@ -121,20 +117,22 @@ async function startCamera() {
 
         document.getElementById("controls").style.display = "none";
 
-        startBlurBackground(video);
+        // 🔥 WAIT until video has real frames
+        video.onloadeddata = () => {
+            startBlurBackground(video);
+        };
 
     } catch (err) {
         alert("Failed to start camera: " + err.message);
     }
 }
 
-// 🎨 Live blurred background
 function startBlurBackground(video) {
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
 
     function draw() {
-        if (video.videoWidth > 0) {
+        if (video.readyState >= 2) { // HAVE_CURRENT_DATA
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
