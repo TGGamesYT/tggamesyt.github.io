@@ -33,24 +33,23 @@
     /* Blurred background */
     #bg {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
         filter: blur(35px) brightness(0.6);
         transform: scale(1.2);
         z-index: 0;
     }
 
-    /* Main video */
+    /* Main video (fixed: no gaps, no stretch) */
     #video {
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-width: 100vw;
-        max-height: 100vh;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
         object-fit: contain;
+        background: black;
         z-index: 1;
     }
 </style>
@@ -70,7 +69,7 @@
 let currentStream = null;
 let animId = null;
 
-// ✅ No permission request here → no auto camera start
+// ✅ No getUserMedia here → no auto-start issue
 async function listCameras() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const select = document.getElementById("cameraList");
@@ -103,7 +102,7 @@ async function startCamera() {
     }
 
     try {
-        // 🔴 Stop previous stream
+        // Stop previous stream
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
@@ -129,7 +128,7 @@ async function startCamera() {
     }
 }
 
-// 🎨 Live blurred background from video
+// 🎨 Live blurred background
 function startBlurBackground(video) {
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
