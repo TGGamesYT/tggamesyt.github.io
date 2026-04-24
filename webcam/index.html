@@ -96,30 +96,32 @@ async function startCamera() {
     const deviceId = select.value;
     const video = document.getElementById("video");
 
-    if (!deviceId) {
-        alert("Select a camera first");
-        return;
-    }
-
     try {
-        // Stop previous
+        // Stop previous stream
         if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: deviceId } }
-        });
+        let stream;
+
+        if (deviceId) {
+            // Use selected camera
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: deviceId } }
+            });
+        } else {
+            // Fallback: let browser pick any working camera
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: true
+            });
+        }
 
         currentStream = stream;
         video.srcObject = stream;
 
-        // ✅ Now we have permission → refresh labels
-        if (!hasPermission) {
-            hasPermission = true;
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            updateCameraList(devices);
-        }
+        // Now we have permission → update labels
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        updateCameraList(devices);
 
         document.getElementById("controls").style.display = "none";
 
@@ -129,7 +131,6 @@ async function startCamera() {
         alert("Failed: " + err.message);
     }
 }
-
 function startBlur(video) {
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
