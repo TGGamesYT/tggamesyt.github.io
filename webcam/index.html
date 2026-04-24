@@ -30,14 +30,12 @@
         font-size: 16px;
     }
 
-    /* Blurred background */
+    /* Background canvas */
     #bg {
         position: fixed;
         inset: 0;
         width: 100vw;
         height: 100vh;
-        filter: blur(35px) brightness(0.6);
-        transform: scale(1.2);
         z-index: 0;
     }
 
@@ -49,7 +47,7 @@
         width: 100vw;
         height: 100vh;
         object-fit: contain;
-        background: black;
+        background: transparent;
         z-index: 1;
     }
 </style>
@@ -62,7 +60,7 @@
     <button onclick="startCamera()">Start Camera</button>
 </div>
 
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
 <canvas id="bg"></canvas>
 
 <script>
@@ -105,7 +103,6 @@ async function startCamera() {
             currentStream = null;
         }
 
-        video.pause();
         video.srcObject = null;
 
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -117,9 +114,8 @@ async function startCamera() {
 
         document.getElementById("controls").style.display = "none";
 
-        // 🔥 WAIT until video has real frames
         video.onloadeddata = () => {
-            startBlurBackground(video);
+            startBlur(video);
         };
 
     } catch (err) {
@@ -127,17 +123,23 @@ async function startCamera() {
     }
 }
 
-function startBlurBackground(video) {
+function startBlur(video) {
     const canvas = document.getElementById("bg");
     const ctx = canvas.getContext("2d");
 
     function draw() {
-        if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+        if (video.readyState >= 2) {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
+            // 🔥 Apply blur directly in canvas rendering
+            ctx.filter = "blur(40px) brightness(0.6)";
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Reset filter for safety
+            ctx.filter = "none";
         }
+
         animId = requestAnimationFrame(draw);
     }
 
