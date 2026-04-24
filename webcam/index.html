@@ -6,75 +6,90 @@
 <style>
     body {
         margin: 0;
-        background: #111;
+        overflow: hidden;
+        background: black;
+        font-family: Arial, sans-serif;
         color: white;
-        font-family: Arial;
         text-align: center;
     }
+
     #controls {
-        margin-top: 40px;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+        background: rgba(0,0,0,0.6);
+        padding: 15px;
+        border-radius: 10px;
     }
-    video {
-        width: 100vw;
-        height: 100vh;
-        object-fit: cover;
-        display: none;
-    }
+
     select, button {
         padding: 10px;
-        margin: 8px;
+        margin: 5px;
         font-size: 16px;
+    }
+
+    /* Blurred background */
+    #bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        filter: blur(35px) brightness(0.6);
+        transform: scale(1.2);
+        z-index: 0;
+    }
+
+    /* Main video */
+    #video {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 100vw;
+        max-height: 100vh;
+        object-fit: contain;
+        z-index: 1;
     }
 </style>
 </head>
 <body>
 
 <div id="controls">
-    <button onclick="detectCameras()">Detect Cameras</button>
-    <br>
-    <select id="cameraList"></select>
-    <br>
+    <button onclick="listCameras()">Detect Cameras</button><br>
+    <select id="cameraList"></select><br>
     <button onclick="startCamera()">Start Camera</button>
 </div>
 
 <video id="video" autoplay playsinline></video>
+<canvas id="bg"></canvas>
 
 <script>
 let currentStream = null;
+let animId = null;
 
-async function detectCameras() {
-    try {
-        // 🔴 Step 1: request permission ONLY to unlock device labels
-        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+// ✅ No permission request here → no auto camera start
+async function listCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const select = document.getElementById("cameraList");
 
-        // 🔴 Step 2: HARD STOP everything immediately
-        tempStream.getTracks().forEach(t => {
-            t.stop();
-            tempStream.removeTrack?.(t);
-        });
+    select.innerHTML = "";
 
-        // extra safety: clear reference
-        await new Promise(r => setTimeout(r, 100));
+    let count = 1;
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter(d => d.kind === "videoinput");
-
-        const select = document.getElementById("cameraList");
-        select.innerHTML = "";
-
-        cameras.forEach((cam, i) => {
-            const opt = document.createElement("option");
-            opt.value = cam.deviceId;
-            opt.text = cam.label || `Camera ${i + 1}`;
-            select.appendChild(opt);
-        });
-
-        if (cameras.length === 1) {
-            select.selectedIndex = 0;
+    devices.forEach(device => {
+        if (device.kind === "videoinput") {
+            const option = document.createElement("option");
+            option.value = device.deviceId;
+            option.text = device.label || `Camera ${count++}`;
+            select.appendChild(option);
         }
+    });
 
-    } catch (err) {
-        alert("Camera permission failed: " + err.message);
+    if (select.options.length === 0) {
+        alert("No cameras found.");
     }
 }
 
@@ -82,19 +97,21 @@ async function startCamera() {
     const deviceId = document.getElementById("cameraList").value;
     const video = document.getElementById("video");
 
-    if (!deviceId) return alert("Select a camera first");
+    if (!deviceId) {
+        alert("Select a camera first");
+        return;
+    }
 
     try {
-        // 🔴 FULL STOP previous stream
+        // 🔴 Stop previous stream
         if (currentStream) {
-            currentStream.getTracks().forEach(t => t.stop());
+            currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
         }
 
-        // 🔴 Reset video completely (important)
+        // Reset video
         video.pause();
         video.srcObject = null;
-        video.load?.();
 
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { deviceId: { exact: deviceId } }
@@ -104,11 +121,31 @@ async function startCamera() {
         video.srcObject = stream;
 
         document.getElementById("controls").style.display = "none";
-        video.style.display = "block";
+
+        startBlurBackground(video);
 
     } catch (err) {
-        alert("Start camera failed: " + err.message);
+        alert("Failed to start camera: " + err.message);
     }
+}
+
+// 🎨 Live blurred background from video
+function startBlurBackground(video) {
+    const canvas = document.getElementById("bg");
+    const ctx = canvas.getContext("2d");
+
+    function draw() {
+        if (video.videoWidth > 0) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+        animId = requestAnimationFrame(draw);
+    }
+
+    if (animId) cancelAnimationFrame(animId);
+    draw();
 }
 </script>
 
