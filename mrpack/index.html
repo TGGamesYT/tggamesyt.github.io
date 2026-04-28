@@ -247,6 +247,32 @@
     font-size: 10px;
     margin-left: 4px;
   }
+  select:disabled, input:disabled { opacity: 0.5; cursor: wait; }
+  .field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .toggle {
+    font-size: 10px;
+    color: var(--dim);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle input { accent-color: var(--accent); margin: 0; }
+  .toggle:hover { color: var(--accent); }
+  .loading-hint {
+    font-size: 10px;
+    color: var(--info);
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .loading-hint.error { color: var(--warn); }
+  .loading-hint:empty { display: none; }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--line); }
@@ -280,8 +306,14 @@
       </div>
       <div class="row">
         <div class="field">
-          <label>minecraft version</label>
-          <input type="text" id="mc-version" placeholder="1.21.8" value="1.21.8">
+          <div class="field-row">
+            <label style="margin:0">minecraft version</label>
+            <label class="toggle"><input type="checkbox" id="mc-snapshots"> snapshots</label>
+          </div>
+          <select id="mc-version" disabled>
+            <option>loading…</option>
+          </select>
+          <div class="loading-hint" id="mc-hint"></div>
         </div>
         <div class="field">
           <label>loader</label>
@@ -294,8 +326,14 @@
         </div>
       </div>
       <div class="field">
-        <label>loader version</label>
-        <input type="text" id="loader-version" placeholder="0.17.2" value="0.17.2">
+        <div class="field-row">
+          <label style="margin:0">loader version</label>
+          <label class="toggle"><input type="checkbox" id="loader-unstable"> include unstable</label>
+        </div>
+        <select id="loader-version" disabled>
+          <option>loading…</option>
+        </select>
+        <div class="loading-hint" id="loader-hint"></div>
       </div>
     </div>
 
@@ -356,6 +394,181 @@ function fmtSize(bytes) {
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/(1024*1024)).toFixed(1) + ' MB';
 }
+
+// ============ version fetching ============
+const versionCache = {
+  mcAll: null,        // [{id, type}]
+  fabric: null,       // [{version, stable}]
+  quilt: null,        // [{version, ...}]
+  forge: null,        // {[mcVer]: [forgeVer,...]}
+  neoforge: null,     // {[mcVer]: [neoVer,...]}
+};
+
+// fetch w/ optional CORS-proxy fallback
+async function smartFetch(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('http ' + r.status);
+    return r;
+  } catch (err) {
+    // CORS or network — try public proxy
+    const proxied = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const r = await fetch(proxied);
+    if (!r.ok) throw new Error('proxied http ' + r.status);
+    return r;
+  }
+}
+
+function setHint(id, msg, isError=false) {
+  const el = $(id);
+  el.textContent = msg || '';
+  el.classList.toggle('error', isError);
+}
+
+async function loadMinecraftVersions() {
+  setHint('mc-hint', 'fetching from piston-meta…');
+  $('mc-version').disabled = true;
+  try {
+    const r = await smartFetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+    const data = await r.json();
+    versionCache.mcAll = data.versions; // {id, type, ...}
+    populateMcSelect();
+    setHint('mc-hint', '');
+  } catch (e) {
+    setHint('mc-hint', 'failed: ' + e.message + ' — typing manually', true);
+    // fall back to text input
+    const sel = $('mc-version');
+    sel.outerHTML = '<input type="text" id="mc-version" value="1.21.8" placeholder="1.21.8">';
+  }
+}
+
+function populateMcSelect() {
+  const showSnapshots = $('mc-snapshots').checked;
+  const sel = $('mc-version');
+  const current = sel.value;
+  const versions = versionCache.mcAll.filter(v =>
+    showSnapshots ? true : v.type === 'release'
+  );
+  sel.innerHTML = '';
+  versions.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.type === 'release' ? v.id : `${v.id}  · ${v.type}`;
+    sel.appendChild(opt);
+  });
+  sel.disabled = false;
+  // restore previous selection if still present
+  if (current && [...sel.options].some(o => o.value === current)) sel.value = current;
+}
+
+async function loadLoaderVersions() {
+  const loader = $('loader').value;
+  const mcVer = $('mc-version').value;
+  const sel = $('loader-version');
+  sel.disabled = true;
+  sel.innerHTML = '<option>loading…</option>';
+  setHint('loader-hint', `fetching ${loader} versions…`);
+  try {
+    let versions = []; // {version, stable}
+    if (loader === 'fabric-loader') {
+      versions = await fetchFabricLoader();
+    } else if (loader === 'quilt-loader') {
+      versions = await fetchQuiltLoader();
+    } else if (loader === 'neoforge') {
+      versions = await fetchNeoForge(mcVer);
+    } else if (loader === 'forge') {
+      versions = await fetchForge(mcVer);
+    }
+    populateLoaderSelect(versions);
+    setHint('loader-hint', '');
+  } catch (e) {
+    setHint('loader-hint', 'failed: ' + e.message + ' — falling back to text input', true);
+    sel.outerHTML = '<input type="text" id="loader-version" placeholder="version">';
+  }
+}
+
+function populateLoaderSelect(versions) {
+  const sel = $('loader-version');
+  const showUnstable = $('loader-unstable').checked;
+  const filtered = versions.filter(v => showUnstable || v.stable !== false);
+  sel.innerHTML = '';
+  if (!filtered.length) {
+    sel.innerHTML = '<option value="">no versions found</option>';
+    sel.disabled = true;
+    return;
+  }
+  filtered.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.version;
+    opt.textContent = v.stable === false ? `${v.version}  · unstable` : v.version;
+    sel.appendChild(opt);
+  });
+  sel.disabled = false;
+}
+
+async function fetchFabricLoader() {
+  if (!versionCache.fabric) {
+    const r = await smartFetch('https://meta.fabricmc.net/v2/versions/loader');
+    versionCache.fabric = await r.json(); // [{version, stable, ...}]
+  }
+  return versionCache.fabric;
+}
+
+async function fetchQuiltLoader() {
+  if (!versionCache.quilt) {
+    const r = await smartFetch('https://meta.quiltmc.org/v3/versions/loader');
+    const data = await r.json();
+    versionCache.quilt = data.map(v => ({ version: v.version, stable: !v.version.includes('beta') }));
+  }
+  return versionCache.quilt;
+}
+
+async function fetchNeoForge(mcVer) {
+  if (!versionCache.neoforge) {
+    // prismlauncher meta has clean per-mc grouping
+    const r = await smartFetch('https://meta.prismlauncher.org/v1/net.neoforged/index.json');
+    const data = await r.json();
+    // entries have requires[].equals = mc version, version = neoforge version
+    const map = {};
+    for (const v of data.versions || []) {
+      const req = (v.requires || []).find(x => x.uid === 'net.minecraft');
+      const mc = req?.equals;
+      if (!mc) continue;
+      if (!map[mc]) map[mc] = [];
+      map[mc].push({ version: v.version, stable: v.type !== 'snapshot' && !String(v.version).includes('beta') });
+    }
+    versionCache.neoforge = map;
+  }
+  if (!mcVer) return [];
+  const list = versionCache.neoforge[mcVer] || [];
+  if (!list.length) {
+    setHint('loader-hint', `no neoforge for mc ${mcVer}`, true);
+  }
+  return list;
+}
+
+async function fetchForge(mcVer) {
+  if (!versionCache.forge) {
+    const r = await smartFetch('https://meta.prismlauncher.org/v1/net.minecraftforge/index.json');
+    const data = await r.json();
+    const map = {};
+    for (const v of data.versions || []) {
+      const req = (v.requires || []).find(x => x.uid === 'net.minecraft');
+      const mc = req?.equals;
+      if (!mc) continue;
+      if (!map[mc]) map[mc] = [];
+      map[mc].push({ version: v.version, stable: v.type !== 'snapshot' });
+    }
+    versionCache.forge = map;
+  }
+  if (!mcVer) return [];
+  const list = versionCache.forge[mcVer] || [];
+  if (!list.length) {
+    setHint('loader-hint', `no forge for mc ${mcVer}`, true);
+  }
+  return list;
+}
+// ============ end version fetching ============
 
 function render() {
   fileList.innerHTML = '';
@@ -618,6 +831,32 @@ addModFiles = function(files) {
 };
 // re-wire drop with new wrapper
 wireDrop('drop-mods', 'file-mods', addModFiles);
+
+// version selectors
+$('mc-snapshots').onchange = () => {
+  if (versionCache.mcAll) {
+    populateMcSelect();
+    loadLoaderVersions(); // mc may have changed for forge/neoforge
+  }
+};
+$('mc-version').onchange = () => {
+  // forge/neoforge depend on mc version
+  const l = $('loader').value;
+  if (l === 'forge' || l === 'neoforge') loadLoaderVersions();
+};
+$('loader').onchange = () => loadLoaderVersions();
+$('loader-unstable').onchange = () => loadLoaderVersions();
+
+// initial loads
+(async () => {
+  await loadMinecraftVersions();
+  // try to default to 1.21.8 if present (matches the example)
+  const mcSel = $('mc-version');
+  if (mcSel.tagName === 'SELECT' && [...mcSel.options].some(o => o.value === '1.21.8')) {
+    mcSel.value = '1.21.8';
+  }
+  await loadLoaderVersions();
+})();
 
 render();
 </script>
