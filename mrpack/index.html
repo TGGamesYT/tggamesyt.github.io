@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mrpack forge — modpack assembler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0d0b;
+    --panel: #181612;
+    --line: #2a2620;
+    --text: #ebe3d4;
+    --dim: #8a8377;
+    --accent: #f4a338;
+    --ok: #7fb069;
+    --warn: #d4756b;
+    --info: #6aa8d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(at 20% 0%, rgba(244,163,56,0.06) 0%, transparent 50%),
+      radial-gradient(at 80% 100%, rgba(106,168,212,0.04) 0%, transparent 50%);
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: 38px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  h1 .accent { color: var(--accent); font-style: italic; }
+  .tag {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 22px;
+    position: relative;
+  }
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  input[type="text"], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .drop-zone {
+    border: 2px dashed var(--line);
+    background: var(--bg);
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 14px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(244,163,56,0.04);
+  }
+  .drop-zone strong { color: var(--accent); font-weight: 500; }
+  .drop-zone .hint { color: var(--dim); font-size: 11px; margin-top: 6px; }
+  input[type="file"] { display: none; }
+  .file-list {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .file-list:empty::after {
+    content: 'no files yet';
+    display: block;
+    text-align: center;
+    color: var(--dim);
+    padding: 20px;
+    font-size: 11px;
+  }
+  .file-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-status {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .status-pending { color: var(--dim); border: 1px solid var(--line); }
+  .status-checking { color: var(--info); border: 1px solid var(--info); }
+  .status-modrinth { color: var(--ok); border: 1px solid var(--ok); }
+  .status-override { color: var(--warn); border: 1px solid var(--warn); }
+  .status-error { color: var(--warn); border: 1px solid var(--warn); background: rgba(212,117,107,0.1); }
+  .file-remove {
+    color: var(--dim);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+  .file-remove:hover { color: var(--warn); }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .stats {
+    flex: 1;
+    color: var(--dim);
+    font-size: 11px;
+  }
+  .stats span { color: var(--text); }
+  button.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 12px 28px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.primary:hover { background: #ffb850; }
+  button.primary:disabled {
+    background: var(--line);
+    color: var(--dim);
+    cursor: not-allowed;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+    padding: 12px 20px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+  button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .log {
+    margin-top: 24px;
+    background: #000;
+    border: 1px solid var(--line);
+    padding: 14px;
+    font-size: 11px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .log.active { display: block; }
+  .log-entry { color: var(--dim); margin-bottom: 2px; }
+  .log-entry.ok { color: var(--ok); }
+  .log-entry.warn { color: var(--warn); }
+  .log-entry.info { color: var(--info); }
+  .badge {
+    display: inline-block;
+    background: var(--line);
+    color: var(--dim);
+    padding: 2px 6px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>mrpack <span class="accent">forge</span></h1>
+      <div class="tag">modpack assembler · modrinth-compatible</div>
+    </div>
+    <div class="tag">v1.0</div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">manifest</div>
+      <div class="field">
+        <label>pack name</label>
+        <input type="text" id="pack-name" placeholder="My Awesome Pack" value="My Modpack">
+      </div>
+      <div class="field">
+        <label>version id</label>
+        <input type="text" id="pack-version" placeholder="1.0.0" value="1.0.0">
+      </div>
+      <div class="field">
+        <label>summary <span style="color:var(--dim)">(optional)</span></label>
+        <textarea id="pack-summary" placeholder="A brief description..."></textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>minecraft version</label>
+          <input type="text" id="mc-version" placeholder="1.21.8" value="1.21.8">
+        </div>
+        <div class="field">
+          <label>loader</label>
+          <select id="loader">
+            <option value="fabric-loader">fabric</option>
+            <option value="quilt-loader">quilt</option>
+            <option value="forge">forge</option>
+            <option value="neoforge">neoforge</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>loader version</label>
+        <input type="text" id="loader-version" placeholder="0.17.2" value="0.17.2">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">files</div>
+      <div class="drop-zone" id="drop-mods">
+        <div><strong>drop .jar mods here</strong> · or click</div>
+        <div class="hint">resolved against modrinth · fallback to overrides</div>
+        <input type="file" id="file-mods" multiple accept=".jar">
+      </div>
+      <div class="drop-zone" id="drop-overrides" style="padding: 18px 16px;">
+        <div><strong>drop config files / folders</strong> · or click</div>
+        <div class="hint">goes straight to overrides/ — preserves folder structure</div>
+        <input type="file" id="file-overrides" multiple webkitdirectory directory>
+      </div>
+      <div class="file-list" id="file-list"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <div class="stats" id="stats">no files loaded</div>
+    <button class="secondary" id="btn-resolve">resolve hashes</button>
+    <button class="primary" id="btn-build" disabled>build .mrpack</button>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+const MODRINTH_API = 'https://api.modrinth.com/v2';
+const state = {
+  mods: [],      // {file, sha1, sha512, status, modrinthData, projectData}
+  overrides: [], // {file, relPath}
+};
+
+const $ = id => document.getElementById(id);
+const log = $('log');
+const fileList = $('file-list');
+
+function logMsg(msg, type='') {
+  log.classList.add('active');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function hashFile(file, algo) {
+  const buf = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest(algo, buf);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function render() {
+  fileList.innerHTML = '';
+  state.mods.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    const statusClass = {
+      pending: 'status-pending',
+      checking: 'status-checking',
+      modrinth: 'status-modrinth',
+      override: 'status-override',
+      error: 'status-error',
+    }[m.status] || 'status-pending';
+    const statusText = {
+      pending: 'pending',
+      checking: 'checking…',
+      modrinth: '✓ modrinth',
+      override: '→ override',
+      error: 'error',
+    }[m.status] || m.status;
+    div.innerHTML = `
+      <div class="file-name" title="${m.file.name}">
+        ${m.file.name}
+        <span class="badge">${fmtSize(m.file.size)}</span>
+      </div>
+      <span class="file-status ${statusClass}">${statusText}</span>
+      <button class="file-remove" data-i="${i}" data-type="mod">×</button>
+    `;
+    fileList.appendChild(div);
+  });
+  state.overrides.forEach((o, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <div class="file-name" title="${o.relPath}">
+        ${o.relPath}
+        <span class="badge">${fmtSize(o.file.size)}</span>
+      </div>
+      <span class="file-status status-override">override</span>
+      <button class="file-remove" data-i="${i}" data-type="override">×</button>
+    `;
+    fileList.appendChild(div);
+  });
+  fileList.querySelectorAll('.file-remove').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.i);
+      if (btn.dataset.type === 'mod') state.mods.splice(i, 1);
+      else state.overrides.splice(i, 1);
+      render();
+    };
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const total = state.mods.length + state.overrides.length;
+  if (!total) {
+    $('stats').textContent = 'no files loaded';
+    $('btn-build').disabled = true;
+    return;
+  }
+  const modrinth = state.mods.filter(m => m.status === 'modrinth').length;
+  const override = state.mods.filter(m => m.status === 'override').length;
+  const pending = state.mods.filter(m => m.status === 'pending' || m.status === 'checking').length;
+  $('stats').innerHTML = `<span>${state.mods.length}</span> mods · <span>${modrinth}</span> modrinth · <span>${override + state.overrides.length}</span> overrides${pending ? ' · <span>'+pending+'</span> pending' : ''}`;
+  $('btn-build').disabled = pending > 0 || total === 0;
+}
+
+function addModFiles(files) {
+  for (const f of files) {
+    if (!f.name.toLowerCase().endsWith('.jar')) {
+      logMsg(`skipped non-jar: ${f.name}`, 'warn');
+      continue;
+    }
+    if (state.mods.some(m => m.file.name === f.name && m.file.size === f.size)) continue;
+    state.mods.push({ file: f, status: 'pending' });
+  }
+  render();
+}
+
+function addOverrideFiles(files) {
+  for (const f of files) {
+    const rel = f.webkitRelativePath || f.name;
+    // strip top-level folder if user picked a directory: keep what's under it
+    const parts = rel.split('/');
+    const relPath = parts.length > 1 ? parts.slice(1).join('/') : rel;
+    if (state.overrides.some(o => o.relPath === relPath)) continue;
+    state.overrides.push({ file: f, relPath });
+  }
+  render();
+}
+
+async function resolveMod(mod) {
+  mod.status = 'checking';
+  render();
+  try {
+    mod.sha1 = await hashFile(mod.file, 'SHA-1');
+    mod.sha512 = await hashFile(mod.file, 'SHA-512');
+    const res = await fetch(`${MODRINTH_API}/version_file/${mod.sha1}`);
+    if (res.status === 404) {
+      mod.status = 'override';
+      logMsg(`not on modrinth: ${mod.file.name} → overrides`, 'warn');
+      return;
+    }
+    if (!res.ok) throw new Error('http ' + res.status);
+    const ver = await res.json();
+    // pick the file matching our hash
+    const matchFile = ver.files.find(f => f.hashes.sha1 === mod.sha1) || ver.files[0];
+    mod.modrinthData = { version: ver, file: matchFile };
+    // fetch project for env info
+    try {
+      const pres = await fetch(`${MODRINTH_API}/project/${ver.project_id}`);
+      if (pres.ok) mod.projectData = await pres.json();
+    } catch (e) { /* env defaults */ }
+    mod.status = 'modrinth';
+    logMsg(`✓ ${mod.file.name} — ${ver.project_id}/${ver.id}`, 'ok');
+  } catch (err) {
+    mod.status = 'error';
+    logMsg(`error on ${mod.file.name}: ${err.message}`, 'warn');
+  }
+  render();
+}
+
+async function resolveAll() {
+  const pending = state.mods.filter(m => m.status === 'pending' || m.status === 'error');
+  if (!pending.length) { logMsg('nothing to resolve', 'info'); return; }
+  logMsg(`resolving ${pending.length} mod(s) against modrinth…`, 'info');
+  // throttle: 4 in parallel
+  const queue = [...pending];
+  const workers = Array(Math.min(4, queue.length)).fill(0).map(async () => {
+    while (queue.length) {
+      const m = queue.shift();
+      await resolveMod(m);
+    }
+  });
+  await Promise.all(workers);
+  logMsg('resolve complete', 'ok');
+}
+
+function envFromProject(p) {
+  // modrinth client_side/server_side: required | optional | unsupported
+  // mrpack env wants: required | optional | unsupported
+  const map = v => (v === 'optional' || v === 'required' || v === 'unsupported') ? v : 'optional';
+  return {
+    client: map(p?.client_side || 'required'),
+    server: map(p?.server_side || 'required'),
+  };
+}
+
+async function build() {
+  // any unresolved mods auto-go to overrides
+  const unresolved = state.mods.filter(m => m.status === 'pending' || m.status === 'error');
+  if (unresolved.length) {
+    logMsg(`treating ${unresolved.length} unresolved mod(s) as overrides`, 'warn');
+    unresolved.forEach(m => m.status = 'override');
+  }
+
+  const name = $('pack-name').value.trim() || 'Modpack';
+  const versionId = $('pack-version').value.trim() || '1.0.0';
+  const summary = $('pack-summary').value.trim();
+  const mcVer = $('mc-version').value.trim() || '1.21.8';
+  const loader = $('loader').value;
+  const loaderVer = $('loader-version').value.trim();
+
+  const dependencies = { minecraft: mcVer };
+  if (loaderVer) dependencies[loader] = loaderVer;
+
+  const indexFiles = [];
+  for (const m of state.mods) {
+    if (m.status !== 'modrinth') continue;
+    const f = m.modrinthData.file;
+    indexFiles.push({
+      path: `mods/${f.filename}`,
+      hashes: {
+        sha1: f.hashes.sha1,
+        sha512: f.hashes.sha512,
+      },
+      env: envFromProject(m.projectData),
+      downloads: [f.url],
+      fileSize: f.size,
+    });
+  }
+
+  const index = {
+    formatVersion: 1,
+    game: 'minecraft',
+    versionId,
+    name,
+    ...(summary ? { summary } : {}),
+    files: indexFiles,
+    dependencies,
+  };
+
+  logMsg('building zip…', 'info');
+  const zip = new JSZip();
+  zip.file('modrinth.index.json', JSON.stringify(index, null, 4));
+
+  // mods that fell back to overrides → overrides/mods/
+  for (const m of state.mods) {
+    if (m.status === 'override') {
+      zip.file(`overrides/mods/${m.file.name}`, m.file);
+    }
+  }
+  // user-supplied overrides (configs, etc)
+  for (const o of state.overrides) {
+    zip.file(`overrides/${o.relPath}`, o.file);
+  }
+
+  const blob = await zip.generateAsync(
+    { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+    meta => {
+      if (meta.percent && Math.floor(meta.percent) % 10 === 0) {
+        // optional progress
+      }
+    }
+  );
+
+  const safe = name.replace(/[^a-z0-9._-]+/gi, '_');
+  const filename = `${safe}_${versionId.replace(/[^a-z0-9._-]+/gi, '_')}.mrpack`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  logMsg(`✓ generated ${filename} (${fmtSize(blob.size)})`, 'ok');
+}
+
+// drop zones
+function wireDrop(zoneId, inputId, handler) {
+  const zone = $(zoneId);
+  const input = $(inputId);
+  zone.onclick = () => input.click();
+  input.onchange = e => { handler(e.target.files); input.value = ''; };
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('dragover'); };
+  zone.ondragleave = () => zone.classList.remove('dragover');
+  zone.ondrop = e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    handler(e.dataTransfer.files);
+  };
+}
+wireDrop('drop-mods', 'file-mods', addModFiles);
+wireDrop('drop-overrides', 'file-overrides', addOverrideFiles);
+
+$('btn-resolve').onclick = resolveAll;
+$('btn-build').onclick = build;
+
+// auto-resolve mods 1.5s after they're added (debounced)
+let resolveTimer;
+const origAddMods = addModFiles;
+addModFiles = function(files) {
+  origAddMods(files);
+  clearTimeout(resolveTimer);
+  resolveTimer = setTimeout(resolveAll, 1500);
+};
+// re-wire drop with new wrapper
+wireDrop('drop-mods', 'file-mods', addModFiles);
+
+render();
+</script>
+</body>
+</html>
