@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Minecraft Assets Explorer (Dehashed)</title>
+<title>Minecraft Assets Explorer (Fixed)</title>
 
 <style>
 body {
@@ -28,6 +28,8 @@ li {
     padding: 6px 8px;
     border-radius: 6px;
     cursor: pointer;
+    font-family: monospace;
+    font-size: 13px;
 }
 
 li:hover { background: #e9eef5; }
@@ -118,7 +120,10 @@ async function loadVersion(ver) {
 
     fileMap = assetsJson.objects;
 
-    versionCache.set(ver, { fileMap, versionData });
+    versionCache.set(ver, {
+        fileMap,
+        versionData
+    });
 
     currentPath = "";
     render();
@@ -159,6 +164,7 @@ function renderDirectory(dir) {
     const ul = document.createElement("ul");
 
     [...children].sort().forEach(child => {
+
         const full = dir + child;
 
         const isDir = Object.keys(fileMap).some(p =>
@@ -167,7 +173,8 @@ function renderDirectory(dir) {
 
         const li = document.createElement("li");
         li.className = isDir ? "dir" : "file";
-        li.textContent = child + (isDir ? "/" : "");
+
+        li.textContent = "assets/minecraft/" + full;
 
         li.onclick = () => {
             if (isDir) {
@@ -196,14 +203,15 @@ function renderSearch(query) {
         if (!path.toLowerCase().includes(query)) continue;
 
         const li = document.createElement("li");
-        li.textContent = path;
         li.className = "file";
+
+        li.textContent = "assets/minecraft/" + path;
 
         li.onclick = () => openAsset(path);
 
         ul.appendChild(li);
 
-        if (++count > 200) break;
+        if (++count > 300) break;
     }
 
     content.appendChild(ul);
@@ -220,20 +228,49 @@ async function openAsset(path) {
         return;
     }
 
-    const hash = entry.hash;
+    const hash = entry.hash.toLowerCase();
     const url = `${assetRoot}${hash.substring(0,2)}/${hash}`;
 
-    const res = await fetch(url);
-    const buf = await res.arrayBuffer();
+    try {
+        const res = await fetch(url);
 
-    if (path.endsWith(".png")) {
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(new Blob([buf]));
-        content.innerHTML = "";
-        content.appendChild(img);
-    } else {
+        if (!res.ok) {
+            content.innerHTML = "Failed to load asset (HTTP " + res.status + ")";
+            return;
+        }
+
+        const buf = await res.arrayBuffer();
+
+        // IMAGE
+        if (path.endsWith(".png")) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(new Blob([buf]));
+
+            content.innerHTML = "";
+
+            const title = document.createElement("div");
+            title.textContent = "assets/minecraft/" + path;
+            title.style.fontFamily = "monospace";
+            title.style.marginBottom = "8px";
+
+            content.appendChild(title);
+            content.appendChild(img);
+            return;
+        }
+
+        // TEXT
         const text = new TextDecoder().decode(buf);
-        content.innerHTML = `<pre>${text}</pre>`;
+
+        content.innerHTML = `
+            <div style="font-family: monospace; margin-bottom:8px;">
+                assets/minecraft/${path}
+            </div>
+            <pre>${text}</pre>
+        `;
+
+    } catch (e) {
+        console.error(e);
+        content.innerHTML = "Network error loading asset.";
     }
 }
 
