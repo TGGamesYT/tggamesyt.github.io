@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Minecraft Assets Explorer</title>
+<title>Minecraft Assets Explorer (Launcher Accurate)</title>
 
 <style>
 body {
@@ -45,8 +45,8 @@ img { max-width: 100%; margin-top: 10px; }
 
 #search {
     padding: 6px;
-    border: 1px solid #ccc;
     border-radius: 6px;
+    border: 1px solid #ccc;
 }
 </style>
 </head>
@@ -114,6 +114,12 @@ async function loadVersion(ver) {
     render();
 }
 
+function getAssetEntry(path) {
+    const entry = fileMap[path];
+    if (!entry || !entry.hash) return null;
+    return entry;
+}
+
 function navigate(path) {
     currentPath = path;
     render();
@@ -124,7 +130,6 @@ function render() {
         renderSearch(currentPath.slice(7));
         return;
     }
-
     renderDirectory(currentPath);
 }
 
@@ -135,10 +140,14 @@ function renderDirectory(dir) {
     const children = new Set();
 
     for (const path in fileMap) {
+        const entry = fileMap[path];
+        if (!entry || !entry.hash) continue;
+
         if (!path.startsWith(dir)) continue;
 
         const rest = path.slice(dir.length);
         const part = rest.split("/")[0];
+
         if (part) children.add(part);
     }
 
@@ -155,7 +164,7 @@ function renderDirectory(dir) {
         const li = document.createElement("li");
         li.className = isDir ? "dir" : "file";
 
-        // 🔥 CLEAN FILE EXPLORER STYLE (NO FULL PATH REPETITION)
+        // clean explorer style (no full paths repeated)
         li.textContent = name + (isDir ? "/" : "");
 
         li.onclick = () => {
@@ -174,16 +183,16 @@ function renderSearch(query) {
     content.innerHTML = "";
 
     const ul = document.createElement("ul");
-
     query = query.toLowerCase();
 
     for (const path in fileMap) {
+        const entry = fileMap[path];
+        if (!entry || !entry.hash) continue;
+
         if (!path.toLowerCase().includes(query)) continue;
 
-        const name = path.split("/").pop();
-
         const li = document.createElement("li");
-        li.textContent = name;
+        li.textContent = path.split("/").pop();
 
         li.onclick = () => openAsset(path);
 
@@ -197,26 +206,27 @@ async function openAsset(path) {
     const content = document.getElementById("content");
     content.innerHTML = "Loading...";
 
-    const entry = fileMap[path];
+    const entry = getAssetEntry(path);
 
     if (!entry) {
-        content.innerHTML = "Asset missing from index.";
+        content.innerHTML = "Asset not found in index (launcher-style filtered).";
         return;
     }
 
-    const hash = entry.hash.toLowerCase();
+    const hash = entry.hash;
     const url = `${assetRoot}${hash.substring(0,2)}/${hash}`;
 
     try {
         const res = await fetch(url);
 
         if (!res.ok) {
-            content.innerHTML = "Failed to fetch asset.";
+            content.innerHTML = "Failed to fetch asset (" + res.status + ")";
             return;
         }
 
         const buf = await res.arrayBuffer();
 
+        // IMAGE
         if (path.endsWith(".png")) {
             const img = document.createElement("img");
             img.src = URL.createObjectURL(new Blob([buf]));
@@ -225,12 +235,13 @@ async function openAsset(path) {
             return;
         }
 
+        // TEXT
         const text = new TextDecoder().decode(buf);
         content.innerHTML = `<pre>${text}</pre>`;
 
     } catch (e) {
-        console.error(e);
-        content.innerHTML = "Network/CORS error fetching asset.";
+        console.error("Asset fetch error:", path, e);
+        content.innerHTML = "Network/CORS error (invalid hash or blocked request)";
     }
 }
 
