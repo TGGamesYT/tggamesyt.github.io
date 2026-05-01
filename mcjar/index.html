@@ -8,7 +8,7 @@
 
 <h2>Minecraft Jar Explorer</h2>
 
-<div id="versionSelect"></div>
+<div id="controls"></div>
 <div id="nav"></div>
 <hr>
 <div id="content">Loading...</div>
@@ -19,25 +19,26 @@ const manifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.
 let zip = null;
 let currentVersion = null;
 let currentPath = "";
+let manifestData = null;
+let showReleasesOnly = false;
 
 init();
 
 async function init() {
     const params = new URLSearchParams(location.search);
     currentVersion = params.get("ver");
-    currentPath = params.get("path") || "";
+    currentPath = normalizePath(params.get("path") || "");
 
-    const manifest = await fetch(manifestUrl).then(r => r.json());
+    manifestData = await fetch(manifestUrl).then(r => r.json());
+
+    renderControls();
 
     if (!currentVersion) {
-        renderVersionSelector(manifest.versions);
-        document.getElementById("content").innerHTML = "Select a version";
+        document.getElementById("content").innerText = "Select a version";
         return;
     }
 
-    renderVersionSelector(manifest.versions);
-
-    const versionMeta = manifest.versions.find(v => v.id === currentVersion);
+    const versionMeta = manifestData.versions.find(v => v.id === currentVersion);
     if (!versionMeta) {
         document.getElementById("content").innerText = "Version not found";
         return;
@@ -54,47 +55,77 @@ async function init() {
     render();
 }
 
-function renderVersionSelector(versions) {
+function renderControls() {
+    const container = document.getElementById("controls");
+    container.innerHTML = "";
+
     const select = document.createElement("select");
 
-    versions.forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v.id;
-        opt.textContent = v.id;
-        if (v.id === currentVersion) opt.selected = true;
-        select.appendChild(opt);
-    });
+    manifestData.versions
+        .filter(v => !showReleasesOnly || v.type === "release")
+        .forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v.id;
+            opt.textContent = v.id;
+            if (v.id === currentVersion) opt.selected = true;
+            select.appendChild(opt);
+        });
 
     select.onchange = () => {
         location.search = "?ver=" + select.value;
     };
 
-    const container = document.getElementById("versionSelect");
-    container.innerHTML = "Version: ";
+    const toggle = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = showReleasesOnly;
+
+    checkbox.onchange = () => {
+        showReleasesOnly = checkbox.checked;
+        renderControls();
+    };
+
+    toggle.appendChild(checkbox);
+    toggle.appendChild(document.createTextNode(" Releases only"));
+
+    container.appendChild(document.createTextNode("Version: "));
     container.appendChild(select);
+    container.appendChild(document.createTextNode(" "));
+    container.appendChild(toggle);
+}
+
+function normalizePath(p) {
+    if (!p) return "";
+    p = p.replace(/^\/+/, "");
+    return p;
 }
 
 function navigate(path) {
+    path = normalizePath(path);
+
     currentPath = path;
 
     const params = new URLSearchParams();
     params.set("ver", currentVersion);
-    params.set("path", currentPath);
+    if (path) params.set("path", path);
 
     history.pushState({ path }, "", "?" + params.toString());
 
     render();
 }
 
-window.onpopstate = (e) => {
-    currentPath = new URLSearchParams(location.search).get("path") || "";
+window.onpopstate = () => {
+    const params = new URLSearchParams(location.search);
+    currentPath = normalizePath(params.get("path") || "");
     render();
 };
 
 function render() {
     renderNav();
 
-    if (zip.files[currentPath]) {
+    const file = zip.file(currentPath);
+
+    if (file && !currentPath.endsWith("/")) {
         renderFile(currentPath);
     } else {
         renderDirectory(currentPath);
@@ -111,7 +142,7 @@ function renderNav() {
     const root = document.createElement("a");
     root.href = "#";
     root.textContent = "/";
-    root.onclick = (e) => { e.preventDefault(); navigate(""); };
+    root.onclick = e => { e.preventDefault(); navigate(""); };
     nav.appendChild(root);
 
     parts.forEach(p => {
@@ -121,7 +152,7 @@ function renderNav() {
         const link = document.createElement("a");
         link.href = "#";
         link.textContent = p;
-        link.onclick = (e) => {
+        link.onclick = e => {
             e.preventDefault();
             navigate(current);
         };
@@ -139,13 +170,15 @@ function renderDirectory(dir) {
     if (dir) {
         const up = dir.split("/").slice(0, -2).join("/") + "/";
         const li = document.createElement("li");
+
         const a = document.createElement("a");
         a.href = "#";
         a.textContent = "⬅ Back";
-        a.onclick = (e) => {
+        a.onclick = e => {
             e.preventDefault();
             navigate(up);
         };
+
         li.appendChild(a);
         list.appendChild(li);
     }
@@ -162,17 +195,19 @@ function renderDirectory(dir) {
     });
 
     [...children].sort().forEach(child => {
-        const full = dir + child;
+        let full = dir + child;
+
         const isDir = Object.keys(zip.files).some(f => f.startsWith(full + "/"));
+        if (isDir) full += "/";
 
         const li = document.createElement("li");
         const a = document.createElement("a");
 
         a.href = "#";
         a.textContent = child + (isDir ? "/" : "");
-        a.onclick = (e) => {
+        a.onclick = e => {
             e.preventDefault();
-            navigate(isDir ? full + "/" : full);
+            navigate(full);
         };
 
         li.appendChild(a);
@@ -187,12 +222,18 @@ async function renderFile(path) {
     container.innerHTML = "";
 
     const file = zip.file(path);
+
+    if (!file) {
+        container.innerText = "File not found";
+        return;
+    }
+
     const content = await file.async("uint8array");
 
     const back = document.createElement("a");
     back.href = "#";
     back.textContent = "⬅ Back";
-    back.onclick = (e) => {
+    back.onclick = e => {
         e.preventDefault();
         navigate(path.split("/").slice(0, -2).join("/") + "/");
     };
