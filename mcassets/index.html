@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Minecraft Assets Explorer (Dehashed)</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f5f6f8;
+}
+
+header {
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+}
+
+h2 { margin: 0 0 8px 0; }
+
+.container { padding: 16px; }
+
+ul { list-style: none; padding: 0; }
+
+li {
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+li:hover { background: #e9eef5; }
+
+.dir { font-weight: 600; }
+
+pre {
+    background: #111;
+    color: #eee;
+    padding: 12px;
+    border-radius: 8px;
+    overflow: auto;
+}
+
+img { max-width: 100%; margin-top: 10px; }
+
+#search {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>Minecraft Assets Explorer</h2>
+
+    <select id="versionSelect"></select>
+    <input id="search" placeholder="Search assets...">
+</header>
+
+<div class="container">
+    <div id="content">Loading...</div>
+</div>
+
+<script>
+const manifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+const assetRoot = "https://resources.download.minecraft.net/";
+
+let manifest;
+let versionData;
+let fileMap = {};
+let currentVersion;
+let currentPath = "";
+
+const versionCache = new Map();
+
+init();
+
+async function init() {
+    manifest = await fetch(manifestUrl).then(r => r.json());
+
+    const select = document.getElementById("versionSelect");
+
+    manifest.versions
+        .filter(v => v.type === "release")
+        .forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v.id;
+            opt.textContent = v.id;
+            select.appendChild(opt);
+        });
+
+    select.onchange = () => loadVersion(select.value);
+
+    loadVersion(select.value || manifest.versions[0].id);
+}
+
+async function loadVersion(ver) {
+    currentVersion = ver;
+
+    if (versionCache.has(ver)) {
+        const cached = versionCache.get(ver);
+        fileMap = cached.fileMap;
+        versionData = cached.versionData;
+        currentPath = "";
+        render();
+        return;
+    }
+
+    const metaUrl = manifest.versions.find(v => v.id === ver).url;
+    versionData = await fetch(metaUrl).then(r => r.json());
+
+    const assetsUrl = versionData.assetIndex.url;
+    const assetsJson = await fetch(assetsUrl).then(r => r.json());
+
+    fileMap = assetsJson.objects;
+
+    versionCache.set(ver, { fileMap, versionData });
+
+    currentPath = "";
+    render();
+}
+
+function navigate(path) {
+    currentPath = path;
+    render();
+}
+
+function render() {
+    const content = document.getElementById("content");
+    content.innerHTML = "";
+
+    if (currentPath.startsWith("search:")) {
+        renderSearch(currentPath.slice(7));
+        return;
+    }
+
+    renderDirectory(currentPath);
+}
+
+function renderDirectory(dir) {
+    const content = document.getElementById("content");
+    content.innerHTML = "";
+
+    const children = new Set();
+
+    for (const path in fileMap) {
+        if (!path.startsWith(dir)) continue;
+
+        const rest = path.slice(dir.length);
+        const part = rest.split("/")[0];
+
+        if (part) children.add(part);
+    }
+
+    const ul = document.createElement("ul");
+
+    [...children].sort().forEach(child => {
+        const full = dir + child;
+
+        const isDir = Object.keys(fileMap).some(p =>
+            p.startsWith(full + "/")
+        );
+
+        const li = document.createElement("li");
+        li.className = isDir ? "dir" : "file";
+        li.textContent = child + (isDir ? "/" : "");
+
+        li.onclick = () => {
+            if (isDir) {
+                navigate(full + "/");
+            } else {
+                openAsset(full);
+            }
+        };
+
+        ul.appendChild(li);
+    });
+
+    content.appendChild(ul);
+}
+
+function renderSearch(query) {
+    const content = document.getElementById("content");
+    content.innerHTML = "";
+
+    const ul = document.createElement("ul");
+    query = query.toLowerCase();
+
+    let count = 0;
+
+    for (const path in fileMap) {
+        if (!path.toLowerCase().includes(query)) continue;
+
+        const li = document.createElement("li");
+        li.textContent = path;
+        li.className = "file";
+
+        li.onclick = () => openAsset(path);
+
+        ul.appendChild(li);
+
+        if (++count > 200) break;
+    }
+
+    content.appendChild(ul);
+}
+
+async function openAsset(path) {
+    const content = document.getElementById("content");
+    content.innerHTML = "Loading...";
+
+    const entry = fileMap[path];
+
+    if (!entry) {
+        content.innerHTML = "Asset not found in index.";
+        return;
+    }
+
+    const hash = entry.hash;
+    const url = `${assetRoot}${hash.substring(0,2)}/${hash}`;
+
+    const res = await fetch(url);
+    const buf = await res.arrayBuffer();
+
+    if (path.endsWith(".png")) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(new Blob([buf]));
+        content.innerHTML = "";
+        content.appendChild(img);
+    } else {
+        const text = new TextDecoder().decode(buf);
+        content.innerHTML = `<pre>${text}</pre>`;
+    }
+}
+
+document.getElementById("search").oninput = e => {
+    const q = e.target.value.trim();
+    currentPath = q ? "search:" + q : "";
+    render();
+};
+</script>
+
+</body>
+</html>
