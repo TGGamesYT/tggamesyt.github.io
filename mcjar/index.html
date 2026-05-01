@@ -3,138 +3,220 @@
 <head>
     <title>Minecraft Jar Explorer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        body { font-family: monospace; background: #111; color: #eee; }
-        a { color: #6cf; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .nav { margin-bottom: 10px; }
-        .file { margin-left: 10px; }
-        img { max-width: 400px; display: block; margin-top: 10px; }
-    </style>
 </head>
 <body>
 
-<div class="nav" id="nav"></div>
+<h2>Minecraft Jar Explorer</h2>
+
+<div id="versionSelect"></div>
+<div id="nav"></div>
+<hr>
 <div id="content">Loading...</div>
 
 <script>
-const params = new URLSearchParams(location.search);
-const version = params.get("ver");
-let path = params.get("path") || "";
-
-if (!version) {
-    document.body.innerHTML = "Missing ?ver=";
-    throw "";
-}
-
 const manifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
-let zip;
+let zip = null;
+let currentVersion = null;
+let currentPath = "";
+
+init();
 
 async function init() {
+    const params = new URLSearchParams(location.search);
+    currentVersion = params.get("ver");
+    currentPath = params.get("path") || "";
+
     const manifest = await fetch(manifestUrl).then(r => r.json());
 
-    const versionMeta = manifest.versions.find(v => v.id === version);
-    if (!versionMeta) {
-        document.body.innerHTML = "Version not found";
+    if (!currentVersion) {
+        renderVersionSelector(manifest.versions);
+        document.getElementById("content").innerHTML = "Select a version";
         return;
     }
+
+    renderVersionSelector(manifest.versions);
+
+    const versionMeta = manifest.versions.find(v => v.id === currentVersion);
+    if (!versionMeta) {
+        document.getElementById("content").innerText = "Version not found";
+        return;
+    }
+
+    document.getElementById("content").innerText = "Loading jar...";
 
     const meta = await fetch(versionMeta.url).then(r => r.json());
     const jarUrl = meta.downloads.client.url;
 
     const jarData = await fetch(jarUrl).then(r => r.arrayBuffer());
-
     zip = await JSZip.loadAsync(jarData);
 
     render();
 }
 
+function renderVersionSelector(versions) {
+    const select = document.createElement("select");
+
+    versions.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.id;
+        opt.textContent = v.id;
+        if (v.id === currentVersion) opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    select.onchange = () => {
+        location.search = "?ver=" + select.value;
+    };
+
+    const container = document.getElementById("versionSelect");
+    container.innerHTML = "Version: ";
+    container.appendChild(select);
+}
+
+function navigate(path) {
+    currentPath = path;
+
+    const params = new URLSearchParams();
+    params.set("ver", currentVersion);
+    params.set("path", currentPath);
+
+    history.pushState({ path }, "", "?" + params.toString());
+
+    render();
+}
+
+window.onpopstate = (e) => {
+    currentPath = new URLSearchParams(location.search).get("path") || "";
+    render();
+};
+
 function render() {
-    document.getElementById("nav").innerHTML = renderNav();
-    
-    if (zip.files[path]) {
-        renderFile(path);
+    renderNav();
+
+    if (zip.files[currentPath]) {
+        renderFile(currentPath);
     } else {
-        renderDirectory(path);
+        renderDirectory(currentPath);
     }
 }
 
 function renderNav() {
-    let parts = path.split("/").filter(Boolean);
+    let parts = currentPath.split("/").filter(Boolean);
     let current = "";
 
-    let html = `<a href="?ver=${version}&path=">/</a>`;
+    let nav = document.getElementById("nav");
+    nav.innerHTML = "";
 
-    for (let p of parts) {
+    const root = document.createElement("a");
+    root.href = "#";
+    root.textContent = "/";
+    root.onclick = (e) => { e.preventDefault(); navigate(""); };
+    nav.appendChild(root);
+
+    parts.forEach(p => {
+        nav.appendChild(document.createTextNode(" / "));
         current += p + "/";
-        html += ` / <a href="?ver=${version}&path=${current}">${p}</a>`;
-    }
 
-    return html;
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = p;
+        link.onclick = (e) => {
+            e.preventDefault();
+            navigate(current);
+        };
+
+        nav.appendChild(link);
+    });
 }
 
 function renderDirectory(dir) {
-    let children = new Set();
+    const container = document.getElementById("content");
+    container.innerHTML = "";
+
+    const list = document.createElement("ul");
+
+    if (dir) {
+        const up = dir.split("/").slice(0, -2).join("/") + "/";
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#";
+        a.textContent = "⬅ Back";
+        a.onclick = (e) => {
+            e.preventDefault();
+            navigate(up);
+        };
+        li.appendChild(a);
+        list.appendChild(li);
+    }
+
+    const children = new Set();
 
     Object.keys(zip.files).forEach(name => {
         if (!name.startsWith(dir)) return;
 
-        let rest = name.slice(dir.length);
-        let part = rest.split("/")[0];
+        const rest = name.slice(dir.length);
+        const part = rest.split("/")[0];
+
         if (part) children.add(part);
     });
 
-    let html = "<h3>Directory</h3>";
+    [...children].sort().forEach(child => {
+        const full = dir + child;
+        const isDir = Object.keys(zip.files).some(f => f.startsWith(full + "/"));
 
-    if (dir) {
-        let up = dir.split("/").slice(0, -2).join("/") + "/";
-        html += `<div><a href="?ver=${version}&path=${up}">⬅ Back</a></div>`;
-    }
+        const li = document.createElement("li");
+        const a = document.createElement("a");
 
-    children.forEach(child => {
-        let full = dir + child;
-        if (zip.files[full + "/"]) full += "/";
+        a.href = "#";
+        a.textContent = child + (isDir ? "/" : "");
+        a.onclick = (e) => {
+            e.preventDefault();
+            navigate(isDir ? full + "/" : full);
+        };
 
-        html += `<div class="file">
-            <a href="?ver=${version}&path=${full}">${child}</a>
-        </div>`;
+        li.appendChild(a);
+        list.appendChild(li);
     });
 
-    document.getElementById("content").innerHTML = html;
+    container.appendChild(list);
 }
 
-async function renderFile(filePath) {
-    const file = zip.file(filePath);
+async function renderFile(path) {
+    const container = document.getElementById("content");
+    container.innerHTML = "";
+
+    const file = zip.file(path);
     const content = await file.async("uint8array");
 
-    let html = `<div><a href="?ver=${version}&path=${path.split("/").slice(0, -2).join("/") + "/"}">⬅ Back</a></div>`;
-    html += `<h3>${filePath}</h3>`;
+    const back = document.createElement("a");
+    back.href = "#";
+    back.textContent = "⬅ Back";
+    back.onclick = (e) => {
+        e.preventDefault();
+        navigate(path.split("/").slice(0, -2).join("/") + "/");
+    };
 
-    if (filePath.endsWith(".png")) {
+    container.appendChild(back);
+
+    const title = document.createElement("h3");
+    title.textContent = path;
+    container.appendChild(title);
+
+    if (path.endsWith(".png")) {
         const blob = new Blob([content], { type: "image/png" });
         const url = URL.createObjectURL(blob);
-        html += `<img src="${url}">`;
-    } else if (filePath.endsWith(".json")) {
-        const text = new TextDecoder().decode(content);
-        html += `<pre>${escapeHtml(text)}</pre>`;
+
+        const img = document.createElement("img");
+        img.src = url;
+        container.appendChild(img);
     } else {
         const text = new TextDecoder().decode(content);
-        html += `<pre>${escapeHtml(text)}</pre>`;
+        const pre = document.createElement("pre");
+        pre.textContent = text;
+        container.appendChild(pre);
     }
-
-    document.getElementById("content").innerHTML = html;
 }
-
-function escapeHtml(text) {
-    return text.replace(/[&<>]/g, c => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;"
-    }[c]));
-}
-
-init();
 </script>
 
 </body>
