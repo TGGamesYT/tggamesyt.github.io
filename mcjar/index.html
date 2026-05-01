@@ -1,126 +1,230 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Minecraft Jar Explorer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<title>Minecraft Jar Explorer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f5f6f8;
+}
+
+header {
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+h2 { margin: 0 0 8px 0; }
+
+.controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#nav {
+    font-size: 14px;
+    margin-top: 6px;
+    color: #555;
+}
+
+#nav a {
+    color: #0077cc;
+    text-decoration: none;
+}
+
+#nav a:hover {
+    text-decoration: underline;
+}
+
+.container {
+    padding: 16px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+li:hover {
+    background: #e9eef5;
+}
+
+.file { color: #333; }
+.dir { font-weight: 500; }
+
+pre {
+    background: #111;
+    color: #eee;
+    padding: 12px;
+    overflow: auto;
+    border-radius: 8px;
+}
+
+img {
+    max-width: 100%;
+    margin-top: 10px;
+}
+
+#search {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+#progressBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: #0077ff;
+    transition: width 0.2s ease;
+    z-index: 999;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Minecraft Jar Explorer</h2>
+<div id="progressBar"></div>
 
-<div id="controls"></div>
-<div id="nav"></div>
-<hr>
-<div id="content">Loading...</div>
+<header>
+    <h2>Minecraft Jar Explorer</h2>
+
+    <div class="controls">
+        <span>Version:</span>
+        <select id="versionSelect"></select>
+
+        <label>
+            <input type="checkbox" id="releaseToggle">
+            Releases only
+        </label>
+
+        <input id="search" placeholder="Search in folder...">
+    </div>
+
+    <div id="nav"></div>
+</header>
+
+<div class="container">
+    <div id="content">Loading...</div>
+</div>
 
 <script>
 const manifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
-let zip = null;
+let zip, manifest;
 let currentVersion = null;
 let currentPath = "";
-let manifestData = null;
 let showReleasesOnly = false;
+let currentList = [];
+
+const progressBar = document.getElementById("progressBar");
+
+function setLoading(on) {
+    if (on) {
+        progressBar.style.width = "60%";
+    } else {
+        progressBar.style.width = "100%";
+        setTimeout(() => progressBar.style.width = "0%", 200);
+    }
+}
 
 init();
 
 async function init() {
+    setLoading(true);
+
     const params = new URLSearchParams(location.search);
     currentVersion = params.get("ver");
-    currentPath = normalizePath(params.get("path") || "");
+    currentPath = normalize(params.get("path") || "");
 
-    manifestData = await fetch(manifestUrl).then(r => r.json());
+    manifest = await fetch(manifestUrl).then(r => r.json());
 
-    renderControls();
+    setupControls();
 
     if (!currentVersion) {
         document.getElementById("content").innerText = "Select a version";
+        setLoading(false);
         return;
     }
 
-    const versionMeta = manifestData.versions.find(v => v.id === currentVersion);
-    if (!versionMeta) {
-        document.getElementById("content").innerText = "Version not found";
-        return;
-    }
+    const metaUrl = manifest.versions.find(v => v.id === currentVersion)?.url;
+    const meta = await fetch(metaUrl).then(r => r.json());
 
-    document.getElementById("content").innerText = "Loading jar...";
-
-    const meta = await fetch(versionMeta.url).then(r => r.json());
-    const jarUrl = meta.downloads.client.url;
-
-    const jarData = await fetch(jarUrl).then(r => r.arrayBuffer());
+    const jarData = await fetch(meta.downloads.client.url).then(r => r.arrayBuffer());
     zip = await JSZip.loadAsync(jarData);
 
     render();
+    setLoading(false);
 }
 
-function renderControls() {
-    const container = document.getElementById("controls");
-    container.innerHTML = "";
+function setupControls() {
+    const select = document.getElementById("versionSelect");
 
-    const select = document.createElement("select");
+    function renderOptions() {
+        select.innerHTML = "";
+        manifest.versions
+            .filter(v => !showReleasesOnly || v.type === "release")
+            .forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v.id;
+                opt.textContent = v.id;
+                if (v.id === currentVersion) opt.selected = true;
+                select.appendChild(opt);
+            });
+    }
 
-    manifestData.versions
-        .filter(v => !showReleasesOnly || v.type === "release")
-        .forEach(v => {
-            const opt = document.createElement("option");
-            opt.value = v.id;
-            opt.textContent = v.id;
-            if (v.id === currentVersion) opt.selected = true;
-            select.appendChild(opt);
-        });
+    renderOptions();
 
-    select.onchange = () => {
-        location.search = "?ver=" + select.value;
+    select.onchange = () => location.search = "?ver=" + select.value;
+
+    document.getElementById("releaseToggle").onchange = e => {
+        showReleasesOnly = e.target.checked;
+        renderOptions();
     };
 
-    const toggle = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = showReleasesOnly;
-
-    checkbox.onchange = () => {
-        showReleasesOnly = checkbox.checked;
-        renderControls();
+    document.getElementById("search").oninput = e => {
+        renderList(e.target.value.toLowerCase());
     };
-
-    toggle.appendChild(checkbox);
-    toggle.appendChild(document.createTextNode(" Releases only"));
-
-    container.appendChild(document.createTextNode("Version: "));
-    container.appendChild(select);
-    container.appendChild(document.createTextNode(" "));
-    container.appendChild(toggle);
 }
 
-function normalizePath(p) {
-    if (!p) return "";
-    p = p.replace(/^\/+/, "");
-    return p;
+function normalize(p) {
+    return p.replace(/^\/+/, "");
 }
 
 function navigate(path) {
-    path = normalizePath(path);
-
-    currentPath = path;
+    currentPath = normalize(path);
 
     const params = new URLSearchParams();
     params.set("ver", currentVersion);
-    if (path) params.set("path", path);
+    if (currentPath) params.set("path", currentPath);
 
-    history.pushState({ path }, "", "?" + params.toString());
-
+    history.pushState({}, "", "?" + params.toString());
     render();
 }
 
 window.onpopstate = () => {
     const params = new URLSearchParams(location.search);
-    currentPath = normalizePath(params.get("path") || "");
+    currentPath = normalize(params.get("path") || "");
     render();
 };
 
 function render() {
+    setLoading(true);
     renderNav();
 
     const file = zip.file(currentPath);
@@ -130,18 +234,20 @@ function render() {
     } else {
         renderDirectory(currentPath);
     }
+
+    setLoading(false);
 }
 
 function renderNav() {
+    const nav = document.getElementById("nav");
+    nav.innerHTML = "";
+
     let parts = currentPath.split("/").filter(Boolean);
     let current = "";
 
-    let nav = document.getElementById("nav");
-    nav.innerHTML = "";
-
     const root = document.createElement("a");
-    root.href = "#";
     root.textContent = "/";
+    root.href = "#";
     root.onclick = e => { e.preventDefault(); navigate(""); };
     nav.appendChild(root);
 
@@ -149,113 +255,73 @@ function renderNav() {
         nav.appendChild(document.createTextNode(" / "));
         current += p + "/";
 
-        const link = document.createElement("a");
-        link.href = "#";
-        link.textContent = p;
-        link.onclick = e => {
-            e.preventDefault();
-            navigate(current);
-        };
+        const a = document.createElement("a");
+        a.textContent = p;
+        a.href = "#";
+        a.onclick = e => { e.preventDefault(); navigate(current); };
 
-        nav.appendChild(link);
+        nav.appendChild(a);
     });
 }
 
 function renderDirectory(dir) {
-    const container = document.getElementById("content");
-    container.innerHTML = "";
-
-    const list = document.createElement("ul");
-
-    if (dir) {
-        const up = dir.split("/").slice(0, -2).join("/") + "/";
-        const li = document.createElement("li");
-
-        const a = document.createElement("a");
-        a.href = "#";
-        a.textContent = "⬅ Back";
-        a.onclick = e => {
-            e.preventDefault();
-            navigate(up);
-        };
-
-        li.appendChild(a);
-        list.appendChild(li);
-    }
+    const content = document.getElementById("content");
 
     const children = new Set();
 
     Object.keys(zip.files).forEach(name => {
         if (!name.startsWith(dir)) return;
-
-        const rest = name.slice(dir.length);
-        const part = rest.split("/")[0];
-
+        const part = name.slice(dir.length).split("/")[0];
         if (part) children.add(part);
     });
 
-    [...children].sort().forEach(child => {
-        let full = dir + child;
+    currentList = [...children].sort();
+    renderList("");
+}
 
-        const isDir = Object.keys(zip.files).some(f => f.startsWith(full + "/"));
-        if (isDir) full += "/";
+function renderList(filter) {
+    const content = document.getElementById("content");
+    content.innerHTML = "";
 
-        const li = document.createElement("li");
-        const a = document.createElement("a");
+    const ul = document.createElement("ul");
 
-        a.href = "#";
-        a.textContent = child + (isDir ? "/" : "");
-        a.onclick = e => {
-            e.preventDefault();
-            navigate(full);
-        };
+    currentList
+        .filter(c => c.toLowerCase().includes(filter))
+        .forEach(child => {
 
-        li.appendChild(a);
-        list.appendChild(li);
-    });
+            let full = currentPath + child;
+            const isDir = Object.keys(zip.files).some(f => f.startsWith(full + "/"));
+            if (isDir) full += "/";
 
-    container.appendChild(list);
+            const li = document.createElement("li");
+            li.className = isDir ? "dir" : "file";
+            li.textContent = child + (isDir ? "/" : "");
+
+            li.onclick = () => navigate(full);
+
+            ul.appendChild(li);
+        });
+
+    content.appendChild(ul);
 }
 
 async function renderFile(path) {
-    const container = document.getElementById("content");
-    container.innerHTML = "";
+    const content = document.getElementById("content");
+    content.innerHTML = "";
 
     const file = zip.file(path);
-
-    if (!file) {
-        container.innerText = "File not found";
-        return;
-    }
-
-    const content = await file.async("uint8array");
-
-    const back = document.createElement("a");
-    back.href = "#";
-    back.textContent = "⬅ Back";
-    back.onclick = e => {
-        e.preventDefault();
-        navigate(path.split("/").slice(0, -2).join("/") + "/");
-    };
-
-    container.appendChild(back);
-
-    const title = document.createElement("h3");
-    title.textContent = path;
-    container.appendChild(title);
+    const data = await file.async("uint8array");
 
     if (path.endsWith(".png")) {
-        const blob = new Blob([content], { type: "image/png" });
-        const url = URL.createObjectURL(blob);
-
+        const url = URL.createObjectURL(new Blob([data]));
         const img = document.createElement("img");
         img.src = url;
-        container.appendChild(img);
+        content.appendChild(img);
     } else {
-        const text = new TextDecoder().decode(content);
+        const text = new TextDecoder().decode(data);
         const pre = document.createElement("pre");
         pre.textContent = text;
-        container.appendChild(pre);
+        content.appendChild(pre);
     }
 }
 </script>
