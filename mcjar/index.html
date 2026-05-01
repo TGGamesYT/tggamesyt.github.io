@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minecraft Jar Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body { font-family: monospace; background: #111; color: #eee; }
+        a { color: #6cf; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { margin-bottom: 10px; }
+        .file { margin-left: 10px; }
+        img { max-width: 400px; display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="nav" id="nav"></div>
+<div id="content">Loading...</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const version = params.get("ver");
+let path = params.get("path") || "";
+
+if (!version) {
+    document.body.innerHTML = "Missing ?ver=";
+    throw "";
+}
+
+const manifestUrl = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+
+let zip;
+
+async function init() {
+    const manifest = await fetch(manifestUrl).then(r => r.json());
+
+    const versionMeta = manifest.versions.find(v => v.id === version);
+    if (!versionMeta) {
+        document.body.innerHTML = "Version not found";
+        return;
+    }
+
+    const meta = await fetch(versionMeta.url).then(r => r.json());
+    const jarUrl = meta.downloads.client.url;
+
+    const jarData = await fetch(jarUrl).then(r => r.arrayBuffer());
+
+    zip = await JSZip.loadAsync(jarData);
+
+    render();
+}
+
+function render() {
+    document.getElementById("nav").innerHTML = renderNav();
+    
+    if (zip.files[path]) {
+        renderFile(path);
+    } else {
+        renderDirectory(path);
+    }
+}
+
+function renderNav() {
+    let parts = path.split("/").filter(Boolean);
+    let current = "";
+
+    let html = `<a href="?ver=${version}&path=">/</a>`;
+
+    for (let p of parts) {
+        current += p + "/";
+        html += ` / <a href="?ver=${version}&path=${current}">${p}</a>`;
+    }
+
+    return html;
+}
+
+function renderDirectory(dir) {
+    let children = new Set();
+
+    Object.keys(zip.files).forEach(name => {
+        if (!name.startsWith(dir)) return;
+
+        let rest = name.slice(dir.length);
+        let part = rest.split("/")[0];
+        if (part) children.add(part);
+    });
+
+    let html = "<h3>Directory</h3>";
+
+    if (dir) {
+        let up = dir.split("/").slice(0, -2).join("/") + "/";
+        html += `<div><a href="?ver=${version}&path=${up}">⬅ Back</a></div>`;
+    }
+
+    children.forEach(child => {
+        let full = dir + child;
+        if (zip.files[full + "/"]) full += "/";
+
+        html += `<div class="file">
+            <a href="?ver=${version}&path=${full}">${child}</a>
+        </div>`;
+    });
+
+    document.getElementById("content").innerHTML = html;
+}
+
+async function renderFile(filePath) {
+    const file = zip.file(filePath);
+    const content = await file.async("uint8array");
+
+    let html = `<div><a href="?ver=${version}&path=${path.split("/").slice(0, -2).join("/") + "/"}">⬅ Back</a></div>`;
+    html += `<h3>${filePath}</h3>`;
+
+    if (filePath.endsWith(".png")) {
+        const blob = new Blob([content], { type: "image/png" });
+        const url = URL.createObjectURL(blob);
+        html += `<img src="${url}">`;
+    } else if (filePath.endsWith(".json")) {
+        const text = new TextDecoder().decode(content);
+        html += `<pre>${escapeHtml(text)}</pre>`;
+    } else {
+        const text = new TextDecoder().decode(content);
+        html += `<pre>${escapeHtml(text)}</pre>`;
+    }
+
+    document.getElementById("content").innerHTML = html;
+}
+
+function escapeHtml(text) {
+    return text.replace(/[&<>]/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;"
+    }[c]));
+}
+
+init();
+</script>
+
+</body>
+</html>
