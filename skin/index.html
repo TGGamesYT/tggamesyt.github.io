@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Skin Merger — Minecraft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0b0f;
+    --panel:#14161d;
+    --panel2:#1b1e27;
+    --panel3:#222631;
+    --ink:#e7e9ee;
+    --dim:#9498a6;
+    --faint:#6b6f7d;
+    --line:#2a2e3a;
+    --line2:#363b49;
+    --accent:#6366f1;
+    --accent2:#22d3ee;
+    --accent-soft:rgba(99,102,241,.15);
+    --good:#34d399;
+    --gold:#fbbf24;
+    --danger:#f43f5e;
+    --radius:12px;
+    --radius-sm:9px;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.28);
+    --grass:var(--accent); --grass-d:var(--accent); --emerald:var(--accent2); --dirt:var(--panel3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  ::selection{background:var(--accent-soft)}
+  /* ---- header ---- */
+  header{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 22px;
+    border-bottom:1px solid var(--line);
+    background:rgba(20,22,29,.7);
+    backdrop-filter:blur(12px);
+    position:relative;z-index:10;
+  }
+  .logo{
+    display:flex;align-items:center;gap:11px;
+    font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--ink);
+  }
+  .logo .mark{
+    width:30px;height:30px;border-radius:9px;flex:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 4px 14px rgba(99,102,241,.4);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;
+  }
+  .logo b{font-weight:800}
+  .logo .pro{font-weight:500;color:var(--accent2)}
+  .tag{color:var(--dim);font-size:12px;max-width:280px;line-height:1.4}
+  header .spacer{flex:1}
+  /* ---- layout ---- */
+  .work{
+    display:grid;
+    grid-template-columns:312px 1fr 372px;
+    height:calc(100% - 60px);
+  }
+  .col{overflow-y:auto;padding:18px;border-right:1px solid var(--line)}
+  .col:last-child{border-right:none}
+  .col::-webkit-scrollbar{width:10px}
+  .col::-webkit-scrollbar-track{background:transparent}
+  .col::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px;border:3px solid var(--bg)}
+  .col::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+  h2{
+    font-size:13px;font-weight:700;margin:0 0 14px;color:var(--ink);
+    letter-spacing:.01em;display:flex;align-items:baseline;gap:8px;
+    text-transform:uppercase;
+  }
+  h2 small{font-size:11px;color:var(--faint);font-weight:500;text-transform:none;letter-spacing:0}
+  /* ---- buttons ---- */
+  .btn{
+    font-family:inherit;font-weight:600;font-size:12.5px;
+    background:var(--accent);color:#fff;border:1px solid transparent;
+    padding:9px 14px;cursor:pointer;border-radius:var(--radius-sm);
+    letter-spacing:.005em;
+    transition:filter .14s, transform .06s, background .14s, border-color .14s;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn.alt{background:var(--panel2);color:var(--ink);border-color:var(--line2)}
+  .btn.alt:hover{background:var(--panel3);filter:none}
+  .btn.gold{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.32)}
+  .btn.toggle.on{background:var(--accent-soft);color:var(--accent2);border-color:var(--accent)}
+  .btn.toggle.on:hover{filter:none;background:rgba(99,102,241,.22)}
+  .btn.danger{background:transparent;color:var(--danger);border-color:rgba(244,63,94,.4)}
+  .btn.danger:hover{background:rgba(244,63,94,.12);filter:none}
+  .btn.sm{padding:6px 10px;font-size:11.5px}
+  .btn:disabled{opacity:.4;cursor:not-allowed;filter:none;transform:none}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  /* ---- drop zone ---- */
+  .drop{
+    border:1.5px dashed var(--line2);background:var(--panel);
+    padding:24px 12px;text-align:center;color:var(--dim);font-size:12px;
+    cursor:pointer;margin-bottom:14px;transition:.16s;border-radius:var(--radius);
+  }
+  .drop:hover,.drop.hot{border-color:var(--accent);color:var(--accent2);background:var(--accent-soft)}
+  .drop b{color:var(--ink);display:block;font-size:14px;font-weight:600;margin-bottom:5px}
+  /* ---- skin cards ---- */
+  .skin{
+    display:flex;gap:11px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);padding:9px;margin-bottom:9px;
+    border-radius:var(--radius);transition:border-color .14s, background .14s;
+  }
+  .skin:hover{border-color:var(--line2);background:var(--panel2)}
+  .skin canvas{
+    width:54px;height:54px;image-rendering:pixelated;border-radius:8px;
+    background:conic-gradient(#2a2e3a 25%,#222631 0 50%,#2a2e3a 0 75%,#222631 0) 0 0/12px 12px;
+    border:1px solid var(--line2);
+  }
+  .skin .meta{flex:1;min-width:0}
+  .skin .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .skin .sub{color:var(--dim);font-size:11px;margin-top:1px}
+  .pill{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--dim)}
+  .pill input{accent-color:var(--accent)}
+  .xbtn{background:transparent;color:var(--faint);border:1px solid var(--line2);width:26px;height:26px;
+    cursor:pointer;border-radius:7px;font-weight:600;transition:.14s;flex:none}
+  .xbtn:hover{color:var(--danger);border-color:rgba(244,63,94,.5);background:rgba(244,63,94,.1)}
+  /* ---- slot cards ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+  .slot{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:13px;transition:border-color .14s;
+  }
+  .slot:hover{border-color:var(--line2)}
+  .slot.off{opacity:.5}
+  .slot .hd{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .slot .hd .ttl{font-size:13.5px;font-weight:700;color:var(--ink);flex:1;letter-spacing:-.01em}
+  .slot.ov .hd .ttl{color:var(--accent2)}
+  .slot .hd input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+  select{
+    font-family:inherit;font-size:12px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line2);padding:7px 8px;width:100%;cursor:pointer;border-radius:7px;
+    transition:border-color .14s;
+  }
+  select:hover{border-color:var(--faint)}
+  select:focus{outline:none;border-color:var(--accent)}
+  .field{margin-bottom:8px}
+  .field label{display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600}
+  .faces{margin-top:11px;border-top:1px solid var(--line);padding-top:11px;display:none}
+  .faces.open{display:block}
+  .frow{display:grid;grid-template-columns:16px 56px 1fr 1fr 1fr;gap:5px;align-items:center;margin-bottom:6px}
+  .frow .fl{font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .frow input{accent-color:var(--accent)}
+  .frow select{padding:5px 4px;font-size:11px}
+  .expbtn{background:var(--panel2);color:var(--dim);border:1px solid var(--line2);cursor:pointer;
+    font-size:11px;padding:5px 9px;border-radius:7px;font-weight:500;transition:.14s}
+  .expbtn:hover{color:var(--ink);border-color:var(--faint)}
+  .expbtn.on{background:var(--accent-soft);color:var(--accent2);border-color:transparent}
+  /* ---- right column ---- */
+  #view{width:100%;height:368px;border-radius:var(--radius);
+    background:radial-gradient(circle at 50% 30%,#1c2030,#0c0e14);
+    border:1px solid var(--line);touch-action:none;cursor:grab}
+  #view:active{cursor:grabbing}
+  .vctl{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+  .outwrap{display:flex;gap:14px;align-items:flex-start;margin-top:6px}
+  #outTex{width:128px;height:128px;image-rendering:pixelated;border-radius:10px;border:1px solid var(--line2);
+    background:conic-gradient(#2a2e3a 25%,#222631 0 50%,#2a2e3a 0 75%,#222631 0) 0 0/16px 16px}
+  .legend{font-size:11.5px;color:var(--dim);line-height:1.6}
+  .legend b{color:var(--ink);font-weight:600}
+  .empty{color:var(--faint);font-size:12px;padding:24px 0;text-align:center}
+  .badge{font-size:10px;background:var(--panel3);color:var(--dim);padding:2px 7px;border-radius:5px;font-weight:600;letter-spacing:.02em}
+  .slot.ov .badge{background:var(--accent-soft);color:var(--accent2)}
+  .hint{font-size:11.5px;color:var(--dim);margin:-2px 0 14px;line-height:1.5}
+  .importbox{display:flex;gap:7px;margin-bottom:9px}
+  .importbox input{flex:1;min-width:0;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line2);padding:9px 11px;font-family:inherit;font-size:13px;border-radius:8px;transition:border-color .14s}
+  .importbox input::placeholder{color:var(--faint)}
+  .importbox input:focus{outline:none;border-color:var(--accent)}
+  .repl{display:flex;gap:6px;margin-top:6px}
+  .repbtn{font-family:inherit;font-size:10.5px;background:transparent;color:var(--dim);
+    border:1px solid var(--line2);padding:4px 9px;cursor:pointer;border-radius:6px;transition:.14s;font-weight:500}
+  .repbtn:hover{color:var(--accent2);border-color:var(--accent)}
+
+  /* ---------- PIXEL EDITOR ---------- */
+  .modal{position:fixed;inset:0;background:rgba(6,7,10,.72);display:none;z-index:50;
+    align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)}
+  .modal.open{display:flex}
+  .modal-box{background:var(--panel);border:1px solid var(--line2);border-radius:16px;
+    box-shadow:0 24px 80px rgba(0,0,0,.6);
+    width:min(980px,96vw);max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
+  .ed-head{display:flex;align-items:center;gap:12px;padding:14px 18px;
+    background:var(--panel2);border-bottom:1px solid var(--line)}
+  .ed-title{font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+  .ed-hint{font-size:11.5px;color:var(--dim);flex:1;line-height:1.4}
+  .ed-body{display:flex;gap:0;min-height:0;flex:1}
+  .ed-tools{width:240px;padding:16px;border-right:1px solid var(--line);overflow-y:auto;background:var(--panel)}
+  .tool-group{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px}
+  .toolb{font-family:inherit;font-weight:600;font-size:11.5px;background:var(--panel2);
+    color:var(--ink);border:1px solid var(--line2);padding:10px 4px;cursor:pointer;border-radius:8px;transition:.14s}
+  .toolb:hover{border-color:var(--faint)}
+  .toolb.on{background:var(--accent);color:#fff;border-color:transparent}
+  .tool-opt{margin-bottom:15px}
+  .tool-opt>label{display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
+  .tool-opt input[type=range]{width:100%;accent-color:var(--accent)}
+  .tool-opt input[type=color]{width:100%;height:38px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;padding:3px;border-radius:8px}
+  .ed-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:repeating-conic-gradient(#0e1016 0% 25%,#16181f 0% 50%) 0 0/40px 40px;min-width:0}
+  #edCanvas{image-rendering:pixelated;border-radius:6px;border:1px solid var(--line2);
+    box-shadow:0 12px 40px rgba(0,0,0,.5);
+    max-width:100%;max-height:72vh;width:auto;height:auto;touch-action:none;cursor:crosshair;background:#0000}
+
+  /* ---------- PHONE ---------- */
+  @media (max-width:860px){
+    html,body{overflow:auto;height:auto}
+    body{font-size:14px}
+    header{flex-wrap:wrap;gap:10px;padding:12px 16px}
+    .tag,header .spacer{display:none}
+    #dlBtn{margin-left:auto}
+    .work{display:flex;flex-direction:column;height:auto}
+    .col{width:100%;height:auto;overflow:visible;border-right:none;border-bottom:1px solid var(--line);padding:16px 14px}
+    #leftCol{order:1}
+    #rightCol{order:2}
+    #centerCol{order:3;border-bottom:none}
+    #view{height:300px}
+    .grid{grid-template-columns:1fr}
+    .btn,select{min-height:42px}
+    .btn.sm{min-height:36px}
+    .slot select{min-height:42px;font-size:13px}
+    .skin canvas{width:60px;height:60px}
+    .xbtn{width:32px;height:32px}
+    .frow{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+    .frow .fInc{width:22px;height:22px}
+    .frow .fl{flex:1 1 auto;font-size:11.5px}
+    .frow select{flex:1 1 30%;min-width:92px;min-height:38px;font-size:12px}
+    #outTex{width:160px;height:160px}
+    .modal{padding:0}
+    .modal-box{width:100vw;max-height:100vh;height:100vh;border-radius:0;border:none}
+    .ed-body{flex-direction:column}
+    .ed-tools{width:100%;border-right:none;border-bottom:1px solid var(--line);max-height:42vh}
+    .tool-group{grid-template-columns:repeat(5,1fr)}
+    #edCanvas{max-height:48vh}
+  }
+  @media (max-width:420px){
+    .outwrap{flex-wrap:wrap}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="mark">P</span><span><b>Pro</b> Skin Merger</span></div>
+  <div class="tag">Merge multiple Minecraft skins — mix any part, layer & face into one.</div>
+  <div class="spacer"></div>
+  <button class="btn gold" id="dlBtn">⬇ Download Skin</button>
+</header>
+
+<div class="work">
+  <!-- LEFT: skins -->
+  <div class="col" id="leftCol">
+    <h2>Skins <small>your sources</small></h2>
+    <div class="drop" id="drop">
+      <b>+ Drop / click</b>
+      PNG skins (64×64 or 64×32). Add as many as you want.
+    </div>
+    <input type="file" id="file" accept="image/png,image/*" multiple hidden>
+    <input type="file" id="replaceFile" accept="image/png,image/*" hidden>
+    <div class="importbox">
+      <input id="pname" placeholder="Minecraft username…" autocomplete="off" spellcheck="false">
+      <button class="btn sm" id="importBtn">Import</button>
+    </div>
+    <div id="importMsg" class="hint"></div>
+    <div id="skinList"></div>
+  </div>
+
+  <!-- CENTER: builder -->
+  <div class="col" id="centerCol">
+    <h2>Output Builder <small>per part · per layer · per face</small></h2>
+    <div class="row">
+      <button class="btn alt sm" id="fillBtn">Fill all from…</button>
+      <select id="fillSel" style="width:auto"></select>
+      <button class="btn alt sm toggle" id="swapArms" aria-pressed="false">⇄ Arms: normal</button>
+      <button class="btn alt sm toggle" id="swapLegs" aria-pressed="false">⇄ Legs: normal</button>
+      <label class="pill" style="margin-left:auto"><input type="checkbox" id="outSlim"> output slim (3px arms)</label>
+    </div>
+    <div class="hint">Each card = one body part + layer. Pick a source skin & which part of it to copy.
+      Hit <b>⋯ faces</b> to remap individual faces (e.g. only the front of the head, or skin-1 leg → this arm's outer layer).</div>
+    <div class="grid" id="slotGrid"></div>
+  </div>
+
+  <!-- RIGHT: preview -->
+  <div class="col" id="rightCol">
+    <h2>Render <small>drag · scroll · pose</small></h2>
+    <div id="view"></div>
+    <div class="vctl">
+      <button class="btn sm" id="poseBtn">▶ Walk</button>
+      <button class="btn alt sm" id="rotBtn">↻ Spin</button>
+      <button class="btn alt sm" id="zoomIn">＋</button>
+      <button class="btn alt sm" id="zoomOut">－</button>
+      <button class="btn alt sm" id="resetView">Reset</button>
+      <button class="btn alt sm" id="layerToggle">Hide 2nd layer</button>
+    </div>
+    <h2 style="font-size:18px">Output Texture</h2>
+    <div class="outwrap">
+      <canvas id="outTex" width="64" height="64"></canvas>
+      <div class="legend">
+        <b>64×64</b> result.<br>
+        Updates live.<br>
+        Checkerboard = transparent.<br><br>
+        <b>Pose:</b> <span id="poseName">Default</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn gold" id="editBtn">✎ Edit pixels</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== PIXEL EDITOR MODAL =================== -->
+<div id="editor" class="modal">
+  <div class="modal-box">
+    <div class="ed-head">
+      <span class="ed-title">Pixel Editor</span>
+      <span class="ed-hint" id="edHint">Paint on the merged skin. Edits stick even when you change mappings.</span>
+      <button class="btn alt sm" id="edUndo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+      <button class="btn alt sm" id="edRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+      <label class="pill" style="white-space:nowrap"><input type="checkbox" id="edOutSlim"> output slim</label>
+      <button class="btn alt sm" id="edDone">Done ✓</button>
+    </div>
+    <div class="ed-body">
+      <div class="ed-tools">
+        <div class="tool-opt">
+          <label>View / sample from</label>
+          <select id="edSource"></select>
+          <div class="ed-hint" id="srcHint"></div>
+        </div>
+        <div class="tool-group">
+          <button class="toolb on" data-tool="paint">✏ Paint</button>
+          <button class="toolb" data-tool="erase">⌫ Erase</button>
+          <button class="toolb" data-tool="fill">🪣 Fill</button>
+          <button class="toolb" data-tool="select">▢ Select</button>
+          <button class="toolb" data-tool="pick">💧 Pick</button>
+        </div>
+
+        <div class="tool-opt">
+          <label>Color</label>
+          <input type="color" id="edColor" value="#7fd45a">
+        </div>
+        <div class="tool-opt">
+          <label>Opacity <span id="edAlphaV">255</span></label>
+          <input type="range" id="edAlpha" min="0" max="255" value="255">
+        </div>
+        <div class="tool-opt" id="sizeOpt">
+          <label>Brush size <span id="edSizeV">1</span>px</label>
+          <input type="range" id="edSize" min="1" max="16" value="1">
+        </div>
+
+        <div class="tool-opt" id="partOpt">
+          <label>Skin part (for fill)</label>
+          <select id="edPart"></select>
+        </div>
+        <div class="tool-opt" id="fillModeOpt">
+          <label>Fill mode</label>
+          <select id="edFillMode">
+            <option value="connected">Connected colors (whole)</option>
+            <option value="connectedPart">Connected colors in part</option>
+            <option value="wholePart">Whole selected part</option>
+          </select>
+        </div>
+
+        <div class="tool-opt" id="selOpt">
+          <label>Selection</label>
+          <div class="row">
+            <button class="btn alt sm" id="selCopy">Copy</button>
+            <button class="btn alt sm" id="selPaste">Paste</button>
+            <button class="btn alt sm" id="selDelete">Delete</button>
+            <button class="btn alt sm" id="selClear">Deselect</button>
+          </div>
+          <div class="ed-hint" id="clipInfo">Clipboard empty. Drag inside a selection to move it.</div>
+        </div>
+
+        <div class="tool-opt">
+          <label class="pill"><input type="checkbox" id="edGrid"> show grid</label>
+        </div>
+        <div class="tool-opt">
+          <button class="btn danger sm" id="edRevert">↺ Clear all edits</button>
+        </div>
+      </div>
+
+      <div class="ed-canvas-wrap">
+        <canvas id="edCanvas" width="640" height="640"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===================================================================
+   MINECRAFT SKIN MERGER  —  geometry / net / UV
+   =================================================================== */
+const FACES = ['top','bottom','right','front','left','back'];
+
+// slot = a part + a layer. origin = net top-left in 64x64 texture.
+// dims = [w,h,d]; 'A' for arm width (resolved 4 classic / 3 slim).
+const SLOTS = {
+  head:        {origin:[0 ,0 ], dims:[8,8,8], part:'head',     layer:'base', label:'Head'},
+  head_ov:     {origin:[32,0 ], dims:[8,8,8], part:'head',     layer:'ov',   label:'Head 2'},
+  body:        {origin:[16,16], dims:[8,12,4],part:'body',     layer:'base', label:'Torso'},
+  body_ov:     {origin:[16,32], dims:[8,12,4],part:'body',     layer:'ov',   label:'Torso 2'},
+  rightArm:    {origin:[40,16], dims:['A',12,4],part:'rightArm',layer:'base',label:'R-Arm'},
+  rightArm_ov: {origin:[40,32], dims:['A',12,4],part:'rightArm',layer:'ov',  label:'R-Arm 2'},
+  leftArm:     {origin:[32,48], dims:['A',12,4],part:'leftArm', layer:'base', label:'L-Arm'},
+  leftArm_ov:  {origin:[48,48], dims:['A',12,4],part:'leftArm', layer:'ov',   label:'L-Arm 2'},
+  rightLeg:    {origin:[0 ,16], dims:[4,12,4], part:'rightLeg', layer:'base', label:'R-Leg'},
+  rightLeg_ov: {origin:[0 ,32], dims:[4,12,4], part:'rightLeg', layer:'ov',   label:'R-Leg 2'},
+  leftLeg:     {origin:[16,48], dims:[4,12,4], part:'leftLeg',  layer:'base', label:'L-Leg'},
+  leftLeg_ov:  {origin:[0 ,48], dims:[4,12,4], part:'leftLeg',  layer:'ov',   label:'L-Leg 2'},
+};
+const SLOT_KEYS = Object.keys(SLOTS);
+
+// pixel rect of a face in the texture, given slim flag for arms
+function faceRect(slotKey, face, slim){
+  const s = SLOTS[slotKey];
+  let [w,h,d] = s.dims;
+  if (w==='A') w = slim?3:4;
+  const [u0,v0] = s.origin;
+  switch(face){
+    case 'top':    return [u0+d,       v0,   w, d];
+    case 'bottom': return [u0+d+w,     v0,   w, d];
+    case 'right':  return [u0,         v0+d, d, h];
+    case 'front':  return [u0+d,       v0+d, w, h];
+    case 'left':   return [u0+d+w,     v0+d, d, h];
+    case 'back':   return [u0+2*d+w,   v0+d, w, h];
+  }
+}
+
+/* ===================================================================
+   STATE
+   =================================================================== */
+let skins = [];          // {id,name,canvas,slim}
+let outputSlim = false;
+let config = {};         // per slot config
+let nextId = 1;
+let replaceTarget = 0;   // skin index being replaced
+let editorOpen = false;
+
+function defaultConfig(){
+  const c = {};
+  SLOT_KEYS.forEach(k=>{
+    c[k] = {
+      include: true,
+      expanded: false,
+      bulkSkin: 0,
+      bulkPart: k,            // copy same slot by default
+      faces: {}
+    };
+    FACES.forEach(f=> c[k].faces[f] = {include:true, skin:0, part:k, face:f});
+  });
+  return c;
+}
+config = defaultConfig();
+
+/* ===================================================================
+   SKIN LOADING  (+ legacy 64x32 -> 64x64)
+   =================================================================== */
+function mirrorCopy(ctx, src, srcSlot, dstSlot){
+  // copy a limb to its mirror partner, flipping each face + swapping L/R
+  const map = {top:'top',bottom:'bottom',front:'front',back:'back',left:'right',right:'left'};
+  FACES.forEach(face=>{
+    const [sx,sy,sw,sh] = faceRect(srcSlot, face, false);
+    const [dx,dy,dw,dh] = faceRect(dstSlot, map[face], false);
+    // flip horizontally
+    ctx.save();
+    ctx.translate(dx+dw, dy);
+    ctx.scale(-1,1);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(src, sx,sy,sw,sh, 0,0,dw,dh);
+    ctx.restore();
+  });
+}
+
+function normalize(img){
+  const cv = document.createElement('canvas');
+  cv.width=64; cv.height=64;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  if (img.height === img.width/2){            // legacy 64x32
+    ctx.drawImage(img,0,0,64,32);
+    mirrorCopy(ctx, cv, 'rightLeg', 'leftLeg');
+    mirrorCopy(ctx, cv, 'rightArm', 'leftArm');
+  } else {
+    ctx.drawImage(img,0,0,64,64);             // assume 64x64
+  }
+  return cv;
+}
+
+function autoSlim(canvas){
+  // classic arms use texture columns x=54,55 (right-arm back face); slim arms don't.
+  // If those columns are fully transparent -> slim (3px) arms.
+  const ctx = canvas.getContext('2d');
+  try{
+    const d = ctx.getImageData(54,20,2,12).data;
+    let opaque=0; for(let i=3;i<d.length;i+=4) if(d[i]>16) opaque++;
+    return opaque===0;
+  }catch(e){ return false; }
+}
+
+function refreshSkins(){ renderSkins(); renderSlots(); rebuildAll(); }
+function imgToSkin(img,name){ const canvas=normalize(img); return {name, canvas, slim:autoSlim(canvas), _autoSlim:undefined}; }
+
+function loadFileImg(file,cb){ const img=new Image(); img.onload=()=>cb(img); img.src=URL.createObjectURL(file); }
+function loadNameImg(name,cb,err){
+  const urls=['https://mc-heads.net/skin/'+encodeURIComponent(name),
+              'https://minotar.net/skin/'+encodeURIComponent(name)];
+  let i=0; const img=new Image(); img.crossOrigin='anonymous';
+  img.onload=()=>cb(img);
+  img.onerror=()=>{ i++; if(i<urls.length) img.src=urls[i]; else err&&err(); };
+  img.src=urls[0];
+}
+const baseName = f=>f.name.replace(/\.[^.]+$/,'');
+
+function addSkinFromFile(file){
+  loadFileImg(file,img=>{ skins.push({id:nextId++, ...imgToSkin(img, baseName(file))}); refreshSkins(); });
+}
+// REPLACE an existing slot in place — keeps the same array index/id so all
+// output mappings that point at this skin stay intact.
+function replaceSkinFromFile(idx,file){
+  loadFileImg(file,img=>{ const s=imgToSkin(img, baseName(file));
+    Object.assign(skins[idx],s); refreshSkins(); });
+}
+function replaceSkinByName(idx,name){
+  name=(name||'').trim(); if(!name) return;
+  loadNameImg(name,img=>{ Object.assign(skins[idx], imgToSkin(img,name)); refreshSkins(); },
+    ()=>alert('Could not fetch "'+name+'".'));
+}
+
+// import a live Minecraft player skin by username (CORS-enabled mirrors)
+function importByName(name){
+  name=(name||'').trim();
+  const msg=document.getElementById('importMsg');
+  if(!name){ msg.textContent='Type a username first.'; return; }
+  msg.textContent='Fetching "'+name+'"…';
+  loadNameImg(name,
+    img=>{ skins.push({id:nextId++, ...imgToSkin(img,name)}); refreshSkins();
+           msg.textContent='\u2714 Imported "'+name+'"'; document.getElementById('pname').value=''; },
+    ()=>{ msg.textContent='\u2718 Could not fetch "'+name+'". Check spelling / connection.'; });
+}
+
+/* ===================================================================
+   BUILD OUTPUT TEXTURE
+   outCanvas = final (editable) layer.  mergeCanvas = auto-merged result.
+   ownMask marks pixels the user hand-edited; those survive re-merges.
+   =================================================================== */
+const outCanvas = document.getElementById('outTex');
+const outCtx = outCanvas.getContext('2d');
+outCtx.imageSmoothingEnabled = false;
+
+const mergeCanvas = document.createElement('canvas');
+mergeCanvas.width=64; mergeCanvas.height=64;
+const mergeCtx = mergeCanvas.getContext('2d');
+mergeCtx.imageSmoothingEnabled = false;
+
+const ownMask = new Uint8Array(64*64);   // 1 = user-edited pixel
+
+// clear hand-edit ownership over one output face, so a builder mapping change
+// to that region takes effect again (edits elsewhere are untouched).
+function clearOwnedFace(slotKey, face){
+  const [x,y,w,h]=faceRect(slotKey,face,outputSlim);
+  for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) ownMask[yy*64+xx]=0;
+}
+function clearOwnedSlot(slotKey){ FACES.forEach(f=>clearOwnedFace(slotKey,f)); }
+function slotHasEdits(slotKey){
+  return FACES.some(face=>{ const [x,y,w,h]=faceRect(slotKey,face,outputSlim);
+    for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) if(ownMask[yy*64+xx]) return true;
+    return false; });
+}
+
+function buildOutput(){
+  mergeCtx.clearRect(0,0,64,64);
+  if(!skins.length) return;
+  // For READS, use each skin's true arm width (detected from pixels), not just the
+  // manual flag — otherwise a slim skin read at classic width pulls empty columns -> black.
+  skins.forEach(s=>{ if(s._autoSlim===undefined) s._autoSlim=autoSlim(s.canvas); s._slimRead = s.slim || s._autoSlim; });
+  SLOT_KEYS.forEach(slotKey=>{
+    const cfg = config[slotKey];
+    if(!cfg.include) return;
+    FACES.forEach(face=>{
+      const f = cfg.faces[face];
+      if(!f.include) return;
+      const src = skins[f.skin];
+      if(!src) return;
+      const [sx,sy,sw,sh] = faceRect(f.part, f.face, src._slimRead);
+      const [dx,dy,dw,dh] = faceRect(slotKey, face, outputSlim);
+      mergeCtx.drawImage(src.canvas, sx,sy,sw,sh, dx,dy,dw,dh);
+    });
+  });
+}
+// refresh un-edited pixels from the merge, keep hand-edited ones
+function syncFromMerge(){
+  const m = mergeCtx.getImageData(0,0,64,64).data;
+  const cur = outCtx.getImageData(0,0,64,64); const c=cur.data;
+  for(let i=0;i<ownMask.length;i++){
+    if(!ownMask[i]){ const j=i*4; c[j]=m[j];c[j+1]=m[j+1];c[j+2]=m[j+2];c[j+3]=m[j+3]; }
+  }
+  outCtx.putImageData(cur,0,0);
+}
+
+/* ===================================================================
+   THREE.JS  MODEL
+   =================================================================== */
+let scene,camera,renderer,modelGroup,tex;
+let parts = {};            // pivot groups
+let baseMeshes=[], ovMeshes=[];
+let autoRotate=false, pose='apose', showOv=true;
+let dragRX=0.1, dragRY=0.5, dragging=false, lastX,lastY, camZ=46;
+
+function faceVerts(x1,y1,x2,y2){
+  const T=64;
+  return [
+    [x1/T, 1-y2/T],[x2/T, 1-y2/T],[x2/T, 1-y1/T],[x1/T, 1-y1/T]
+  ];
+}
+function applyUV(geo, slotKey){
+  const s=SLOTS[slotKey]; let [w,h,d]=s.dims; if(w==='A') w=outputSlim?3:4;
+  const [u,v]=s.origin;
+  const top   = faceVerts(u+d,     v,     u+d+w,     v+d);
+  const bottom= faceVerts(u+d+w,   v,     u+d+2*w,   v+d);
+  const left  = faceVerts(u,       v+d,   u+d,       v+d+h);
+  const front = faceVerts(u+d,     v+d,   u+d+w,     v+d+h);
+  const right = faceVerts(u+d+w,   v+d,   u+2*d+w,   v+d+h);
+  const back  = faceVerts(u+2*d+w, v+d,   u+2*d+2*w, v+d+h);
+  const ord  = a=>[a[3],a[2],a[0],a[1]];
+  const ordB = a=>[a[0],a[1],a[3],a[2]];
+  // box face order: +x,-x,+y,-y,+z,-z. +x gets the 'right' rect, -x the 'left' rect.
+  const order=[ord(right),ord(left),ord(top),ordB(bottom),ord(front),ord(back)];
+  const arr=[]; order.forEach(fc=>fc.forEach(p=>arr.push(p[0],p[1])));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(arr,2));
+}
+
+function box(slotKey, expand){
+  const s=SLOTS[slotKey]; let [w,h,d]=s.dims; if(w==='A') w=outputSlim?3:4;
+  const g=new THREE.BoxGeometry(w+expand,h+expand,d+expand);
+  applyUV(g, slotKey);
+  const isOv = s.layer==='ov';
+  const m=new THREE.MeshBasicMaterial({map:tex, transparent:isOv, alphaTest:isOv?0.05:0.5, side:THREE.FrontSide});
+  return new THREE.Mesh(g,m);
+}
+
+function makePart(name, baseSlot, ovSlot, pivotX, pivotY, meshOffY){
+  const pivot=new THREE.Group();
+  pivot.position.set(pivotX,pivotY,0);
+  const b=box(baseSlot,0);   b.position.y=meshOffY;  pivot.add(b); baseMeshes.push(b);
+  const o=box(ovSlot,0.5);   o.position.y=meshOffY;  pivot.add(o); ovMeshes.push(o);
+  modelGroup.add(pivot);
+  parts[name]={pivot,base:b,ov:o};
+}
+
+function buildModel(){
+  if(modelGroup) scene.remove(modelGroup);
+  parts={}; baseMeshes=[]; ovMeshes=[];
+  modelGroup=new THREE.Group();
+  const aw = outputSlim?3:4;
+  const aOff = 4 + aw/2;                 // arm center x distance
+  // pivots: feet at y=-16
+  makePart('head','head','head_ov', 0, 8, 4);          // head box center y=12 (8..16)
+  makePart('body','body','body_ov', 0, 2, 0);          // center 2
+  // head box height 8 -> center should be at 12; pivot y=8 + offset4 =12 ✓
+  // arms: shoulder y=8, mesh down 6 -> center 2
+  makePart('rightArm','rightArm','rightArm_ov', -aOff, 8, -6);
+  makePart('leftArm','leftArm','leftArm_ov',     aOff, 8, -6);
+  // legs: hip y=-4, mesh down 6 -> center -10
+  makePart('rightLeg','rightLeg','rightLeg_ov', -2, -4, -6);
+  makePart('leftLeg','leftLeg','leftLeg_ov',     2, -4, -6);
+  modelGroup.position.y=-2;
+  scene.add(modelGroup);
+  applyOvVisibility();
+}
+
+function applyOvVisibility(){ ovMeshes.forEach(m=>m.visible=showOv); }
+
+function initThree(){
+  const host=document.getElementById('view');
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(40, host.clientWidth/host.clientHeight, 0.1, 1000);
+  camera.position.set(0,0,camZ);
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(host.clientWidth, host.clientHeight);
+  host.appendChild(renderer.domElement);
+
+  // texture from output canvas
+  tex=new THREE.CanvasTexture(outCanvas);
+  tex.magFilter=THREE.NearestFilter; tex.minFilter=THREE.NearestFilter;
+  tex.generateMipmaps=false;
+
+  buildModel();
+  animate();
+  // controls
+  const el=renderer.domElement;
+  el.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove',e=>{if(!dragging)return;dragRY+=(e.clientX-lastX)*0.01;dragRX+=(e.clientY-lastY)*0.01;dragRX=Math.max(-1.4,Math.min(1.4,dragRX));lastX=e.clientX;lastY=e.clientY;});
+  el.addEventListener('pointerup',()=>dragging=false);
+  el.addEventListener('wheel',e=>{e.preventDefault();camZ=Math.max(22,Math.min(90,camZ+e.deltaY*0.04));camera.position.z=camZ;},{passive:false});
+  window.addEventListener('resize',()=>{
+    const h=document.getElementById('view');
+    camera.aspect=h.clientWidth/h.clientHeight;camera.updateProjectionMatrix();
+    renderer.setSize(h.clientWidth,h.clientHeight);
+  });
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t=performance.now()/1000;
+  if(autoRotate) dragRY+=0.012;
+  if(modelGroup){ modelGroup.rotation.y=dragRY; modelGroup.rotation.x=dragRX; }
+  const P=parts;
+  if(P.rightArm){
+    let ra=0,la=0,rl=0,ll=0,raz=0,laz=0,head=0;   // default: arms straight down (true MC standing pose)
+    if(pose==='walk'){const s=Math.sin(t*4);ra=-s*0.9;la=s*0.9;rl=s*0.9;ll=-s*0.9;}
+    else if(pose==='wave'){raz=-2.9;ra=Math.sin(t*6)*0.25-0.1;la=Math.sin(t*1.5)*0.05;}
+    else if(pose==='idle'){const s=Math.sin(t*1.6);ra=s*0.05;la=-s*0.05;raz=0.07+Math.sin(t*1.6)*0.03;head=Math.sin(t*0.8)*0.1;}
+    P.rightArm.pivot.rotation.set(ra,0,raz);
+    P.leftArm.pivot.rotation.set(la,0,laz);
+    P.rightLeg.pivot.rotation.set(rl,0,0);
+    P.leftLeg.pivot.rotation.set(ll,0,0);
+    P.head.pivot.rotation.set(0,head,0);
+  }
+  if(tex) tex.needsUpdate=true;
+  renderer.render(scene,camera);
+}
+
+/* ===================================================================
+   RENDER:  output texture + 3D
+   =================================================================== */
+function rebuildAll(){ buildOutput(); syncFromMerge(); if(tex) tex.needsUpdate=true; if(editorOpen) drawEditor(); }
+
+/* ===================================================================
+   UI:  skin list
+   =================================================================== */
+function renderSkins(){
+  const host=document.getElementById('skinList');
+  host.innerHTML='';
+  if(!skins.length){host.innerHTML='<div class="empty">No skins yet.<br>Add one above.</div>';return;}
+  skins.forEach((sk,i)=>{
+    const div=document.createElement('div'); div.className='skin';
+    const c=document.createElement('canvas'); c.width=64;c.height=64;
+    c.getContext('2d').drawImage(sk.canvas,0,0);
+    div.appendChild(c);
+    const meta=document.createElement('div'); meta.className='meta';
+    meta.innerHTML=`<div class="nm">#${i} ${sk.name}</div>
+      <div class="sub"><label class="pill"><input type="checkbox" ${sk.slim?'checked':''} data-slim="${i}"> slim arms</label></div>
+      <div class="sub repl">
+        <button class="repbtn" data-repf="${i}">⟳ file</button>
+        <button class="repbtn" data-repn="${i}">⟳ name</button>
+      </div>`;
+    div.appendChild(meta);
+    const x=document.createElement('button'); x.className='xbtn'; x.textContent='✕';
+    x.onclick=()=>{ skins.splice(i,1); clampConfig(); renderSkins(); renderSlots(); rebuildAll(); };
+    div.appendChild(x);
+    host.appendChild(div);
+  });
+  host.querySelectorAll('[data-slim]').forEach(cb=>{
+    cb.onchange=()=>{ skins[+cb.dataset.slim].slim=cb.checked; rebuildAll(); };
+  });
+  host.querySelectorAll('[data-repf]').forEach(b=>{
+    b.onclick=()=>{ replaceTarget=+b.dataset.repf; document.getElementById('replaceFile').click(); };
+  });
+  host.querySelectorAll('[data-repn]').forEach(b=>{
+    b.onclick=()=>{ const n=prompt('Replace #'+b.dataset.repn+' with which player?'); if(n) replaceSkinByName(+b.dataset.repn,n); };
+  });
+}
+
+function clampConfig(){
+  SLOT_KEYS.forEach(k=>{
+    const cfg=config[k];
+    if(cfg.bulkSkin>=skins.length) cfg.bulkSkin=Math.max(0,skins.length-1);
+    FACES.forEach(f=>{ if(cfg.faces[f].skin>=skins.length) cfg.faces[f].skin=Math.max(0,skins.length-1); });
+  });
+}
+
+/* ===================================================================
+   UI:  slot builder cards
+   =================================================================== */
+function skinOptions(sel){
+  return skins.map((s,i)=>`<option value="${i}" ${i===sel?'selected':''}>#${i} ${s.name}</option>`).join('')
+    || '<option>—</option>';
+}
+function slotOptions(sel){
+  return SLOT_KEYS.map(k=>`<option value="${k}" ${k===sel?'selected':''}>${SLOTS[k].label}</option>`).join('');
+}
+function faceOptions(sel){
+  return FACES.map(f=>`<option value="${f}" ${f===sel?'selected':''}>${f}</option>`).join('');
+}
+
+function renderSlots(){
+  const grid=document.getElementById('slotGrid');
+  grid.innerHTML='';
+  // refresh "fill from" select
+  const fillSel=document.getElementById('fillSel');
+  fillSel.innerHTML=skinOptions(0);
+
+  SLOT_KEYS.forEach(slotKey=>{
+    const cfg=config[slotKey];
+    const s=SLOTS[slotKey];
+    const card=document.createElement('div');
+    card.className='slot'+(s.layer==='ov'?' ov':'')+(cfg.include?'':' off');
+
+    let facesHTML='';
+    FACES.forEach(face=>{
+      const f=cfg.faces[face];
+      facesHTML+=`<div class="frow" data-face="${face}">
+        <input type="checkbox" class="fInc" ${f.include?'checked':''}>
+        <span class="fl">${face}</span>
+        <select class="fSkin">${skinOptions(f.skin)}</select>
+        <select class="fPart">${slotOptions(f.part)}</select>
+        <select class="fFace">${faceOptions(f.face)}</select>
+      </div>`;
+    });
+
+    card.innerHTML=`
+      <div class="hd">
+        <input type="checkbox" class="inc" ${cfg.include?'checked':''} title="include this part">
+        <span class="ttl">${s.label}</span>
+        <span class="badge">${s.layer==='ov'?'layer2':'layer1'}</span>
+        <button class="expbtn ${cfg.expanded?'on':''}">⋯ faces</button>
+      </div>
+      <div class="field"><label>source skin</label><select class="bSkin">${skinOptions(cfg.bulkSkin)}</select></div>
+      <div class="field"><label>copy from part</label><select class="bPart">${slotOptions(cfg.bulkPart)}</select></div>
+      <div class="faces ${cfg.expanded?'open':''}">${facesHTML}</div>
+    `;
+    grid.appendChild(card);
+
+    // wire events
+    card.querySelector('.inc').onchange=e=>{cfg.include=e.target.checked;card.classList.toggle('off',!cfg.include);clearOwnedSlot(slotKey);rebuildAll();};
+    card.querySelector('.expbtn').onclick=()=>{cfg.expanded=!cfg.expanded;renderSlots();};
+    const bSkin=card.querySelector('.bSkin'), bPart=card.querySelector('.bPart');
+    function bulkApply(){
+      cfg.bulkSkin=+bSkin.value; cfg.bulkPart=bPart.value;
+      FACES.forEach(f=>{cfg.faces[f].skin=cfg.bulkSkin; cfg.faces[f].part=cfg.bulkPart; cfg.faces[f].face=f;});
+      clearOwnedSlot(slotKey);            // mapping change wins over old hand-edits on this part
+      rebuildAll(); if(cfg.expanded) renderSlots();
+    }
+    bSkin.onchange=bulkApply; bPart.onchange=bulkApply;
+
+    card.querySelectorAll('.frow').forEach(row=>{
+      const face=row.dataset.face, f=cfg.faces[face];
+      row.querySelector('.fInc').onchange=e=>{f.include=e.target.checked;clearOwnedFace(slotKey,face);rebuildAll();};
+      row.querySelector('.fSkin').onchange=e=>{f.skin=+e.target.value;clearOwnedFace(slotKey,face);rebuildAll();};
+      row.querySelector('.fPart').onchange=e=>{f.part=e.target.value;clearOwnedFace(slotKey,face);rebuildAll();};
+      row.querySelector('.fFace').onchange=e=>{f.face=e.target.value;clearOwnedFace(slotKey,face);rebuildAll();};
+    });
+  });
+}
+
+/* ===================================================================
+   TOP ACTIONS
+   =================================================================== */
+function fillAllFrom(skinIdx){
+  SLOT_KEYS.forEach(k=>{
+    const cfg=config[k];
+    cfg.include=true; cfg.bulkSkin=skinIdx; cfg.bulkPart=k;
+    FACES.forEach(f=>{cfg.faces[f]={include:true,skin:skinIdx,part:k,face:f};});
+  });
+  resetSwapToggles();          // every slot now maps to its own part -> not swapped
+  renderSlots(); rebuildAll();
+}
+function resetSwapToggles(){
+  armsSwapped=false; legsSwapped=false;
+  const a=document.getElementById('swapArms'), l=document.getElementById('swapLegs');
+  if(a) setToggle(a,false,'Arms: swapped','Arms: normal');
+  if(l) setToggle(l,false,'Legs: swapped','Legs: normal');
+}
+function swapSlots(a,b){
+  const ca=JSON.parse(JSON.stringify(config[a]));
+  const cb=JSON.parse(JSON.stringify(config[b]));
+  config[a]=cb; config[b]=ca;
+  renderSlots(); rebuildAll();
+}
+
+document.getElementById('fillBtn').onclick=()=>{ if(skins.length) fillAllFrom(+document.getElementById('fillSel').value); };
+
+let armsSwapped=false, legsSwapped=false;
+function setToggle(btn, on, onLabel, offLabel){
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', on?'true':'false');
+  btn.textContent = '⇄ '+(on?onLabel:offLabel);
+}
+document.getElementById('swapArms').onclick=e=>{
+  swapSlots('rightArm','leftArm'); swapSlots('rightArm_ov','leftArm_ov');
+  armsSwapped=!armsSwapped;
+  setToggle(e.currentTarget, armsSwapped, 'Arms: swapped', 'Arms: normal');
+};
+document.getElementById('swapLegs').onclick=e=>{
+  swapSlots('rightLeg','leftLeg'); swapSlots('rightLeg_ov','leftLeg_ov');
+  legsSwapped=!legsSwapped;
+  setToggle(e.currentTarget, legsSwapped, 'Legs: swapped', 'Legs: normal');
+};
+document.getElementById('outSlim').onchange=e=>{outputSlim=e.target.checked; buildModel(); rebuildAll();};
+
+document.getElementById('poseBtn').onclick=e=>{
+  const order=['walk','wave','idle','apose'];
+  const names={walk:'Walk',wave:'Wave',idle:'Idle',apose:'Default'};
+  let i=(order.indexOf(pose)+1)%order.length; pose=order[i];
+  e.target.textContent='▶ '+names[pose];
+  document.getElementById('poseName').textContent=names[pose];
+};
+document.getElementById('rotBtn').onclick=e=>{autoRotate=!autoRotate;e.target.classList.toggle('gold',autoRotate);};
+document.getElementById('resetView').onclick=()=>{dragRX=0.1;dragRY=0.5;camZ=46;camera.position.z=46;};
+document.getElementById('layerToggle').onclick=e=>{showOv=!showOv;applyOvVisibility();e.target.textContent=showOv?'Hide 2nd layer':'Show 2nd layer';};
+
+document.getElementById('dlBtn').onclick=()=>{
+  if(!skins.length){alert('Add a skin first.');return;}
+  const a=document.createElement('a');
+  a.download='merged-skin.png'; a.href=outCanvas.toDataURL('image/png'); a.click();
+};
+
+/* ---- upload wiring ---- */
+const drop=document.getElementById('drop'), fileIn=document.getElementById('file');
+drop.onclick=()=>fileIn.click();
+fileIn.onchange=e=>{ [...e.target.files].forEach(addSkinFromFile); fileIn.value=''; };
+
+document.getElementById('importBtn').onclick=()=>importByName(document.getElementById('pname').value);
+document.getElementById('pname').addEventListener('keydown',e=>{ if(e.key==='Enter') importByName(e.target.value); });
+
+document.getElementById('zoomIn').onclick=()=>{camZ=Math.max(22,camZ-4);camera.position.z=camZ;};
+document.getElementById('zoomOut').onclick=()=>{camZ=Math.min(90,camZ+4);camera.position.z=camZ;};
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hot');}));
+drop.addEventListener('drop',e=>{ [...e.dataTransfer.files].forEach(f=>{if(f.type.includes('image'))addSkinFromFile(f);}); });
+
+/* replace-in-place file input */
+const replaceFileIn=document.getElementById('replaceFile');
+replaceFileIn.onchange=e=>{ if(e.target.files[0]) replaceSkinFromFile(replaceTarget,e.target.files[0]); replaceFileIn.value=''; };
+
+/* ===================================================================
+   PIXEL EDITOR
+   =================================================================== */
+const ecanvas=document.getElementById('edCanvas');
+const ectx=ecanvas.getContext('2d');
+const SZ=ecanvas.width/64;               // px per texel
+let edTool='paint', brush=1, edAlpha=255;
+let edColor={r:127,g:212,b:90};
+let edGrid=false, edPartKey='head';
+let viewKey='output';                    // 'output' or skin index string
+let clipboard=null;                      // ImageData copied from any source
+let sel=null;                            // {x,y,w,h}
+let carry=null;                          // {data(ImageData), x, y, gx, gy} during move
+let editStart=null;                      // selection-drawing anchor
+let dragMode=null;                       // 'draw' | 'move'
+
+/* ---- undo / redo ---- */
+const HISTORY_MAX=40;
+let undoStack=[], redoStack=[];
+function snapshot(){ return { img: outCtx.getImageData(0,0,64,64), own: ownMask.slice() }; }
+function restore(s){
+  outCtx.putImageData(s.img,0,0);
+  ownMask.set(s.own);
+  if(tex)tex.needsUpdate=true;
+  drawEditor();
+}
+function pushHistory(){
+  undoStack.push(snapshot());
+  if(undoStack.length>HISTORY_MAX) undoStack.shift();
+  redoStack.length=0;
+  updateUndoButtons();
+}
+function updateUndoButtons(){
+  const u=document.getElementById('edUndo'), r=document.getElementById('edRedo');
+  if(u) u.disabled=undoStack.length===0;
+  if(r) r.disabled=redoStack.length===0;
+}
+function doUndo(){ if(!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); updateUndoButtons(); }
+function doRedo(){ if(!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); updateUndoButtons(); }
+
+function hexToRgb(h){ return {r:parseInt(h.slice(1,3),16), g:parseInt(h.slice(3,5),16), b:parseInt(h.slice(5,7),16)}; }
+function curColor(){ return {r:edColor.r,g:edColor.g,b:edColor.b,a:edAlpha}; }
+function isOutput(){ return viewKey==='output'; }
+function viewCanvas(){ return isOutput() ? outCanvas : skins[+viewKey].canvas; }
+function viewCtx(){ return viewCanvas().getContext('2d'); }
+
+function partMask(slotKey){
+  const m=new Uint8Array(4096);
+  FACES.forEach(face=>{ const [x,y,w,h]=faceRect(slotKey,face,outputSlim);
+    for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) m[yy*64+xx]=1; });
+  return m;
+}
+function markOwnedRect(x,y,w,h){
+  for(let yy=Math.max(0,y);yy<Math.min(64,y+h);yy++)
+    for(let xx=Math.max(0,x);xx<Math.min(64,x+w);xx++) ownMask[yy*64+xx]=1;
+}
+function afterEdit(){ if(tex)tex.needsUpdate=true; drawEditor(); refreshSourceLabel(); }
+function refreshSourceLabel(){
+  const opt=document.querySelector('#edSource option[value="output"]');
+  if(opt) opt.textContent = 'Output' + (ownMask.some(v=>v)?' (edited)':'');
+}
+
+/* ---- tools ---- */
+function paintAt(px,py){
+  const half=Math.floor((brush-1)/2);
+  const c=curColor();
+  outCtx.fillStyle=`rgba(${c.r},${c.g},${c.b},${c.a/255})`;
+  outCtx.fillRect(px-half,py-half,brush,brush);   // source-over blend
+  markOwnedRect(px-half,py-half,brush,brush);
+}
+function eraseAt(px,py){
+  const half=Math.floor((brush-1)/2);
+  outCtx.clearRect(px-half,py-half,brush,brush);
+  markOwnedRect(px-half,py-half,brush,brush);
+}
+function floodFill(sx,sy,restrict){
+  const c=curColor();
+  const img=outCtx.getImageData(0,0,64,64); const d=img.data;
+  const at=(x,y)=>(y*64+x);
+  const s=at(sx,sy)*4;
+  const tgt=[d[s],d[s+1],d[s+2],d[s+3]];
+  if(tgt[0]===c.r&&tgt[1]===c.g&&tgt[2]===c.b&&tgt[3]===c.a) return;
+  const same=i=>{i*=4;return d[i]===tgt[0]&&d[i+1]===tgt[1]&&d[i+2]===tgt[2]&&d[i+3]===tgt[3];};
+  const seen=new Uint8Array(4096); const st=[[sx,sy]];
+  while(st.length){ const [x,y]=st.pop();
+    if(x<0||y<0||x>63||y>63) continue;
+    const i=at(x,y);
+    if(seen[i]||(restrict&&!restrict[i])||!same(i)) continue;
+    seen[i]=1; const j=i*4; d[j]=c.r;d[j+1]=c.g;d[j+2]=c.b;d[j+3]=c.a; ownMask[i]=1;
+    st.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+  outCtx.putImageData(img,0,0);
+}
+function fillWholePart(slotKey){
+  const c=curColor(); const pm=partMask(slotKey);
+  const img=outCtx.getImageData(0,0,64,64); const d=img.data;
+  for(let i=0;i<pm.length;i++) if(pm[i]){ const j=i*4; d[j]=c.r;d[j+1]=c.g;d[j+2]=c.b;d[j+3]=c.a; ownMask[i]=1; }
+  outCtx.putImageData(img,0,0);
+}
+
+/* ---- selection helpers ---- */
+function stampBlock(imgData,dx,dy){
+  const t=document.createElement('canvas'); t.width=imgData.width; t.height=imgData.height;
+  t.getContext('2d').putImageData(imgData,0,0);
+  outCtx.drawImage(t,dx,dy);                       // transparent pixels keep underlying
+  const d=imgData.data;
+  for(let yy=0;yy<imgData.height;yy++) for(let xx=0;xx<imgData.width;xx++){
+    if(d[(yy*imgData.width+xx)*4+3]>0){ const gx=dx+xx,gy=dy+yy;
+      if(gx>=0&&gx<64&&gy>=0&&gy<64) ownMask[gy*64+gx]=1; }
+  }
+}
+function clearRegion(r){ outCtx.clearRect(r.x,r.y,r.w,r.h); markOwnedRect(r.x,r.y,r.w,r.h); }
+
+/* ---- pointer ---- */
+function evPix(e){
+  const r=ecanvas.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*64);
+  const y=Math.floor((e.clientY-r.top)/r.height*64);
+  return [Math.max(0,Math.min(63,x)),Math.max(0,Math.min(63,y))];
+}
+function inSel(x,y){ return sel && x>=sel.x && x<sel.x+sel.w && y>=sel.y && y<sel.y+sel.h; }
+
+ecanvas.addEventListener('pointerdown',e=>{
+  ecanvas.setPointerCapture(e.pointerId);
+  const [x,y]=evPix(e);
+  const readonly = !isOutput();
+  if(edTool==='pick'){                              // eyedropper — works on any view
+    const p=viewCtx().getImageData(x,y,1,1).data;
+    edColor={r:p[0],g:p[1],b:p[2]}; edAlpha=p[3];
+    const hex='#'+[p[0],p[1],p[2]].map(n=>n.toString(16).padStart(2,'0')).join('');
+    document.getElementById('edColor').value=hex;
+    document.getElementById('edAlpha').value=p[3];
+    document.getElementById('edAlphaV').textContent=p[3];
+    return;
+  }
+  if(edTool==='paint'){ if(readonly) return flashRO(); pushHistory(); dragMode='paint'; paintAt(x,y); afterEdit(); }
+  else if(edTool==='erase'){ if(readonly) return flashRO(); pushHistory(); dragMode='erase'; eraseAt(x,y); afterEdit(); }
+  else if(edTool==='fill'){
+    if(readonly) return flashRO();
+    pushHistory();
+    const mode=document.getElementById('edFillMode').value;
+    if(mode==='connected') floodFill(x,y,null);
+    else if(mode==='connectedPart') floodFill(x,y,partMask(edPartKey));
+    else fillWholePart(edPartKey);
+    afterEdit();
+  }
+  else if(edTool==='select'){
+    if(isOutput() && inSel(x,y)){               // begin MOVE (cut + carry) — output only
+      pushHistory();
+      dragMode='move';
+      carry={ data: outCtx.getImageData(sel.x,sel.y,sel.w,sel.h), x:sel.x, y:sel.y, gx:x-sel.x, gy:y-sel.y };
+      clearRegion(sel);
+      afterEdit();
+    } else {                                     // draw new selection (works on inputs too)
+      dragMode='draw'; editStart=[x,y]; sel={x,y,w:1,h:1}; drawEditor();
+    }
+  }
+});
+ecanvas.addEventListener('pointermove',e=>{
+  if(!dragMode) return;
+  const [x,y]=evPix(e);
+  if(dragMode==='paint'){ paintAt(x,y); afterEdit(); }
+  else if(dragMode==='erase'){ eraseAt(x,y); afterEdit(); }
+  else if(dragMode==='draw'){
+    const [sx,sy]=editStart;
+    sel={ x:Math.min(sx,x), y:Math.min(sy,y), w:Math.abs(x-sx)+1, h:Math.abs(y-sy)+1 };
+    drawEditor();
+  }
+  else if(dragMode==='move'){ carry.x=x-carry.gx; carry.y=y-carry.gy; drawEditor(); }
+});
+ecanvas.addEventListener('pointerup',()=>{
+  if(dragMode==='move' && carry){
+    stampBlock(carry.data,carry.x,carry.y);
+    sel={x:carry.x,y:carry.y,w:carry.data.width,h:carry.data.height};
+    carry=null; afterEdit();
+  }
+  dragMode=null;
+});
+
+/* ---- selection action buttons ---- */
+function setClipInfo(t){ document.getElementById('clipInfo').textContent=t; }
+function flashRO(){ document.getElementById('srcHint').textContent='Input skins are read-only — Select + Copy, then paste into Output.'; }
+
+document.getElementById('selCopy').onclick=()=>{
+  if(!sel) return;
+  clipboard=viewCtx().getImageData(sel.x,sel.y,sel.w,sel.h);
+  setClipInfo('Clipboard: '+clipboard.width+'×'+clipboard.height+' from '+(isOutput()?'output':'#'+viewKey)+'. Switch to Output → Paste.');
+};
+document.getElementById('selPaste').onclick=()=>{
+  if(!clipboard){ setClipInfo('Clipboard empty — Copy something first.'); return; }
+  if(!isOutput()){ setClipInfo('Switch "View / sample from" to Output to paste.'); return; }
+  pushHistory();
+  const px=sel?sel.x:0, py=sel?sel.y:0;
+  stampBlock(clipboard,px,py);
+  sel={x:px,y:py,w:clipboard.width,h:clipboard.height};   // selected → drag to reposition
+  afterEdit();
+};
+document.getElementById('selDelete').onclick=()=>{ if(sel && isOutput()){ pushHistory(); clearRegion(sel); afterEdit(); } };
+document.getElementById('selClear').onclick=()=>{ sel=null; drawEditor(); };
+
+/* ---- undo/redo buttons + keyboard ---- */
+document.getElementById('edUndo').onclick=doUndo;
+document.getElementById('edRedo').onclick=doRedo;
+document.addEventListener('keydown',e=>{
+  if(!editorOpen) return;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'&&!e.shiftKey){ e.preventDefault(); doUndo(); }
+  else if((e.ctrlKey||e.metaKey)&&(k==='y'||(k==='z'&&e.shiftKey))){ e.preventDefault(); doRedo(); }
+});
+
+/* ---- editor render ---- */
+function drawEditor(){
+  ectx.imageSmoothingEnabled=false;
+  ectx.clearRect(0,0,ecanvas.width,ecanvas.height);
+  // checkerboard
+  ectx.fillStyle='#1b2114';
+  for(let y=0;y<64;y++) for(let x=0;x<64;x++){
+    if((x+y)&1){ ectx.fillStyle='#222a18'; } else { ectx.fillStyle='#141a0e'; }
+    ectx.fillRect(x*SZ,y*SZ,SZ,SZ);
+  }
+  // texture (active view: output or an input skin)
+  ectx.drawImage(viewCanvas(),0,0,64,64,0,0,ecanvas.width,ecanvas.height);
+  // carry preview
+  if(carry){
+    const t=document.createElement('canvas'); t.width=carry.data.width;t.height=carry.data.height;
+    t.getContext('2d').putImageData(carry.data,0,0);
+    ectx.imageSmoothingEnabled=false;
+    ectx.drawImage(t, carry.x*SZ, carry.y*SZ, carry.data.width*SZ, carry.data.height*SZ);
+  }
+  // grid
+  if(edGrid){
+    ectx.strokeStyle='rgba(255,255,255,.08)'; ectx.lineWidth=1;
+    for(let i=0;i<=64;i++){ const p=i*SZ;
+      ectx.beginPath();ectx.moveTo(p,0);ectx.lineTo(p,ecanvas.height);ectx.stroke();
+      ectx.beginPath();ectx.moveTo(0,p);ectx.lineTo(ecanvas.width,p);ectx.stroke(); }
+  }
+  // selection ants
+  if(sel){
+    ectx.save();
+    ectx.strokeStyle='#fff'; ectx.lineWidth=2; ectx.setLineDash([6,4]);
+    ectx.strokeRect(sel.x*SZ,sel.y*SZ,sel.w*SZ,sel.h*SZ);
+    ectx.strokeStyle='#000'; ectx.lineDashOffset=5;
+    ectx.strokeRect(sel.x*SZ,sel.y*SZ,sel.w*SZ,sel.h*SZ);
+    ectx.restore();
+  }
+}
+
+/* ---- editor controls wiring ---- */
+function setTool(t){
+  edTool=t;
+  document.querySelectorAll('.toolb').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  document.getElementById('sizeOpt').style.display=(t==='paint'||t==='erase')?'block':'none';
+  document.getElementById('fillModeOpt').style.display=(t==='fill')?'block':'none';
+  document.getElementById('partOpt').style.display=(t==='fill')?'block':'none';
+  document.getElementById('selOpt').style.display=(t==='select')?'block':'none';
+  ecanvas.style.cursor = (t==='pick')?'copy':'crosshair';
+}
+document.querySelectorAll('.toolb').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+document.getElementById('edColor').oninput=e=>{ edColor=hexToRgb(e.target.value); };
+document.getElementById('edAlpha').oninput=e=>{ edAlpha=+e.target.value; document.getElementById('edAlphaV').textContent=edAlpha; };
+document.getElementById('edSize').oninput=e=>{ brush=+e.target.value; document.getElementById('edSizeV').textContent=brush; };
+document.getElementById('edGrid').onchange=e=>{ edGrid=e.target.checked; drawEditor(); };
+document.getElementById('edRevert').onclick=()=>{ if(confirm('Discard ALL hand edits and rebuild every part from the mappings?')){ pushHistory(); ownMask.fill(0); rebuildAll(); renderSkins(); drawEditor(); } };
+
+function populateEdPart(){
+  const s=document.getElementById('edPart');
+  s.innerHTML=SLOT_KEYS.map(k=>`<option value="${k}" ${k===edPartKey?'selected':''}>${SLOTS[k].label}</option>`).join('');
+}
+document.getElementById('edPart').onchange=e=>{ edPartKey=e.target.value; };
+
+function populateEdSource(){
+  const s=document.getElementById('edSource');
+  const edited = ownMask.some(v=>v);
+  let html='<option value="output">Output'+(edited?' (edited)':'')+'</option>';
+  skins.forEach((sk,i)=>{ html+=`<option value="${i}">#${i} ${sk.name} (read-only)</option>`; });
+  s.innerHTML=html;
+  s.value = (viewKey!=='output' && +viewKey>=skins.length) ? 'output' : viewKey;
+  viewKey=s.value;
+}
+function updateSrcHint(){
+  document.getElementById('srcHint').textContent = isOutput()
+    ? 'Editing the merged output.'
+    : 'Read-only. Use Select + Copy, then switch to Output and Paste.';
+}
+document.getElementById('edSource').onchange=e=>{ viewKey=e.target.value; updateSrcHint(); drawEditor(); };
+document.getElementById('edOutSlim').onchange=e=>{
+  outputSlim=e.target.checked;
+  document.getElementById('outSlim').checked=outputSlim;   // keep builder toggle in sync
+  buildModel(); rebuildAll();
+};
+
+document.getElementById('editBtn').onclick=()=>{
+  if(!skins.length){ alert('Add a skin first.'); return; }
+  editorOpen=true;
+  undoStack.length=0; redoStack.length=0; updateUndoButtons();
+  populateEdPart(); populateEdSource(); setTool(edTool);
+  document.getElementById('edOutSlim').checked=outputSlim;
+  updateSrcHint();
+  document.getElementById('editor').classList.add('open');
+  drawEditor();
+};
+document.getElementById('edDone').onclick=()=>{
+  editorOpen=false; document.getElementById('editor').classList.remove('open');
+};
+
+
+/* ===================================================================
+   BOOT
+   =================================================================== */
+renderSkins();
+renderSlots();
+initThree();
+
+/* demo: embedded REAL classic Steve skin (offline, always correct) */
+const STEVE_B64="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFDUlEQVR42u2a20sUURzH97G0LKMotPuWbVpslj1olJXdjCgyisowsSjzgrB0gSKyC5UF1ZNQWEEQSBQ9dHsIe+zJ/+nXfM/sb/rN4ZwZ96LOrnPgyxzP/M7Z+X7OZc96JpEISfWrFhK0YcU8knlozeJKunE4HahEqSc2nF6zSEkCgGCyb+82enyqybtCZQWAzdfVVFgBJJNJn1BWFgC49/VpwGVlD0CaxQiA5HSYEwBM5sMAdKTqygcAG9+8coHKY/XXAZhUNgDYuBSPjJL/GkzVVhAEU5tqK5XZ7cnFtHWtq/TahdSw2l0HUisr1UKIWJQBAMehDuqiDdzndsP2EZECAG1ZXaWMwOCODdXqysLf++uXUGv9MhUHIByDOijjdiSAoH3ErANQD73C7TXXuGOsFj1d4YH4OTJAEy8y9Hd0mCaeZ5z8dfp88zw1bVyiYhCLOg1ZeAqC0ybaDttHRGME1DhDeVWV26u17lRAPr2+mj7dvULfHw2q65fhQRrLXKDfIxkau3ZMCTGIRR3URR5toU38HbaPiMwUcKfBAkoun09PzrbQ2KWD1JJaqswjdeweoR93rirzyCMBCmIQizqoizZkm2H7iOgAcHrMHbbV9KijkUYv7qOn55sdc4fo250e+vUg4329/Xk6QB/6DtOws+dHDGJRB3XRBve+XARt+4hIrAF4UAzbnrY0ve07QW8uHfB+0LzqanMM7qVb+3f69LJrD90/1axiEIs6qIs21BTIToewfcSsA+Bfb2x67OoR1aPPzu2i60fSNHRwCw221Suz0O3jO+jh6V1KyCMGse9721XdN5ePutdsewxS30cwuMjtC860T5JUKpXyKbSByUn7psi5l+juDlZYGh9324GcPKbkycaN3jUSAGxb46IAYPNZzW0AzgiQ5tVnzLUpUDCAbakMQXXrOtX1UMtHn+Q9/X5L4wgl7t37r85OSrx+TYl379SCia9KXjxRpiTjIZTBFOvrV1f8ty2eY/T7XJ81FQAwmA8ASH1ob68r5PnBsxA88/xAMh6SpqW4HRnLBrkOA9Xv5wPAZjAUgOkB+SHxgBgR0qSMh0zmZRsmwDJm1gFg2PMDIC8/nAHIMls8x8GgzOsG5WiaqREgYzDvpTwjLDy8NM15LpexDEA3LepjU8Z64my+8PtDCmUyRr+fFwA2J0eAFYA0AxgSgMmYBMZTwFQnO9RNAEaHOj2DXF5UADmvAToA2ftyxZYA5BqgmZZApDkdAK4mAKo8GzPlr8G8AehzMAyA/i1girUA0HtYB2CaIkUBEHQ/cBHSvwF0AKZFS5M0ZwMQtEaEAmhtbSUoDADH9ff3++QZ4o0I957e+zYAMt6wHkhzpjkuAcgpwNcpA7AZDLsvpwiuOkBvxygA6Bsvb0HlaeKIF2EbADZpGiGzBsA0gnwQHGOhW2snRpbpPexbAB2Z1oicAMQpTnGKU5ziFKc4xSlOcYpTnOIUpzgVmgo+XC324WfJAdDO/+ceADkCpuMFiFKbApEHkOv7BfzfXt+5gpT8V7rpfYJcDz+jAsB233r6yyBsJ0mlBCDofuBJkel4vOwBFPv8fyYAFPJ+wbSf/88UANNRVy4Awo6+Ig2gkCmgA5DHWjoA+X7AlM//owLANkX0w0359od++pvX8fdMAcj3/QJ9iJsAFPQCxHSnQt8vMJ3v2wCYpkhkAOR7vG7q4aCXoMoSgG8hFAuc/grMdAD4B/kHl9da7Ne9AAAAAElFTkSuQmCC";
+(function loadDemo(){
+  function useEmbedded(){
+    const img=new Image();
+    img.onload=()=>{ skins.push({id:nextId++, name:'Steve', canvas:normalize(img), slim:false}); refreshSkins(); };
+    img.onerror=()=>{};
+    img.src=STEVE_B64;
+  }
+  // First try the live MHF_Steve skin; fall back to the embedded copy if offline/blocked.
+  const urls=['https://mc-heads.net/skin/MHF_Steve','https://minotar.net/skin/MHF_Steve'];
+  let i=0, done=false;
+  const img=new Image(); img.crossOrigin='anonymous';
+  const timer=setTimeout(()=>{ if(!done){ done=true; useEmbedded(); } }, 4000);
+  img.onload=()=>{ if(done) return; done=true; clearTimeout(timer);
+    skins.push({id:nextId++, name:'Steve', canvas:normalize(img), slim:false}); refreshSkins(); };
+  img.onerror=()=>{ if(done) return; i++;
+    if(i<urls.length){ img.src=urls[i]; }
+    else { done=true; clearTimeout(timer); useEmbedded(); } };
+  img.src=urls[0];
+})();
+</script>
+</body>
+</html>
