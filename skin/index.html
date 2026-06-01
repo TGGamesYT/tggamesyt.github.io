@@ -721,8 +721,18 @@ function animate(){
   if(P.rightArm){
     let ra=0,la=0,rl=0,ll=0,raz=0,laz=0,head=0;   // default: arms straight down (true MC standing pose)
     if(pose==='walk'){const s=Math.sin(t*4);ra=-s*0.9;la=s*0.9;rl=s*0.9;ll=-s*0.9;}
-    else if(pose==='wave'){raz=-2.9;ra=Math.sin(t*6)*0.25-0.1;la=Math.sin(t*1.5)*0.05;}
-    else if(pose==='idle'){const s=Math.sin(t*1.6);ra=s*0.05;la=-s*0.05;raz=0.07+Math.sin(t*1.6)*0.03;head=Math.sin(t*0.8)*0.1;}
+    else if(pose==='wave'){
+      // raise RIGHT arm up beside the head (Z rotation), waggle on Z; left arm rests straight.
+      raz=-2.85+Math.sin(t*7)*0.22;   // up + small wave oscillation, on the SAME axis used to raise it
+      la=Math.sin(t*1.5)*0.03;        // tiny idle sway on the resting arm
+    }
+    else if(pose==='idle'){
+      // gentle breathing — arms rest slightly out and sway OUTWARD, away from the torso.
+      const s=(1-Math.cos(t*1.6))*0.5*0.06;   // 0 .. 0.06
+      raz=-s;                                  // right arm swings outward (away from body)
+      laz= s;                                  // left arm mirror
+      head=Math.sin(t*0.8)*0.08;
+    }
     P.rightArm.pivot.rotation.set(ra,0,raz);
     P.leftArm.pivot.rotation.set(la,0,laz);
     P.rightLeg.pivot.rotation.set(rl,0,0);
