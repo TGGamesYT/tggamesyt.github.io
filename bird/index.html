@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Embedders (Discord/Slack/etc) read these. They don't run JS, so they never hit the redirect below -->
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="Peak">
+<meta property="og:description" content="description">
+
+<!-- The actual video the embed plays -->
+<meta property="og:video" content="https://tggamesyt.dev/bird/red-hearing-peak.mp4">
+<meta property="og:video:secure_url" content="https://tggamesyt.dev/bird/red-hearing-peak.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="306">
+<meta property="og:video:height" content="200">
+
+<!-- Twitter card = same idea, for iMessage/Twitter -->
+<meta name="twitter:card" content="player">
+<meta name="twitter:player:stream" content="https://tggamesyt.dev/bird/red-hearing-peak.mp4">
+<meta name="twitter:player:stream:content_type" content="video/mp4">
+
+<title>Peak</title>
+</head>
+<body>
+<!-- Real human in a browser runs this and gets bounced. Crawlers skip it -->
+<script>
+  window.location.replace("https://tggamesyt.dev/vid");
+</script>
+
+<!-- Shown only the split second before redirect, or if JS disabled -->
+<noscript><meta http-equiv="refresh" content="0;url=https://tggamesyt.dev/vid"></noscript>
+</body>
+</html>
