@@ -114,11 +114,22 @@
     <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
   </div>
 
+  <hr style="margin-top: 2rem; border-color: var(--secondary-color);" />
+
+  <label for="editInput">Or paste a Discord timestamp to edit it:</label>
+  <input type="text" id="editInput" placeholder="<t:1751313660:F> or just 1751313660" />
+  <div class="controls">
+    <button onclick="parseTimestamp()">Load Timestamp</button>
+  </div>
+  <div id="parseError" style="color: #f04747; margin-top: 0.5rem; font-size: 0.9rem;"></div>
+
   <script>
     const datetimeInput = document.getElementById('datetime');
     const formatSelect = document.getElementById('format');
     const output = document.getElementById('output');
     const rendered = document.getElementById('rendered');
+    const editInput = document.getElementById('editInput');
+    const parseError = document.getElementById('parseError');
 
     const MAX_TIMESTAMP = 8640000000000;
     const MIN_TIMESTAMP = -8640000000000;
@@ -161,27 +172,79 @@
       }
     }
 
+    // Discord's relative timestamps are powered by moment.js under the hood,
+    // which uses these thresholds (rather than plain calendar year/month/day math).
     function formatRelativeTime(seconds) {
+      const future = seconds > 0;
       const abs = Math.abs(seconds);
-      const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
-      const units = [
-        { unit: "year", seconds: 31536000 },
-        { unit: "month", seconds: 2628000 },
-        { unit: "week", seconds: 604800 },
-        { unit: "day", seconds: 86400 },
-        { unit: "hour", seconds: 3600 },
-        { unit: "minute", seconds: 60 },
-        { unit: "second", seconds: 1 }
-      ];
-
-      for (const { unit, seconds: unitSeconds } of units) {
-        if (abs >= unitSeconds) {
-          const value = Math.floor(seconds / unitSeconds);
-          return rtf.format(value, unit);
-        }
+      let phrase;
+      if (abs < 45) {
+        phrase = "a few seconds";
+      } else if (abs < 90) {
+        phrase = "a minute";
+      } else if (abs < 45 * 60) {
+        phrase = Math.round(abs / 60) + " minutes";
+      } else if (abs < 90 * 60) {
+        phrase = "an hour";
+      } else if (abs < 22 * 3600) {
+        phrase = Math.round(abs / 3600) + " hours";
+      } else if (abs < 36 * 3600) {
+        phrase = "a day";
+      } else if (abs < 25 * 86400) {
+        phrase = Math.round(abs / 86400) + " days";
+      } else if (abs < 45 * 86400) {
+        phrase = "a month";
+      } else if (abs < 320 * 86400) {
+        phrase = Math.round(abs / (30.44 * 86400)) + " months";
+      } else if (abs < 548 * 86400) {
+        phrase = "a year";
+      } else {
+        phrase = Math.round(abs / (365.25 * 86400)) + " years";
       }
-      return "now";
+
+      return future ? `in ${phrase}` : `${phrase} ago`;
+    }
+
+    // Converts a Date into the "YYYY-MM-DDTHH:mm" format datetime-local inputs expect,
+    // using local time (not UTC, which is what toISOString() would give us).
+    function toLocalDatetimeValue(date) {
+      const pad = n => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function parseTimestamp() {
+      parseError.textContent = '';
+      const raw = editInput.value.trim();
+      if (!raw) {
+        parseError.textContent = 'Please paste a timestamp first.';
+        return;
+      }
+
+      // Matches either a full Discord tag like <t:1751313660:F> or just a bare number.
+      const match = raw.match(/^<t:(-?\d+)(?::([tTdDfFR]))?>$/) || raw.match(/^(-?\d+)$/);
+
+      if (!match) {
+        parseError.textContent = 'Could not parse that. Use a format like <t:1751313660:F> or just 1751313660.';
+        return;
+      }
+
+      const timestamp = parseInt(match[1], 10);
+      const format = match[2];
+
+      if (timestamp < MIN_TIMESTAMP || timestamp > MAX_TIMESTAMP) {
+        parseError.textContent = 'That timestamp is outside the supported date range.';
+        return;
+      }
+
+      const date = new Date(timestamp * 1000);
+      datetimeInput.value = toLocalDatetimeValue(date);
+
+      if (format) {
+        formatSelect.value = format;
+      }
+
+      updateOutput();
     }
 
     function copyToClipboard() {
@@ -199,6 +262,12 @@
 
     datetimeInput.addEventListener('input', updateOutput);
     formatSelect.addEventListener('change', updateOutput);
+    editInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        parseTimestamp();
+      }
+    });
   </script>
 </body>
 </html>
