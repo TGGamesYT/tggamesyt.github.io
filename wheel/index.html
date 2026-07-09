@@ -187,6 +187,27 @@
     color: var(--muted);
   }
 
+  .share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55em 1em;
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+  }
+  .share-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .share-btn.copied { border-color: #40e880; color: #40e880; background: rgba(64,232,128,0.08); }
+  .share-btn svg { flex-shrink: 0; }
+
   /* Confetti */
   .confetti-piece {
     position: fixed;
@@ -221,7 +242,13 @@
   <div class="sidebar">
     <label for="entries">Entries (one per line)</label>
     <textarea id="entries" spellcheck="false"></textarea>
-<span class="count-info" id="countInfo"></span>
+    <span class="count-info" id="countInfo"></span>
+    <button class="share-btn" id="shareBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+      <span id="shareBtnText">Copy share link</span>
+    </button>
   </div>
 </div>
 
@@ -229,8 +256,14 @@
 (() => {
   // ── Defaults ──────────────────────────────────────────────
   const DEFAULT_ENTRIES = [
-    "Alice", "Bob", "Carol", "Dave",
-    "Eve", "Frank", "Grace", "Hank"
+    "Yes",
+    "No",
+    "Maybe",
+    "Definitely",
+    "Nope",
+    "Absolutely",
+    "Unlikely",
+    "Perhaps"
   ];
 
   // ── Palette (dark, vibrant, distinct) ────────────────────
@@ -245,9 +278,34 @@
   let spinning = false;
   let currentAngle = 0; // radians, top of wheel = 0
 
-  // ── URL param ─────────────────────────────────────────────
+  // ── URL params ────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
   const forcedWinner = params.get("win") || null;
+
+  // Encode/decode entries to/from URL (base64 so commas/special chars are safe)
+  function encodeEntries(list) {
+    try { return btoa(unescape(encodeURIComponent(list.join("\n")))); } catch { return null; }
+  }
+  function decodeEntries(str) {
+    try { return decodeURIComponent(escape(atob(str))).split("\n").map(s => s.trim()).filter(Boolean); } catch { return null; }
+  }
+
+  // Load entries from URL if present
+  const urlEntries = params.get("e") ? decodeEntries(params.get("e")) : null;
+  if (urlEntries && urlEntries.length >= 2) {
+    DEFAULT_ENTRIES.length = 0;
+    DEFAULT_ENTRIES.push(...urlEntries);
+  }
+
+  // Sync current list to URL without page reload
+  function syncURL(list) {
+    const encoded = encodeEntries(list);
+    if (!encoded) return;
+    const url = new URL(location.href);
+    url.searchParams.set("e", encoded);
+    if (forcedWinner) url.searchParams.set("win", forcedWinner);
+    history.replaceState(null, "", url.toString());
+  }
 
 
   // ── Canvas setup ─────────────────────────────────────────
@@ -413,6 +471,7 @@
     document.getElementById("countInfo").textContent = `${entries.length} entries`;
     document.getElementById("result").classList.remove("show");
     drawWheel(currentAngle);
+    syncURL(entries);
   }
 
   let debounceTimer;
@@ -422,12 +481,26 @@
   });
   document.getElementById("spinBtn").addEventListener("click", spin);
 
-  // Allow Enter key to not trigger update (natural textarea behavior)
+  // ── Share button ─────────────────────────────────────────
+  document.getElementById("shareBtn").addEventListener("click", () => {
+    const url = location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById("shareBtn");
+      const label = document.getElementById("shareBtnText");
+      btn.classList.add("copied");
+      label.textContent = "Link copied!";
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        label.textContent = "Copy share link";
+      }, 2000);
+    });
+  });
 
   // ── Init ─────────────────────────────────────────────────
   document.getElementById("entries").value = DEFAULT_ENTRIES.join("\n");
   document.getElementById("countInfo").textContent = `${entries.length} entries`;
   drawWheel(currentAngle);
+  syncURL(entries);
 
 })();
 </script>
