@@ -282,12 +282,14 @@
   const params = new URLSearchParams(location.search);
   const forcedWinner = params.get("win") || null;
 
-  // Encode/decode entries to/from URL (base64 so commas/special chars are safe)
+  const DEFAULTS_KEY = DEFAULT_ENTRIES.join(",");
+
+  // Readable comma-separated encoding (?e=Yes,No,Maybe)
   function encodeEntries(list) {
-    try { return btoa(unescape(encodeURIComponent(list.join("\n")))); } catch { return null; }
+    return list.map(s => encodeURIComponent(s)).join(",");
   }
   function decodeEntries(str) {
-    try { return decodeURIComponent(escape(atob(str))).split("\n").map(s => s.trim()).filter(Boolean); } catch { return null; }
+    try { return str.split(",").map(s => decodeURIComponent(s).trim()).filter(Boolean); } catch { return null; }
   }
 
   // Load entries from URL if present
@@ -297,12 +299,14 @@
     DEFAULT_ENTRIES.push(...urlEntries);
   }
 
-  // Sync current list to URL without page reload
+  // Sync current list to URL — omit ?e entirely when it matches the defaults
   function syncURL(list) {
-    const encoded = encodeEntries(list);
-    if (!encoded) return;
     const url = new URL(location.href);
-    url.searchParams.set("e", encoded);
+    if (list.join(",") === DEFAULTS_KEY) {
+      url.searchParams.delete("e");
+    } else {
+      url.searchParams.set("e", encodeEntries(list));
+    }
     if (forcedWinner) url.searchParams.set("win", forcedWinner);
     history.replaceState(null, "", url.toString());
   }
