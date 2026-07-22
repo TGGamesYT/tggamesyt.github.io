@@ -88,17 +88,33 @@
     color: #888;
   }
 
+  /* The canvas-wrap stacks image canvas + overlay canvas via absolute positioning */
   .canvas-wrap {
     position: relative;
     border: 1px solid #333;
     border-radius: 6px;
     overflow: hidden;
     background: #0a0a0a;
-    cursor: crosshair;
+    width: 400px;
+    height: 400px;
   }
   .canvas-wrap canvas {
     display: block;
+    position: absolute;
+    top: 0; left: 0;
+    width: 400px;
+    height: 400px;
     image-rendering: pixelated;
+  }
+  /* overlay sits on top and captures mouse events */
+  .canvas-wrap .overlay {
+    cursor: crosshair;
+    z-index: 2;
+    /* transparent — only draws handles/quad lines */
+    image-rendering: auto; /* handles should be smooth */
+  }
+  .canvas-wrap .imgcanvas {
+    z-index: 1;
   }
 
   .controls {
@@ -148,18 +164,12 @@
     color: #555;
   }
   .hint span { color: #7eb8f7; }
-
-  .download-row {
-    display: flex;
-    justify-content: center;
-    margin-top: 10px;
-  }
 </style>
 </head>
 <body>
 
 <h1>Perspective Pixel Mapper</h1>
-<p class="subtitle">Warp a source region onto a destination quadrilateral</p>
+<p class="subtitle">Warp a source region onto a destination quadrilateral — pixel-perfect</p>
 
 <div class="uploads">
   <div class="upload-box">
@@ -180,13 +190,17 @@
   <div class="panel">
     <div class="panel-title">Source — drag handles</div>
     <div class="canvas-wrap" id="srcWrap">
-      <canvas id="srcCanvas" width="400" height="400"></canvas>
+      <!-- imgcanvas: pure pixel data, never touched by handle drawing -->
+      <canvas class="imgcanvas" id="srcCanvas" width="400" height="400"></canvas>
+      <!-- overlay: handles + quad lines only, never read for pixel data -->
+      <canvas class="overlay" id="srcOverlay" width="400" height="400"></canvas>
     </div>
   </div>
   <div class="panel">
     <div class="panel-title">Destination — drag handles</div>
     <div class="canvas-wrap" id="dstWrap">
-      <canvas id="dstCanvas" width="400" height="400"></canvas>
+      <canvas class="imgcanvas" id="dstCanvas" width="400" height="400"></canvas>
+      <canvas class="overlay" id="dstOverlay" width="400" height="400"></canvas>
     </div>
   </div>
 </div>
@@ -202,133 +216,138 @@
 <div class="hint">Drag the <span>corner handles</span> to define your quadrilateral on each canvas. Then click <span>Apply Warp</span>.</div>
 
 <script>
-// ─── Canvas setup ──────────────────────────────────────────────────────────
-const srcCanvas = document.getElementById("srcCanvas");
-const dstCanvas = document.getElementById("dstCanvas");
-const srcCtx = srcCanvas.getContext("2d");
-const dstCtx = dstCanvas.getContext("2d");
-const W = srcCanvas.width, H = srcCanvas.height;
+// ─── Display canvas size (fixed, for UI) ────────────────────────────────────
+const DISP = 400; // display canvas is always 400×400 px
+
+// ─── Image canvases (display only — never read for pixel data) ─────────────
+const srcCanvas  = document.getElementById('srcCanvas');
+const dstCanvas  = document.getElementById('dstCanvas');
+const srcCtx     = srcCanvas.getContext('2d');
+const dstCtx     = dstCanvas.getContext('2d');
+
+// ─── Overlay canvases (handles + quad lines only) ──────────────────────────
+const srcOverlay = document.getElementById('srcOverlay');
+const dstOverlay = document.getElementById('dstOverlay');
+const srcOCtx    = srcOverlay.getContext('2d');
+const dstOCtx    = dstOverlay.getContext('2d');
+
+// ─── Offscreen canvases at NATIVE image resolution ─────────────────────────
+// These are what we actually read pixels from — no scaling artifact.
+let srcNative = null; // { canvas, ctx, w, h }
+let dstNative = null;
 
 let srcImg = null, dstImg = null;
 
-// ─── Quad state ────────────────────────────────────────────────────────────
-// Each quad: 4 corners [TL, TR, BR, BL]
+// ─── Quad state ─────────────────────────────────────────────────────────────
+// Quads are stored in DISPLAY coordinates (0–400).
+// When we need to sample source pixels we map them into native image coords.
 function defaultSrcQuad() {
   const m = 40;
-  return [[m, m], [W-m, m], [W-m, H-m], [m, H-m]];
+  return [[m,m],[DISP-m,m],[DISP-m,DISP-m],[m,DISP-m]];
 }
 function defaultDstQuad() {
-  // Slightly skewed to hint at perspective
-  return [[60, 60], [W-40, 80], [W-60, H-60], [40, H-80]];
+  return [[60,60],[DISP-40,80],[DISP-60,DISP-60],[40,DISP-80]];
 }
 
 let srcQuad = defaultSrcQuad();
 let dstQuad = defaultDstQuad();
 
-// ─── Handle drag logic ─────────────────────────────────────────────────────
-const HANDLE_R = 8;
-let dragging = null; // {quad: 'src'|'dst', idx: 0-3, startX, startY}
+// ─── Handle geometry ────────────────────────────────────────────────────────
+// Handles are drawn on the overlay canvas in CSS pixels (overlay is 400×400
+// logical, but rendered at actual device pixels via the browser).
+// We use a small radius so they look crisp without eating into the image area.
+const HANDLE_R = 6; // px on the overlay canvas
 
-function canvasPoint(canvas, e) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return [
-    (clientX - rect.left) * scaleX,
-    (clientY - rect.top) * scaleY
-  ];
+// ─── Drag state ─────────────────────────────────────────────────────────────
+let dragging = null; // { quad: 'src'|'dst', idx }
+
+function overlayPoint(overlay, e) {
+  const rect = overlay.getBoundingClientRect();
+  // overlay.width is always 400, rect.width is the CSS width (also 400 here)
+  const scaleX = overlay.width / rect.width;
+  const scaleY = overlay.height / rect.height;
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return [(cx - rect.left) * scaleX, (cy - rect.top) * scaleY];
 }
 
 function hitTest(quad, x, y) {
   for (let i = 0; i < 4; i++) {
-    const dx = quad[i][0] - x, dy = quad[i][1] - y;
-    if (Math.sqrt(dx*dx + dy*dy) < HANDLE_R + 4) return i;
+    const dx = quad[i][0]-x, dy = quad[i][1]-y;
+    if (dx*dx+dy*dy < (HANDLE_R+4)*(HANDLE_R+4)) return i;
   }
   return -1;
 }
 
-function setupDrag(canvas, quadName) {
-  const getQuad = () => quadName === 'src' ? srcQuad : dstQuad;
+function setupDrag(overlay, quadName) {
+  const getQ = () => quadName === 'src' ? srcQuad : dstQuad;
 
   function onDown(e) {
     e.preventDefault();
-    const [x, y] = canvasPoint(canvas, e);
-    const idx = hitTest(getQuad(), x, y);
-    if (idx >= 0) {
-      dragging = { quad: quadName, idx, startX: x, startY: y };
-      canvas.style.cursor = 'grabbing';
-    }
+    const [x,y] = overlayPoint(overlay, e);
+    const idx = hitTest(getQ(), x, y);
+    if (idx >= 0) { dragging = {quad: quadName, idx}; overlay.style.cursor='grabbing'; }
   }
-
   function onMove(e) {
-    if (!dragging || dragging.quad !== quadName) return;
-    e.preventDefault();
-    const [x, y] = canvasPoint(canvas, e);
-    const quad = getQuad();
-    quad[dragging.idx] = [
-      Math.max(0, Math.min(W, x)),
-      Math.max(0, Math.min(H, y))
-    ];
-    drawAll();
-  }
-
-  function onUp(e) {
-    if (dragging && dragging.quad === quadName) {
-      dragging = null;
-      canvas.style.cursor = 'crosshair';
+    if (!dragging || dragging.quad !== quadName) {
+      // just update cursor
+      const [x,y] = overlayPoint(overlay, e);
+      overlay.style.cursor = hitTest(getQ(),x,y)>=0 ? 'grab' : 'crosshair';
+      return;
     }
+    e.preventDefault();
+    const [x,y] = overlayPoint(overlay, e);
+    getQ()[dragging.idx] = [
+      Math.max(0, Math.min(DISP, x)),
+      Math.max(0, Math.min(DISP, y))
+    ];
+    drawOverlays();
+  }
+  function onUp() {
+    if (dragging && dragging.quad === quadName) { dragging=null; overlay.style.cursor='crosshair'; }
   }
 
-  function onHover(e) {
-    const [x, y] = canvasPoint(canvas, e);
-    const idx = hitTest(getQuad(), x, y);
-    canvas.style.cursor = idx >= 0 ? 'grab' : 'crosshair';
-  }
-
-  canvas.addEventListener('mousedown', onDown);
-  canvas.addEventListener('mousemove', onMove);
-  canvas.addEventListener('mouseup', onUp);
-  canvas.addEventListener('mouseleave', onUp);
-  canvas.addEventListener('mousemove', onHover);
-  canvas.addEventListener('touchstart', onDown, {passive: false});
-  canvas.addEventListener('touchmove', onMove, {passive: false});
-  canvas.addEventListener('touchend', onUp);
+  overlay.addEventListener('mousedown',  onDown);
+  overlay.addEventListener('mousemove',  onMove);
+  overlay.addEventListener('mouseup',    onUp);
+  overlay.addEventListener('mouseleave', onUp);
+  overlay.addEventListener('touchstart', onDown, {passive:false});
+  overlay.addEventListener('touchmove',  onMove, {passive:false});
+  overlay.addEventListener('touchend',   onUp);
 }
 
-setupDrag(srcCanvas, 'src');
-setupDrag(dstCanvas, 'dst');
-
-// Global mouse-up in case pointer leaves canvas while dragging
+setupDrag(srcOverlay, 'src');
+setupDrag(dstOverlay, 'dst');
 window.addEventListener('mouseup', () => { dragging = null; });
 
-// ─── Drawing ───────────────────────────────────────────────────────────────
-function drawAll() {
-  drawCanvas(srcCtx, srcImg, srcQuad, '#4af', '#2af');
-  drawCanvas(dstCtx, dstImg, dstQuad, '#fa4', '#fc6');
-}
-
-function drawCanvas(ctx, img, quad, lineColor, handleColor) {
-  ctx.clearRect(0, 0, W, H);
-  // Checkerboard background
-  drawChecker(ctx);
-  if (img) ctx.drawImage(img, 0, 0, W, H);
-  drawQuad(ctx, quad, lineColor, handleColor);
-}
-
-function drawChecker(ctx) {
-  const size = 16;
-  for (let y = 0; y < H; y += size) {
-    for (let x = 0; x < W; x += size) {
-      ctx.fillStyle = ((x/size + y/size) % 2 === 0) ? '#1a1a1a' : '#222';
-      ctx.fillRect(x, y, size, size);
-    }
+// ─── Draw image canvases (pure image data, no handles) ──────────────────────
+function drawImages() {
+  // Source
+  srcCtx.clearRect(0,0,DISP,DISP);
+  drawChecker(srcCtx);
+  if (srcImg) {
+    srcCtx.imageSmoothingEnabled = false;
+    srcCtx.drawImage(srcImg, 0, 0, DISP, DISP);
+  }
+  // Destination
+  dstCtx.clearRect(0,0,DISP,DISP);
+  drawChecker(dstCtx);
+  if (dstImg) {
+    dstCtx.imageSmoothingEnabled = false;
+    dstCtx.drawImage(dstImg, 0, 0, DISP, DISP);
   }
 }
 
-function drawQuad(ctx, pts, lineColor, handleColor) {
-  // Draw quad outline
+// ─── Draw overlays (handles + quad lines ONLY) ──────────────────────────────
+function drawOverlays() {
+  drawOverlay(srcOCtx, srcQuad, '#4af', '#2af');
+  drawOverlay(dstOCtx, dstQuad, '#fa4', '#fc6');
+}
+
+function drawOverlay(ctx, pts, lineColor, handleColor) {
+  ctx.clearRect(0,0,DISP,DISP);
+
+  // Quad outline
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
   ctx.lineTo(pts[1][0], pts[1][1]);
@@ -337,212 +356,234 @@ function drawQuad(ctx, pts, lineColor, handleColor) {
   ctx.closePath();
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 3]);
+  ctx.setLineDash([5,3]);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Draw diagonal guides
+  // Diagonal guides
   ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  ctx.lineTo(pts[2][0], pts[2][1]);
-  ctx.moveTo(pts[1][0], pts[1][1]);
-  ctx.lineTo(pts[3][0], pts[3][1]);
-  ctx.strokeStyle = lineColor + '44';
+  ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[2][0], pts[2][1]);
+  ctx.moveTo(pts[1][0], pts[1][1]); ctx.lineTo(pts[3][0], pts[3][1]);
+  ctx.strokeStyle = lineColor+'55';
   ctx.lineWidth = 0.5;
   ctx.stroke();
 
-  // Draw handles
-  const labels = ['TL', 'TR', 'BR', 'BL'];
-  pts.forEach((p, i) => {
-    // Shadow
-    ctx.beginPath();
-    ctx.arc(p[0], p[1], HANDLE_R + 1, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fill();
-    // Handle
-    ctx.beginPath();
-    ctx.arc(p[0], p[1], HANDLE_R, 0, Math.PI*2);
-    ctx.fillStyle = handleColor;
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 9px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  // Handles — drawn on overlay so they NEVER enter pixel data
+  const labels = ['TL','TR','BR','BL'];
+  pts.forEach((p,i) => {
+    // drop shadow
+    ctx.beginPath(); ctx.arc(p[0]+1, p[1]+1, HANDLE_R, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fill();
+    // fill
+    ctx.beginPath(); ctx.arc(p[0], p[1], HANDLE_R, 0, Math.PI*2);
+    ctx.fillStyle = handleColor; ctx.fill();
+    // border
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    // label
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 7px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(labels[i], p[0], p[1]);
   });
 }
 
+function drawAll() {
+  drawImages();
+  drawOverlays();
+}
+
+function drawChecker(ctx) {
+  const sz = 16;
+  for (let y=0; y<DISP; y+=sz)
+    for (let x=0; x<DISP; x+=sz) {
+      ctx.fillStyle = ((x/sz+y/sz)%2===0) ? '#1a1a1a' : '#222';
+      ctx.fillRect(x,y,sz,sz);
+    }
+}
+
 // ─── Image upload ──────────────────────────────────────────────────────────
+function makeNative(img) {
+  // Create an offscreen canvas at the image's true pixel dimensions.
+  // We disable smoothing so 16×16 stays crisp.
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0);
+  return { canvas:c, ctx, w:img.naturalWidth, h:img.naturalHeight };
+}
+
 document.getElementById('srcUpload').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  document.getElementById('srcName').textContent = f.name.slice(0, 20);
+  document.getElementById('srcName').textContent = f.name.slice(0,20);
   const img = new Image();
-  img.onload = () => { srcImg = img; drawAll(); setStatus('Source loaded. Adjust handles and apply warp.'); };
+  img.onload = () => {
+    srcImg = img;
+    srcNative = makeNative(img);
+    drawAll();
+    setStatus(`Source loaded (${img.naturalWidth}×${img.naturalHeight}). Adjust handles and apply warp.`);
+  };
   img.src = URL.createObjectURL(f);
 };
 
 document.getElementById('dstUpload').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  document.getElementById('dstName').textContent = f.name.slice(0, 20);
+  document.getElementById('dstName').textContent = f.name.slice(0,20);
   const img = new Image();
-  img.onload = () => { dstImg = img; drawAll(); setStatus('Destination image loaded.'); };
+  img.onload = () => {
+    dstImg = img;
+    dstNative = makeNative(img);
+    drawAll();
+    setStatus('Destination image loaded.');
+  };
   img.src = URL.createObjectURL(f);
 };
 
 // ─── Controls ──────────────────────────────────────────────────────────────
 document.getElementById('resetBtn').onclick = () => {
-  srcQuad = defaultSrcQuad();
-  dstQuad = defaultDstQuad();
-  drawAll();
-  setStatus('Handles reset.');
+  srcQuad = defaultSrcQuad(); dstQuad = defaultDstQuad();
+  drawAll(); setStatus('Handles reset.');
 };
 
 document.getElementById('applyBtn').onclick = () => {
   if (!srcImg) { setStatus('⚠ Load a source image first.'); return; }
   setStatus('Applying warp…');
   requestAnimationFrame(() => {
-    try {
-      applyWarp();
-      setStatus('✓ Warp applied. Download or adjust handles and apply again.');
-    } catch(err) {
-      setStatus('✗ Error: ' + err.message);
-      console.error(err);
-    }
+    try { applyWarp(); setStatus('✓ Warp applied.'); }
+    catch(err) { setStatus('✗ Error: '+err.message); console.error(err); }
   });
 };
 
 document.getElementById('downloadBtn').onclick = () => {
+  // Composite image canvas + overlay into a temp canvas for download
+  const tmp = document.createElement('canvas');
+  tmp.width = DISP; tmp.height = DISP;
+  const tc = tmp.getContext('2d');
+  tc.drawImage(dstCanvas, 0, 0);
+  // Don't include the overlay handles in the download
   const a = document.createElement('a');
   a.download = 'warped-result.png';
-  a.href = dstCanvas.toDataURL('image/png');
+  a.href = tmp.toDataURL('image/png');
   a.click();
 };
 
-// ─── Warp ─────────────────────────────────────────────────────────────────
+// ─── Warp ──────────────────────────────────────────────────────────────────
 function applyWarp() {
-  // Redraw dst first (with base image if present)
-  drawCanvas(dstCtx, dstImg, dstQuad, '#fa4', '#fc6');
+  // 1. Figure out source image native size
+  const SW = srcNative.w, SH = srcNative.h;
 
-  const srcData = srcCtx.getImageData(0, 0, W, H);
-  const dstData = dstCtx.getImageData(0, 0, W, H);
+  // 2. Source quad in DISPLAY coords → convert to native image coords
+  //    (display is DISP×DISP, native is SW×SH)
+  const scaleX = SW / DISP, scaleY = SH / DISP;
+  const srcQuadNative = srcQuad.map(([x,y]) => [x*scaleX, y*scaleY]);
 
-  // Homography: src → dst
-  const H_mat = computeHomography(srcQuad, dstQuad);
-  const invH  = computeHomography(dstQuad, srcQuad); // inverse = swap src/dst
+  // 3. Read raw pixels from native source (NO handle contamination)
+  const srcData = srcNative.ctx.getImageData(0, 0, SW, SH);
 
-  // Bounding box of dst quad
-  const xs = dstQuad.map(p => p[0]), ys = dstQuad.map(p => p[1]);
+  // 4. Destination canvas: start fresh (image or checker)
+  dstCtx.clearRect(0,0,DISP,DISP);
+  drawChecker(dstCtx);
+  if (dstImg) { dstCtx.imageSmoothingEnabled=false; dstCtx.drawImage(dstImg,0,0,DISP,DISP); }
+  const dstData = dstCtx.getImageData(0, 0, DISP, DISP);
+
+  // 5. Compute inverse homography: display-dst → native-src
+  //    srcQuadNative (native coords) ← dstQuad (display coords)
+  const invH = computeHomography(dstQuad, srcQuadNative);
+
+  // 6. Bounding box of dst quad (in display coords)
+  const xs = dstQuad.map(p=>p[0]), ys = dstQuad.map(p=>p[1]);
   const x0 = Math.max(0, Math.floor(Math.min(...xs)));
-  const x1 = Math.min(W-1, Math.ceil(Math.max(...xs)));
+  const x1 = Math.min(DISP-1, Math.ceil(Math.max(...xs)));
   const y0 = Math.max(0, Math.floor(Math.min(...ys)));
-  const y1 = Math.min(H-1, Math.ceil(Math.max(...ys)));
+  const y1 = Math.min(DISP-1, Math.ceil(Math.max(...ys)));
 
-  for (let dy = y0; dy <= y1; dy++) {
-    for (let dx = x0; dx <= x1; dx++) {
-      if (!pointInPolygon(dx + 0.5, dy + 0.5, dstQuad)) continue;
-      const [sx, sy] = applyHomography(invH, dx + 0.5, dy + 0.5);
+  for (let dy=y0; dy<=y1; dy++) {
+    for (let dx=x0; dx<=x1; dx++) {
+      if (!pointInPolygon(dx+0.5, dy+0.5, dstQuad)) continue;
+
+      // Map this display-dst pixel back to native-src coords
+      const [sx, sy] = applyHomography(invH, dx+0.5, dy+0.5);
+
+      // Nearest-neighbour — critical for pixel art; no blurring
       const six = Math.floor(sx), siy = Math.floor(sy);
-      if (six < 0 || siy < 0 || six >= W || siy >= H) continue;
+      if (six<0||siy<0||six>=SW||siy>=SH) continue;
 
-      const si = (siy * W + six) * 4;
-      const di = (dy  * W + dx)  * 4;
-      const sa = srcData.data[si + 3];
+      const si = (siy*SW + six)*4;
+      const di = (dy*DISP + dx)*4;
+      const sa = srcData.data[si+3];
       if (sa === 0) continue;
 
-      // Blend over existing destination
-      const alpha = sa / 255;
-      const da = dstData.data[di + 3] / 255;
-      const outA = alpha + da * (1 - alpha);
-      if (outA > 0) {
-        dstData.data[di + 0] = Math.round((srcData.data[si+0] * alpha + dstData.data[di+0] * da * (1-alpha)) / outA);
-        dstData.data[di + 1] = Math.round((srcData.data[si+1] * alpha + dstData.data[di+1] * da * (1-alpha)) / outA);
-        dstData.data[di + 2] = Math.round((srcData.data[si+2] * alpha + dstData.data[di+2] * da * (1-alpha)) / outA);
-        dstData.data[di + 3] = Math.round(outA * 255);
+      // Alpha-composite over destination
+      const fa = sa/255;
+      const da = dstData.data[di+3]/255;
+      const oa = fa + da*(1-fa);
+      if (oa > 0) {
+        dstData.data[di+0] = Math.round((srcData.data[si+0]*fa + dstData.data[di+0]*da*(1-fa))/oa);
+        dstData.data[di+1] = Math.round((srcData.data[si+1]*fa + dstData.data[di+1]*da*(1-fa))/oa);
+        dstData.data[di+2] = Math.round((srcData.data[si+2]*fa + dstData.data[di+2]*da*(1-fa))/oa);
+        dstData.data[di+3] = Math.round(oa*255);
       }
     }
   }
 
   dstCtx.putImageData(dstData, 0, 0);
-  // Redraw handles on top
-  drawQuad(dstCtx, dstQuad, '#fa4', '#fc6');
+  // Overlay redraws handles on top — but overlay canvas is separate, so pixel
+  // data stays clean and handles appear via CSS stacking only
+  drawOverlays();
 }
 
-// ─── Point-in-polygon (ray cast) ──────────────────────────────────────────
+// ─── Point-in-polygon ──────────────────────────────────────────────────────
 function pointInPolygon(x, y, poly) {
   let inside = false;
-  for (let i = 0, j = poly.length-1; i < poly.length; j = i++) {
-    const xi = poly[i][0], yi = poly[i][1];
-    const xj = poly[j][0], yj = poly[j][1];
-    if ((yi > y) !== (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi)
-      inside = !inside;
+  for (let i=0,j=poly.length-1; i<poly.length; j=i++) {
+    const xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+    if ((yi>y)!==(yj>y) && x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
   }
   return inside;
 }
 
-// ─── Homography via Direct Linear Transform (DLT) + Gaussian elimination ──
-// This replaces the broken SVD approach. We set up the 8×8 system
-// from 4 point correspondences and solve it via Gaussian elimination.
+// ─── Homography (DLT, Gaussian elimination) ────────────────────────────────
 function computeHomography(src, dst) {
-  // Build 8×9 matrix A for Ah=0
-  // We normalise h[8]=1 and solve the 8×8 system instead
-  // by rearranging: for each correspondence (x,y)→(X,Y):
-  //   h0*x + h1*y + h2 - h6*x*X - h7*y*X = X
-  //   h3*x + h4*y + h5 - h6*x*Y - h7*y*Y = Y
-  const A = [], b = [];
-  for (let i = 0; i < 4; i++) {
-    const [x, y] = src[i], [X, Y] = dst[i];
-    A.push([x, y, 1, 0, 0, 0, -x*X, -y*X]);
-    b.push(X);
-    A.push([0, 0, 0, x, y, 1, -x*Y, -y*Y]);
-    b.push(Y);
+  const A=[], b=[];
+  for (let i=0;i<4;i++) {
+    const [x,y]=src[i], [X,Y]=dst[i];
+    A.push([x,y,1,0,0,0,-x*X,-y*X]); b.push(X);
+    A.push([0,0,0,x,y,1,-x*Y,-y*Y]); b.push(Y);
   }
-  const h = gaussianElimination(A, b);
-  return [
-    [h[0], h[1], h[2]],
-    [h[3], h[4], h[5]],
-    [h[6], h[7], 1],
-  ];
+  const h = gaussElim(A,b);
+  return [[h[0],h[1],h[2]],[h[3],h[4],h[5]],[h[6],h[7],1]];
 }
 
-function gaussianElimination(A, b) {
-  const n = A.length;
-  // Augment
-  const M = A.map((row, i) => [...row, b[i]]);
-  for (let col = 0; col < n; col++) {
-    // Pivot
-    let maxR = col;
-    for (let r = col+1; r < n; r++)
-      if (Math.abs(M[r][col]) > Math.abs(M[maxR][col])) maxR = r;
-    [M[col], M[maxR]] = [M[maxR], M[col]];
-    if (Math.abs(M[col][col]) < 1e-12) continue;
-    const div = M[col][col];
-    for (let j = col; j <= n; j++) M[col][j] /= div;
-    for (let r = 0; r < n; r++) {
-      if (r === col) continue;
-      const f = M[r][col];
-      for (let j = col; j <= n; j++) M[r][j] -= f * M[col][j];
+function gaussElim(A, b) {
+  const n=A.length;
+  const M=A.map((row,i)=>[...row,b[i]]);
+  for (let c=0;c<n;c++) {
+    let mr=c;
+    for (let r=c+1;r<n;r++) if (Math.abs(M[r][c])>Math.abs(M[mr][c])) mr=r;
+    [M[c],M[mr]]=[M[mr],M[c]];
+    if (Math.abs(M[c][c])<1e-12) continue;
+    const d=M[c][c];
+    for (let j=c;j<=n;j++) M[c][j]/=d;
+    for (let r=0;r<n;r++) {
+      if (r===c) continue;
+      const f=M[r][c];
+      for (let j=c;j<=n;j++) M[r][j]-=f*M[c][j];
     }
   }
-  return M.map(row => row[n]);
+  return M.map(row=>row[n]);
 }
 
 function applyHomography(H, x, y) {
-  const X = H[0][0]*x + H[0][1]*y + H[0][2];
-  const Y = H[1][0]*x + H[1][1]*y + H[1][2];
-  const Z = H[2][0]*x + H[2][1]*y + H[2][2];
+  const X=H[0][0]*x+H[0][1]*y+H[0][2];
+  const Y=H[1][0]*x+H[1][1]*y+H[1][2];
+  const Z=H[2][0]*x+H[2][1]*y+H[2][2];
   return [X/Z, Y/Z];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-function setStatus(msg) {
-  document.getElementById('statusMsg').textContent = msg;
-}
+function setStatus(msg) { document.getElementById('statusMsg').textContent = msg; }
 
-// Initial draw
+// Init
 drawAll();
 setStatus('Load a source image, adjust handles, then click Apply Warp.');
 </script>
