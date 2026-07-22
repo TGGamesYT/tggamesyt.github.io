@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texture Mapper</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f11;
+    --panel: #18181c;
+    --panel2: #202026;
+    --border: #2e2e38;
+    --border2: #3d3d4a;
+    --accent: #6c63ff;
+    --accent2: #8b84ff;
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --text3: #5a5a72;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --radius: 8px;
+  }
+  body { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-size:13px; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  #topbar { display:flex; align-items:center; gap:10px; padding:0 14px; height:48px; border-bottom:1px solid var(--border); background:var(--panel); flex-shrink:0; z-index:100; flex-wrap:nowrap; }
+  .logo { font-weight:700; font-size:15px; letter-spacing:-0.3px; color:var(--text); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .logo span { color:var(--accent2); }
+  .sep { width:1px; height:24px; background:var(--border); flex-shrink:0; }
+  .btn { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:6px; border:1px solid var(--border2); background:var(--panel2); color:var(--text); cursor:pointer; font-size:12px; font-family:inherit; transition:background 0.12s,border-color 0.12s; white-space:nowrap; user-select:none; flex-shrink:0; }
+  .btn:hover { background:#2a2a34; border-color:var(--accent); }
+  .btn:disabled { opacity:0.4; pointer-events:none; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover { background:var(--accent2); }
+  .btn.danger { border-color:#7f3535; }
+  .btn.danger:hover { background:#3a1a1a; border-color:var(--red); }
+  .btn svg { width:13px; height:13px; flex-shrink:0; }
+  .spacer { flex:1; }
+  .tool-group { display:flex; gap:1px; border-radius:6px; overflow:hidden; border:1px solid var(--border2); flex-shrink:0; }
+  .tool-btn { padding:5px 9px; background:var(--panel2); color:var(--text2); cursor:pointer; border:none; font-size:11px; font-family:inherit; transition:all 0.1s; user-select:none; }
+  .tool-btn:hover { background:#2a2a34; color:var(--text); }
+  .tool-btn.active { background:var(--accent); color:#fff; }
+  /* TOGGLE */
+  .toggle-wrap { display:flex; align-items:center; gap:6px; flex-shrink:0; font-size:11px; color:var(--text2); cursor:pointer; user-select:none; }
+  .toggle { position:relative; width:30px; height:16px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; position:absolute; }
+  .toggle-track { position:absolute; inset:0; background:var(--border2); border-radius:8px; transition:background 0.15s; }
+  .toggle input:checked + .toggle-track { background:var(--accent); }
+  .toggle-thumb { position:absolute; top:2px; left:2px; width:12px; height:12px; background:#fff; border-radius:50%; transition:transform 0.15s; }
+  .toggle input:checked ~ .toggle-thumb { transform:translateX(14px); }
+  /* MAIN */
+  #main { display:flex; flex:1; overflow:hidden; }
+  .side-panel { width:224px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .side-panel.right { border-right:none; border-left:1px solid var(--border); }
+  .panel-section { border-bottom:1px solid var(--border); padding:10px 12px; }
+  .panel-label { font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text3); margin-bottom:8px; }
+  /* CANVAS */
+  #workspace { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .canvas-row { flex:1; display:flex; overflow:hidden; }
+  .canvas-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+  .canvas-pane + .canvas-pane { border-left:1px solid var(--border); }
+  .pane-header { padding:6px 12px; border-bottom:1px solid var(--border); background:var(--panel); display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text2); flex-shrink:0; }
+  .pane-header .pane-title { font-weight:600; color:var(--text); }
+  .pane-header .badge { font-size:9px; padding:2px 6px; border-radius:4px; background:var(--panel2); border:1px solid var(--border2); }
+  .canvas-viewport { flex:1; overflow:hidden; position:relative; background:#0a0a0c; background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px); background-size:20px 20px; cursor:crosshair; }
+  .canvas-viewport canvas { image-rendering:pixelated; image-rendering:crisp-edges; }
+  .upload-area { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; cursor:pointer; transition:background 0.15s; }
+  .upload-area:hover { background:rgba(108,99,255,0.04); }
+  .upload-icon { width:40px; height:40px; border-radius:12px; background:var(--panel2); border:1px dashed var(--border2); display:flex; align-items:center; justify-content:center; color:var(--text3); }
+  .upload-area p { color:var(--text2); font-size:12px; }
+  .upload-area p span { color:var(--accent2); }
+  input[type=file] { display:none; }
+  /* MAPPING LIST */
+  #mapping-list { flex:1; overflow-y:auto; padding:8px; }
+  #mapping-list::-webkit-scrollbar { width:4px; }
+  #mapping-list::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+  .mapping-item { border-radius:6px; border:1px solid var(--border); background:var(--panel2); padding:6px 8px; margin-bottom:4px; cursor:pointer; transition:border-color 0.1s; display:flex; align-items:flex-start; gap:6px; }
+  .mapping-item:hover { border-color:var(--border2); }
+  .mapping-item.selected { border-color:var(--accent); background:rgba(108,99,255,0.08); }
+  .mapping-color { width:10px; height:10px; border-radius:2px; flex-shrink:0; margin-top:2px; }
+  .mapping-info { flex:1; min-width:0; }
+  .mapping-name { font-size:11px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mapping-coords { font-size:10px; color:var(--text3); margin-top:1px; line-height:1.5; }
+  .mapping-dst-tag { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; border:1px solid var(--border); margin-top:2px; margin-right:2px; color:var(--text2); background:var(--panel); cursor:pointer; transition:border-color 0.1s; }
+  .mapping-dst-tag:hover { border-color:var(--accent2); color:var(--text); }
+  .mapping-dst-tag.sel-dst { border-color:var(--accent); color:var(--accent2); background:rgba(108,99,255,0.12); }
+  .mapping-del { width:18px; height:18px; border-radius:4px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; cursor:pointer; color:var(--text3); flex-shrink:0; transition:all 0.1s; }
+  .mapping-del:hover { background:rgba(248,113,113,0.15); color:var(--red); }
+  /* PROPS */
+  .prop-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .prop-label { color:var(--text2); font-size:11px; flex-shrink:0; min-width:36px; }
+  .prop-input { flex:1; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:4px; padding:3px 7px; font-size:11px; font-family:'JetBrains Mono',monospace; width:100%; }
+  .prop-input:focus { outline:none; border-color:var(--accent); }
+  /* ZOOM */
+  .zoom-controls { position:absolute; bottom:10px; right:10px; z-index:10; display:flex; gap:3px; }
+  .zoom-btn { width:26px; height:26px; border-radius:5px; background:var(--panel2); border:1px solid var(--border2); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; user-select:none; transition:all 0.1s; }
+  .zoom-btn:hover { background:#2a2a34; border-color:var(--accent); }
+  .zoom-level { height:26px; border-radius:5px; padding:0 8px; background:var(--panel2); border:1px solid var(--border2); color:var(--text2); display:flex; align-items:center; font-size:11px; font-family:monospace; }
+  /* STATUS */
+  #statusbar { height:26px; border-top:1px solid var(--border); background:var(--panel); display:flex; align-items:center; padding:0 12px; gap:16px; font-size:10px; color:var(--text3); flex-shrink:0; }
+  #statusbar .stat { display:flex; gap:4px; }
+  #statusbar .stat-val { color:var(--text2); }
+  /* OVERLAYS */
+  .sel-overlay { position:absolute; pointer-events:none; border:1.5px solid var(--accent); background:rgba(108,99,255,0.08); z-index:20; }
+  .sel-handle { position:absolute; width:8px; height:8px; border-radius:2px; pointer-events:all; border:1.5px solid #fff; background:#fff; }
+  .sel-handle.nw { top:-4px; left:-4px; cursor:nw-resize; }
+  .sel-handle.ne { top:-4px; right:-4px; cursor:ne-resize; }
+  .sel-handle.sw { bottom:-4px; left:-4px; cursor:sw-resize; }
+  .sel-handle.se { bottom:-4px; right:-4px; cursor:se-resize; }
+  .sel-handle.n  { top:-4px; left:50%; transform:translateX(-50%); cursor:n-resize; }
+  .sel-handle.s  { bottom:-4px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+  .sel-handle.w  { left:-4px; top:50%; transform:translateY(-50%); cursor:w-resize; }
+  .sel-handle.e  { right:-4px; top:50%; transform:translateY(-50%); cursor:e-resize; }
+  /* MODAL */
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:1000; display:none; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--panel); border:1px solid var(--border2); border-radius:12px; padding:20px; box-shadow:0 24px 64px rgba(0,0,0,0.6); }
+  .modal h3 { font-size:14px; margin-bottom:12px; }
+  .modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+  .dst-list-item { display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--border); }
+  .dst-list-item:last-child { border-bottom:none; }
+  .dst-index { font-size:10px; color:var(--text3); width:16px; flex-shrink:0; font-family:monospace; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="1" y="1" width="7" height="7" rx="1.5" fill="#6c63ff" opacity=".8"/>
+      <rect x="10" y="1" width="7" height="7" rx="1.5" fill="#4ade80" opacity=".8"/>
+      <rect x="1" y="10" width="7" height="7" rx="1.5" fill="#fbbf24" opacity=".8"/>
+      <rect x="10" y="10" width="7" height="7" rx="1.5" fill="#f87171" opacity=".8"/>
+    </svg>
+    Texture<span>Mapper</span>
+  </div>
+  <div class="sep"></div>
+  <div class="tool-group">
+    <button class="tool-btn active" id="tool-select" onclick="setTool('select')" title="Select (V)">
+      <svg width="13" height="13" viewBox="0 0 13 13"><path d="M2 2l5 10 1.5-4 4-1.5z" fill="currentColor"/></svg>
+    </button>
+    <button class="tool-btn" id="tool-rect" onclick="setTool('rect')" title="Draw region (R)">
+      <svg width="13" height="13" viewBox="0 0 13 13"><rect x="1.5" y="1.5" width="10" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    </button>
+    <button class="tool-btn" id="tool-pan" onclick="setTool('pan')" title="Pan (Space)">
+      <svg width="13" height="13" viewBox="0 0 13 13"><path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M3 3l1.5 1.5M9 9l-1.5-1.5M3 10l1.5-1.5M9 4 7.5 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="sep"></div>
+  <button class="btn" onclick="document.getElementById('src-file').click()">
+    <svg viewBox="0 0 13 13"><path d="M6.5 8V3M4 5.5 6.5 3 9 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M2 9v1.5A.5.5 0 002.5 11h8a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+    Load source
+  </button>
+  <button class="btn" onclick="document.getElementById('dst-file').click()">
+    <svg viewBox="0 0 13 13"><path d="M6.5 8V3M4 5.5 6.5 3 9 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M2 9v1.5A.5.5 0 002.5 11h8a.5.5 0 00.5-.5V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+    Load target
+  </button>
+  <div class="sep"></div>
+  <button class="btn" onclick="document.getElementById('json-file').click()">
+    <svg viewBox="0 0 13 13"><path d="M2 2h6l3 3v6a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 2v3h3" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+    Import JSON
+  </button>
+  <div class="sep"></div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="addMapping()" id="btn-add" disabled>
+    <svg viewBox="0 0 13 13"><path d="M6.5 2v9M2 6.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+    New region
+  </button>
+  <button class="btn" onclick="duplicateSelected()" id="btn-dup" disabled>
+    <svg viewBox="0 0 13 13"><rect x="1" y="4" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4 4V2.5A.5.5 0 014.5 2h6a.5.5 0 01.5.5v6a.5.5 0 01-.5.5H9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+    Duplicate
+  </button>
+  <div class="sep"></div>
+  <!-- INCLUDE BASE TOGGLE -->
+  <label class="toggle-wrap" title="Include target texture as background in exported image">
+    <div class="toggle">
+      <input type="checkbox" id="tog-base" checked>
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </div>
+    Include base
+  </label>
+  <div class="sep"></div>
+  <button class="btn primary" onclick="exportJSON()">
+    <svg viewBox="0 0 13 13"><path d="M6.5 5v6M4 9l2.5 2 2.5-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M9.5 7A3 3 0 105.2 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+    Export JSON
+  </button>
+  <button class="btn primary" onclick="exportImage()" id="btn-export-img" disabled>
+    <svg viewBox="0 0 13 13"><path d="M1 9l3-3 2.5 2.5 2-2L11 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/><rect x="1" y="1" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="4.5" r="1" fill="currentColor"/></svg>
+    Export image
+  </button>
+</div>
+
+<input type="file" id="src-file" accept="image/*" onchange="loadTexture(event,'src')">
+<input type="file" id="dst-file" accept="image/*" onchange="loadTexture(event,'dst')">
+<input type="file" id="json-file" accept=".json,application/json" onchange="importJSON(event)">
+
+<div id="main">
+  <!-- LEFT: MAPPINGS -->
+  <div class="side-panel">
+    <div class="panel-section">
+      <div class="panel-label">Regions / Mappings</div>
+      <div style="color:var(--text3);font-size:11px;line-height:1.5">One source region can map to multiple destinations. Click a dst tag to select it.</div>
+    </div>
+    <div id="mapping-list"></div>
+    <div class="panel-section" style="margin-top:auto">
+      <button class="btn danger" style="width:100%;justify-content:center" onclick="clearAllMappings()">
+        <svg viewBox="0 0 13 13" width="13" height="13"><path d="M2 3h9M5 3V2h3v1M10 3l-.7 8H3.7L3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+        Clear all
+      </button>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div id="workspace">
+    <div class="canvas-row">
+      <!-- SOURCE -->
+      <div class="canvas-pane" id="src-pane">
+        <div class="pane-header">
+          <span class="pane-title">Source texture</span>
+          <span class="badge" id="src-badge">no image</span>
+          <div style="flex:1"></div>
+          <span style="font-size:10px;color:var(--text3)" id="src-cursor"></span>
+        </div>
+        <div class="canvas-viewport" id="src-viewport">
+          <canvas id="src-canvas" style="position:absolute;top:0;left:0"></canvas>
+          <div class="upload-area" id="src-upload" onclick="document.getElementById('src-file').click()">
+            <div class="upload-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 13V7M7 9.5 10 7l3 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 13v2.5A.5.5 0 003.5 16h13a.5.5 0 00.5-.5V13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg></div>
+            <p>Click or drop <span>source texture</span></p>
+            <p style="font-size:10px;color:var(--text3)">PNG, JPG, WebP</p>
+          </div>
+          <div id="src-sel-container"></div>
+          <div class="zoom-controls">
+            <div class="zoom-btn" onclick="zoom('src',-1)">−</div>
+            <div class="zoom-level" id="src-zoom">100%</div>
+            <div class="zoom-btn" onclick="zoom('src',1)">+</div>
+            <div class="zoom-btn" onclick="resetZoom('src')" title="Fit">⌂</div>
+          </div>
+        </div>
+      </div>
+      <!-- TARGET -->
+      <div class="canvas-pane" id="dst-pane">
+        <div class="pane-header">
+          <span class="pane-title">Target texture</span>
+          <span class="badge" id="dst-badge">no image</span>
+          <div style="flex:1"></div>
+          <span style="font-size:10px;color:var(--text3)" id="dst-cursor"></span>
+        </div>
+        <div class="canvas-viewport" id="dst-viewport">
+          <canvas id="dst-canvas" style="position:absolute;top:0;left:0"></canvas>
+          <div class="upload-area" id="dst-upload" onclick="document.getElementById('dst-file').click()">
+            <div class="upload-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 13V7M7 9.5 10 7l3 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 13v2.5A.5.5 0 003.5 16h13a.5.5 0 00.5-.5V13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg></div>
+            <p>Click or drop <span>target texture</span></p>
+            <p style="font-size:10px;color:var(--text3)">PNG, JPG, WebP</p>
+          </div>
+          <div id="dst-sel-container"></div>
+          <div class="zoom-controls">
+            <div class="zoom-btn" onclick="zoom('dst',-1)">−</div>
+            <div class="zoom-level" id="dst-zoom">100%</div>
+            <div class="zoom-btn" onclick="zoom('dst',1)">+</div>
+            <div class="zoom-btn" onclick="resetZoom('dst')" title="Fit">⌂</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- BOTTOM BAR -->
+    <div style="height:36px;border-top:1px solid var(--border);background:var(--panel);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0">
+      <span style="font-size:11px;color:var(--text2)">Preview result:</span>
+      <button class="btn" onclick="previewResult()">
+        <svg viewBox="0 0 13 13" width="13" height="13"><path d="M1 6.5C2.5 3.5 4.5 2 6.5 2s4 1.5 5.5 4.5C10.5 9.5 8.5 11 6.5 11S2.5 9.5 1 6.5z" stroke="currentColor" stroke-width="1.3" fill="none"/><circle cx="6.5" cy="6.5" r="1.8" fill="currentColor"/></svg>
+        Preview
+      </button>
+      <span style="font-size:10px;color:var(--text3)" id="preview-info"></span>
+      <div style="flex:1"></div>
+      <span style="font-size:10px;color:var(--text3)">V=select · R=rect · Space=pan · Del=delete · Ctrl+D=duplicate · Scroll=zoom</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: PROPERTIES -->
+  <div class="side-panel right">
+    <div class="panel-section" style="overflow-y:auto;flex:1;max-height:none">
+      <div class="panel-label">Properties</div>
+      <div id="prop-empty" style="color:var(--text3);font-size:11px">Select a region to edit its properties.</div>
+      <div id="prop-form" style="display:none">
+        <div class="prop-row">
+          <span class="prop-label">Name</span>
+          <input class="prop-input" id="prop-name" type="text" oninput="updatePropName()">
+        </div>
+        <!-- SOURCE REGION -->
+        <div style="margin:8px 0 6px;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.6px">Source region (px)</div>
+        <div class="prop-row">
+          <span class="prop-label">X</span><input class="prop-input" id="prop-sx" type="number" oninput="updatePropCoords('src')">
+          <span class="prop-label" style="text-align:right">Y</span><input class="prop-input" id="prop-sy" type="number" oninput="updatePropCoords('src')">
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">W</span><input class="prop-input" id="prop-sw" type="number" min="1" oninput="updatePropCoords('src')">
+          <span class="prop-label" style="text-align:right">H</span><input class="prop-input" id="prop-sh" type="number" min="1" oninput="updatePropCoords('src')">
+        </div>
+        <!-- DST REGIONS -->
+        <div style="margin:10px 0 6px;display:flex;align-items:center;gap:6px">
+          <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.6px;flex:1">Destination regions</div>
+          <button class="btn" style="padding:2px 7px;font-size:10px" onclick="addDstToSelected()">+ Add</button>
+        </div>
+        <div id="prop-dst-list"></div>
+        <!-- SELECTED DST COORDS -->
+        <div id="prop-dst-coords" style="display:none;margin-top:8px">
+          <div style="margin-bottom:6px;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.6px">Selected dst (px)</div>
+          <div class="prop-row">
+            <span class="prop-label">X</span><input class="prop-input" id="prop-dx" type="number" oninput="updatePropDstCoords()">
+            <span class="prop-label" style="text-align:right">Y</span><input class="prop-input" id="prop-dy" type="number" oninput="updatePropDstCoords()">
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">W</span><input class="prop-input" id="prop-dw" type="number" min="1" oninput="updatePropDstCoords()">
+            <span class="prop-label" style="text-align:right">H</span><input class="prop-input" id="prop-dh" type="number" min="1" oninput="updatePropDstCoords()">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">Actions</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button class="btn" id="btn-snap-size" onclick="snapSrcToDst()" disabled style="justify-content:flex-start">
+          <svg viewBox="0 0 13 13" width="13" height="13"><path d="M2 6.5h9M8 4l3 2.5L8 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+          Snap src → dst size
+        </button>
+        <button class="btn" id="btn-snap-size2" onclick="snapDstToSrc()" disabled style="justify-content:flex-start">
+          <svg viewBox="0 0 13 13" width="13" height="13"><path d="M11 6.5H2M5 4L2 6.5 5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+          Snap dst → src size
+        </button>
+        <button class="btn danger" id="btn-del-dst" onclick="deleteSelectedDst()" disabled style="justify-content:flex-start">
+          <svg viewBox="0 0 13 13" width="13" height="13"><path d="M2 3h9M5 3V2h3v1M10 3l-.7 8H3.7L3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+          Delete dst region
+        </button>
+        <button class="btn danger" id="btn-del" onclick="deleteSelected()" disabled style="justify-content:flex-start">
+          <svg viewBox="0 0 13 13" width="13" height="13"><path d="M2 3h9M5 3V2h3v1M10 3l-.7 8H3.7L3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+          Delete region
+        </button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">Info</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.7">
+        <div><span style="color:var(--text2)">Regions:</span> <span id="info-count">0</span></div>
+        <div><span style="color:var(--text2)">Source:</span> <span id="info-src">—</span></div>
+        <div><span style="color:var(--text2)">Target:</span> <span id="info-dst">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <div class="stat"><span>Tool:</span><span class="stat-val" id="stat-tool">select</span></div>
+  <div class="stat"><span>Regions:</span><span class="stat-val" id="stat-regions">0</span></div>
+  <div class="stat"><span>Selected:</span><span class="stat-val" id="stat-sel">none</span></div>
+  <div style="flex:1"></div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="modal-bg" id="preview-modal">
+  <div class="modal" style="width:640px;max-width:92vw">
+    <h3>Mapped result preview</h3>
+    <div style="border:1px solid var(--border);border-radius:6px;overflow:auto;max-height:420px;background:#0a0a0c;display:flex;align-items:center;justify-content:center;padding:8px">
+      <canvas id="preview-canvas" style="image-rendering:pixelated;max-width:100%"></canvas>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3)" id="preview-modal-info"></div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="btn" onclick="document.getElementById('preview-modal').classList.remove('open')">Close</button>
+      <button class="btn primary" onclick="exportImage()">
+        <svg viewBox="0 0 13 13" width="13" height="13"><path d="M6.5 5v6M4 9l2.5 2 2.5-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+        Download PNG
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA MODEL ────────────────────────────────────────────────────────────────
+// mapping: { id, name, color, src: {x,y,w,h}|null, dsts: [{x,y,w,h},...] }
+// selectedDstIdx: which dst is active within the selected mapping
+
+const state = {
+  tool: 'select',
+  images: { src: null, dst: null },
+  canvases: {
+    src: { canvas:null, ctx:null, scale:1, offsetX:0, offsetY:0 },
+    dst: { canvas:null, ctx:null, scale:1, offsetX:0, offsetY:0 }
+  },
+  mappings: [],
+  selectedId: null,
+  selectedDstIdx: null,   // index into selected mapping's dsts[]
+  drawing: null,          // { which, x0,y0,x1,y1 }
+  dragging: null,
+  colorIndex: 0,
+  nextId: 1
+};
+
+const COLORS = ['#6c63ff','#4ade80','#fbbf24','#f87171','#38bdf8','#fb7185','#a78bfa','#34d399','#f97316','#06b6d4'];
+
+// ─── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  ['src','dst'].forEach(w => {
+    const c = state.canvases[w];
+    c.canvas = document.getElementById(w+'-canvas');
+    c.ctx = c.canvas.getContext('2d');
+    c.ctx.imageSmoothingEnabled = false;
+    const vp = document.getElementById(w+'-viewport');
+    vp.addEventListener('mousedown', e => onMouseDown(e,w));
+    vp.addEventListener('mousemove', e => onMouseMove(e,w));
+    vp.addEventListener('mouseup',   e => onMouseUp(e,w));
+    vp.addEventListener('mouseleave',() => document.getElementById(w+'-cursor').textContent='');
+    vp.addEventListener('wheel', e => { e.preventDefault(); onWheel(e,w); }, {passive:false});
+    vp.addEventListener('dragover', e => e.preventDefault());
+    vp.addEventListener('drop', e => onDrop(e,w));
+    vp.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', renderAll);
+  updateUI();
+});
+
+// ─── IMAGE LOADING ─────────────────────────────────────────────────────────────
+function loadTexture(evt, w) { const f=evt.target.files[0]; if(f) loadImageFile(f,w); evt.target.value=''; }
+
+function loadImageFile(file, w) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.images[w] = img;
+    const c = state.canvases[w];
+    c.canvas.width = img.width; c.canvas.height = img.height;
+    c.ctx.imageSmoothingEnabled = false;
+    c.ctx.drawImage(img,0,0);
+    document.getElementById(w+'-upload').style.display = 'none';
+    document.getElementById(w+'-badge').textContent = img.width+'×'+img.height;
+    document.getElementById('info-'+w).textContent = img.width+'×'+img.height+' · '+file.name;
+    fitToView(w); updateUI(); URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+function onDrop(e, w) {
+  e.preventDefault();
+  const f = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('image/'));
+  if (f) loadImageFile(f, w);
+}
+
+// ─── JSON IMPORT ───────────────────────────────────────────────────────────────
+function importJSON(evt) {
+  const file = evt.target.files[0]; if (!file) return;
+  evt.target.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.mappings) { alert('Invalid mapping file — no mappings array found.'); return; }
+      // Reset
+      state.mappings = [];
+      state.selectedId = null; state.selectedDstIdx = null;
+      state.nextId = 1; state.colorIndex = 0;
+      data.mappings.forEach(m => {
+        const id = state.nextId++;
+        const color = m.color || COLORS[state.colorIndex++ % COLORS.length];
+        // Support both old format (source_region/target_region) and new (src/dsts)
+        let src = null, dsts = [];
+        if (m.source_region) {
+          const sr = m.source_region;
+          src = { x: sr.x||0, y: sr.y||0, w: sr.width||sr.w||0, h: sr.height||sr.h||0 };
+        } else if (m.src) {
+          src = { ...m.src };
+        }
+        if (m.dsts && Array.isArray(m.dsts)) {
+          dsts = m.dsts.map(d => ({ x:d.x||0, y:d.y||0, w:d.width||d.w||0, h:d.height||d.h||0 }));
+        } else if (m.target_region) {
+          const dr = m.target_region;
+          dsts = [{ x:dr.x||0, y:dr.y||0, w:dr.width||dr.w||0, h:dr.height||dr.h||0 }];
+        } else if (m.dst) {
+          dsts = [{ ...m.dst }];
+        }
+        state.mappings.push({ id, name: m.name||('region_'+id), color, src, dsts });
+        if (id >= state.nextId) state.nextId = id+1;
+      });
+      updateUI(); renderAll();
+      alert(`Imported ${state.mappings.length} region(s) from JSON.`);
+    } catch(err) { alert('Failed to parse JSON: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ─── VIEW ──────────────────────────────────────────────────────────────────────
+function fitToView(w) {
+  const img = state.images[w]; if (!img) return;
+  const vp = document.getElementById(w+'-viewport');
+  const r = vp.getBoundingClientRect();
+  const pad = 20;
+  const c = state.canvases[w];
+  c.scale = Math.min((r.width-pad*2)/img.width, (r.height-pad*2)/img.height, 4);
+  c.offsetX = (r.width - img.width*c.scale)/2;
+  c.offsetY = (r.height - img.height*c.scale)/2;
+  renderCanvas(w); updateZoomLabel(w);
+}
+function resetZoom(w) { fitToView(w); }
+
+function renderAll() { renderCanvas('src'); renderCanvas('dst'); }
+
+function renderCanvas(w) {
+  const c = state.canvases[w]; if (!c.canvas) return;
+  c.canvas.style.transform = `translate(${Math.round(c.offsetX)}px,${Math.round(c.offsetY)}px) scale(${c.scale})`;
+  c.canvas.style.transformOrigin = '0 0';
+  c.canvas.style.imageRendering = 'pixelated';
+  c.canvas.style.display = state.images[w] ? 'block' : 'none';
+  renderOverlays(w);
+}
+
+function renderOverlays(w) {
+  const cont = document.getElementById(w+'-sel-container');
+  cont.innerHTML = '';
+  const c = state.canvases[w]; if (!state.images[w]) return;
+
+  state.mappings.forEach(m => {
+    const isSelM = m.id === state.selectedId;
+
+    // Source overlay
+    if (w === 'src' && m.src) {
+      appendOverlay(cont, m, m.src, w, 'src', 0, isSelM && state.selectedDstIdx === null);
+    }
+
+    // Dst overlays
+    if (w === 'dst') {
+      m.dsts.forEach((dr, di) => {
+        const isSelDst = isSelM && state.selectedDstIdx === di;
+        appendOverlay(cont, m, dr, w, 'dst', di, isSelDst);
+      });
+    }
+  });
+
+  // Drawing preview
+  if (state.drawing && state.drawing.which === w) {
+    const d = state.drawing;
+    const x = Math.min(d.x0,d.x1), y = Math.min(d.y0,d.y1);
+    const dw = Math.abs(d.x1-d.x0), dh = Math.abs(d.y1-d.y0);
+    const div = document.createElement('div');
+    div.style.cssText = `position:absolute;border:1.5px dashed var(--accent);background:rgba(108,99,255,0.1);pointer-events:none;z-index:20;left:${c.offsetX+x*c.scale}px;top:${c.offsetY+y*c.scale}px;width:${dw*c.scale}px;height:${dh*c.scale}px`;
+    cont.appendChild(div);
+  }
+
+  document.getElementById('stat-regions').textContent = state.mappings.length;
+  document.getElementById('info-count').textContent = state.mappings.length;
+}
+
+function appendOverlay(cont, m, rect, w, role, dstIdx, isActive) {
+  const c = state.canvases[w];
+  const div = document.createElement('div');
+  div.className = 'sel-overlay';
+  div.style.left   = (c.offsetX + rect.x*c.scale)+'px';
+  div.style.top    = (c.offsetY + rect.y*c.scale)+'px';
+  div.style.width  = (rect.w*c.scale)+'px';
+  div.style.height = (rect.h*c.scale)+'px';
+  div.style.borderColor = m.color;
+  div.style.background = m.color + (isActive ? '22' : '0d');
+  div.style.boxShadow = isActive ? `0 0 0 1px ${m.color}60` : 'none';
+  div.style.borderWidth = isActive ? '2px' : '1.5px';
+  div.style.pointerEvents = 'none';
+
+  // Label: only on src, or dst when it's the first/active
+  if (role === 'src' || isActive || m.dsts.length === 1) {
+    const label = document.createElement('div');
+    label.style.cssText = `position:absolute;top:-18px;left:0;font-size:9px;padding:1px 5px;border-radius:3px;background:${m.color};color:#fff;white-space:nowrap;pointer-events:none;font-family:monospace`;
+    label.textContent = role === 'dst' && m.dsts.length > 1 ? `${m.name} [${dstIdx+1}]` : m.name;
+    div.appendChild(label);
+  }
+
+  if (isActive) {
+    ['nw','n','ne','e','se','s','sw','w'].forEach(pos => {
+      const h = document.createElement('div');
+      h.className = 'sel-handle '+pos;
+      h.style.borderColor = m.color;
+      h.dataset.handle = pos; h.dataset.which = w; h.dataset.id = m.id;
+      h.dataset.role = role; h.dataset.dstIdx = dstIdx;
+      h.addEventListener('mousedown', onHandleMouseDown);
+      div.appendChild(h);
+    });
+    div.style.pointerEvents = 'all';
+    div.addEventListener('mousedown', e => {
+      if (e.target.dataset.handle) return;
+      onOverlayMouseDown(e, m.id, w, role, dstIdx);
+    });
+  } else {
+    // Make non-active overlays clickable to select
+    div.style.pointerEvents = 'all';
+    div.style.cursor = 'pointer';
+    div.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      state.selectedId = m.id;
+      state.selectedDstIdx = role === 'dst' ? dstIdx : null;
+      updateUI(); renderAll();
+    });
+  }
+  cont.appendChild(div);
+}
+
+// ─── COORDS ───────────────────────────────────────────────────────────────────
+function viewToTex(e, w) {
+  const vp = document.getElementById(w+'-viewport');
+  const r = vp.getBoundingClientRect();
+  const c = state.canvases[w];
+  return { x:(e.clientX-r.left-c.offsetX)/c.scale, y:(e.clientY-r.top-c.offsetY)/c.scale };
+}
+
+function clampTex(pt, w) {
+  const img = state.images[w]; if (!img) return pt;
+  return { x:Math.max(0,Math.min(img.width,pt.x)), y:Math.max(0,Math.min(img.height,pt.y)) };
+}
+
+// ─── MOUSE ────────────────────────────────────────────────────────────────────
+let isPanning=false, panStart=null;
+
+function onMouseDown(e, w) {
+  if (e.button===1 || (e.button===0 && state.tool==='pan') || e.button===2) {
+    isPanning=true;
+    panStart={x:e.clientX,y:e.clientY,ox:state.canvases[w].offsetX,oy:state.canvases[w].offsetY,w};
+    document.addEventListener('mousemove',onPanMove);
+    document.addEventListener('mouseup',onPanUp);
+    return;
+  }
+  if (state.tool==='rect') {
+    if (!state.images[w]) return;
+    const pt = clampTex(viewToTex(e,w),w);
+    state.drawing = {which:w,x0:pt.x,y0:pt.y,x1:pt.x,y1:pt.y};
+    return;
+  }
+  if (state.tool==='select') {
+    state.selectedId=null; state.selectedDstIdx=null; updateUI(); renderAll();
+  }
+}
+
+function onMouseMove(e, w) {
+  const c=state.canvases[w], img=state.images[w];
+  if (img) {
+    const pt=viewToTex(e,w), px=Math.floor(pt.x), py=Math.floor(pt.y);
+    if(px>=0&&py>=0&&px<img.width&&py<img.height) {
+      const px4=c.ctx.getImageData(px,py,1,1).data;
+      document.getElementById(w+'-cursor').textContent=`${px},${py} · rgb(${px4[0]},${px4[1]},${px4[2]})`;
+    } else document.getElementById(w+'-cursor').textContent='';
+  }
+  if (state.drawing && state.drawing.which===w) {
+    const pt=clampTex(viewToTex(e,w),w);
+    state.drawing.x1=pt.x; state.drawing.y1=pt.y;
+    renderOverlays(w); return;
+  }
+  if (state.dragging) onDragMove(e);
+}
+
+function onMouseUp(e, w) {
+  if (state.drawing && state.drawing.which===w) {
+    const d=state.drawing; state.drawing=null;
+    const x=Math.round(Math.min(d.x0,d.x1)), y=Math.round(Math.min(d.y0,d.y1));
+    const rw=Math.round(Math.abs(d.x1-d.x0)), rh=Math.round(Math.abs(d.y1-d.y0));
+    if (rw>2 && rh>2) {
+      const sel = state.mappings.find(m=>m.id===state.selectedId);
+      if (w==='src') {
+        if (sel && !sel.src) {
+          sel.src={x,y,w:rw,h:rh};
+        } else {
+          // New region
+          const color=COLORS[state.colorIndex++%COLORS.length];
+          const id=state.nextId++;
+          const nm={id,name:'region_'+id,color,src:{x,y,w:rw,h:rh},dsts:[]};
+          state.mappings.push(nm);
+          state.selectedId=id; state.selectedDstIdx=null;
+        }
+      } else if (w==='dst') {
+        if (sel) {
+          sel.dsts.push({x,y,w:rw,h:rh});
+          state.selectedDstIdx=sel.dsts.length-1;
+        } else {
+          // new mapping with only dst
+          const color=COLORS[state.colorIndex++%COLORS.length];
+          const id=state.nextId++;
+          const nm={id,name:'region_'+id,color,src:null,dsts:[{x,y,w:rw,h:rh}]};
+          state.mappings.push(nm);
+          state.selectedId=id; state.selectedDstIdx=0;
+        }
+      }
+      updateUI();
+    }
+    renderAll(); return;
+  }
+  if (state.dragging) { state.dragging=null; document.removeEventListener('mousemove',onDragMove); document.removeEventListener('mouseup',onDragUpGlobal); }
+}
+
+function onPanMove(e) {
+  if (!isPanning||!panStart) return;
+  const c=state.canvases[panStart.w];
+  c.offsetX=panStart.ox+(e.clientX-panStart.x);
+  c.offsetY=panStart.oy+(e.clientY-panStart.y);
+  renderCanvas(panStart.w);
+}
+function onPanUp() { isPanning=false; panStart=null; document.removeEventListener('mousemove',onPanMove); document.removeEventListener('mouseup',onPanUp); }
+
+function onWheel(e, w) {
+  const c=state.canvases[w];
+  const vp=document.getElementById(w+'-viewport');
+  const r=vp.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const delta=e.deltaY<0?1.15:1/1.15;
+  const old=c.scale;
+  c.scale=Math.min(32,Math.max(0.05,c.scale*delta));
+  c.offsetX=mx-(mx-c.offsetX)*(c.scale/old);
+  c.offsetY=my-(my-c.offsetY)*(c.scale/old);
+  renderCanvas(w); updateZoomLabel(w);
+}
+
+function zoom(w,dir) {
+  const c=state.canvases[w];
+  const vp=document.getElementById(w+'-viewport');
+  const r=vp.getBoundingClientRect();
+  const cx=r.width/2, cy=r.height/2;
+  const delta=dir>0?1.25:1/1.25, old=c.scale;
+  c.scale=Math.min(32,Math.max(0.05,c.scale*delta));
+  c.offsetX=cx-(cx-c.offsetX)*(c.scale/old);
+  c.offsetY=cy-(cy-c.offsetY)*(c.scale/old);
+  renderCanvas(w); updateZoomLabel(w);
+}
+
+function updateZoomLabel(w) { document.getElementById(w+'-zoom').textContent=Math.round(state.canvases[w].scale*100)+'%'; }
+
+// ─── OVERLAY MOUSE ────────────────────────────────────────────────────────────
+function onOverlayMouseDown(e, id, w, role, dstIdx) {
+  e.stopPropagation();
+  state.selectedId=id;
+  state.selectedDstIdx=role==='dst'?dstIdx:null;
+  const m=state.mappings.find(m=>m.id===id);
+  const rect = role==='src' ? m.src : m.dsts[dstIdx];
+  if (!rect) return;
+  const pt=viewToTex(e,w);
+  state.dragging={id,w,role,dstIdx,mode:'move',origRect:{...rect},startPt:pt};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragUpGlobal);
+  updateUI(); renderAll();
+}
+
+function onHandleMouseDown(e) {
+  e.stopPropagation(); e.preventDefault();
+  const {which:w, id, handle, role, dstIdx} = e.target.dataset;
+  const m=state.mappings.find(m=>m.id===parseInt(id));
+  const rect=role==='src'?m.src:m.dsts[parseInt(dstIdx)];
+  const pt=viewToTex(e,w);
+  state.selectedId=parseInt(id);
+  state.selectedDstIdx=role==='dst'?parseInt(dstIdx):null;
+  state.dragging={id:parseInt(id),w,role,dstIdx:parseInt(dstIdx),mode:'resize',handle,origRect:{...rect},startPt:pt};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragUpGlobal);
+  updateUI(); renderAll();
+}
+
+function onDragMove(e) {
+  const d=state.dragging; if(!d) return;
+  const pt=viewToTex(e,d.w);
+  const img=state.images[d.w];
+  const m=state.mappings.find(m=>m.id===d.id); if(!m) return;
+  const dx=pt.x-d.startPt.x, dy=pt.y-d.startPt.y;
+  let r={...d.origRect};
+  if (d.mode==='move') {
+    r.x=Math.round(d.origRect.x+dx); r.y=Math.round(d.origRect.y+dy);
+    if(img){r.x=Math.max(0,Math.min(img.width-r.w,r.x)); r.y=Math.max(0,Math.min(img.height-r.h,r.y));}
+  } else {
+    const h=d.handle;
+    if(h.includes('e')) r.w=Math.max(1,Math.round(d.origRect.w+dx));
+    if(h.includes('s')) r.h=Math.max(1,Math.round(d.origRect.h+dy));
+    if(h.includes('w')){r.x=Math.round(d.origRect.x+dx);r.w=Math.max(1,Math.round(d.origRect.w-dx));}
+    if(h.includes('n')){r.y=Math.round(d.origRect.y+dy);r.h=Math.max(1,Math.round(d.origRect.h-dy));}
+    if(img){r.x=Math.max(0,r.x);r.y=Math.max(0,r.y);r.w=Math.min(img.width-r.x,r.w);r.h=Math.min(img.height-r.y,r.h);}
+  }
+  if(d.role==='src') m.src=r; else m.dsts[d.dstIdx]=r;
+  updatePropsPanel(); renderAll();
+}
+
+function onDragUpGlobal() { state.dragging=null; document.removeEventListener('mousemove',onDragMove); document.removeEventListener('mouseup',onDragUpGlobal); }
+
+// ─── KEYBOARD ─────────────────────────────────────────────────────────────────
+function onKey(e) {
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='KeyV') setTool('select');
+  if(e.code==='KeyR') setTool('rect');
+  if(e.code==='Space'){e.preventDefault();setTool('pan');}
+  if((e.code==='Delete'||e.code==='Backspace')&&state.selectedId) deleteSelected();
+  if(e.ctrlKey&&e.code==='KeyD'){e.preventDefault();duplicateSelected();}
+  if(e.code==='Escape'){state.selectedId=null;state.selectedDstIdx=null;updateUI();renderAll();}
+}
+
+function setTool(tool) {
+  state.tool=tool;
+  ['select','rect','pan'].forEach(t=>document.getElementById('tool-'+t).classList.toggle('active',t===tool));
+  document.getElementById('stat-tool').textContent=tool;
+  ['src','dst'].forEach(w=>{
+    document.getElementById(w+'-viewport').style.cursor=tool==='pan'?'grab':tool==='rect'?'crosshair':'default';
+  });
+}
+
+// ─── MAPPING MANAGEMENT ───────────────────────────────────────────────────────
+function addMapping() {
+  const color=COLORS[state.colorIndex++%COLORS.length];
+  const id=state.nextId++;
+  state.mappings.push({id,name:'region_'+id,color,src:null,dsts:[]});
+  state.selectedId=id; state.selectedDstIdx=null;
+  updateUI(); renderAll();
+}
+
+function addDstToSelected() {
+  const m=state.mappings.find(m=>m.id===state.selectedId); if(!m) return;
+  m.dsts.push({x:0,y:0,w:64,h:64});
+  state.selectedDstIdx=m.dsts.length-1;
+  updateUI(); renderAll();
+}
+
+function deleteSelected() {
+  if(!state.selectedId) return;
+  state.mappings=state.mappings.filter(m=>m.id!==state.selectedId);
+  state.selectedId=null; state.selectedDstIdx=null;
+  updateUI(); renderAll();
+}
+
+function deleteSelectedDst() {
+  const m=state.mappings.find(m=>m.id===state.selectedId); if(!m) return;
+  if(state.selectedDstIdx===null||m.dsts.length===0) return;
+  m.dsts.splice(state.selectedDstIdx,1);
+  state.selectedDstIdx=m.dsts.length>0?Math.min(state.selectedDstIdx,m.dsts.length-1):null;
+  updateUI(); renderAll();
+}
+
+function duplicateSelected() {
+  if(!state.selectedId) return;
+  const orig=state.mappings.find(m=>m.id===state.selectedId); if(!orig) return;
+  const color=COLORS[state.colorIndex++%COLORS.length];
+  const id=state.nextId++;
+  const nm={
+    id, name:orig.name, color,
+    src:orig.src?{...orig.src}:null,
+    dsts:orig.dsts.map(d=>({...d,x:d.x+10,y:d.y+10}))
+  };
+  state.mappings.push(nm);
+  state.selectedId=id; state.selectedDstIdx=orig.dsts.length>0?0:null;
+  updateUI(); renderAll();
+}
+
+function clearAllMappings() {
+  if(!confirm('Delete all regions?')) return;
+  state.mappings=[]; state.selectedId=null; state.selectedDstIdx=null;
+  updateUI(); renderAll();
+}
+
+function snapSrcToDst() {
+  const m=state.mappings.find(m=>m.id===state.selectedId); if(!m) return;
+  const di=state.selectedDstIdx; if(di===null||!m.dsts[di]) return;
+  const dr=m.dsts[di];
+  if(!m.src) m.src={x:0,y:0,w:dr.w,h:dr.h};
+  else {m.src.w=dr.w;m.src.h=dr.h;}
+  updateUI(); renderAll();
+}
+
+function snapDstToSrc() {
+  const m=state.mappings.find(m=>m.id===state.selectedId); if(!m||!m.src) return;
+  const di=state.selectedDstIdx; if(di===null||!m.dsts[di]) return;
+  m.dsts[di].w=m.src.w; m.dsts[di].h=m.src.h;
+  updateUI(); renderAll();
+}
+
+// ─── UI UPDATE ────────────────────────────────────────────────────────────────
+function updateUI() {
+  const hasSrc=!!state.images.src, hasDst=!!state.images.dst;
+  const sel=state.mappings.find(m=>m.id===state.selectedId);
+  const selDst=sel&&state.selectedDstIdx!==null?sel.dsts[state.selectedDstIdx]:null;
+  document.getElementById('btn-add').disabled=!(hasSrc||hasDst);
+  document.getElementById('btn-dup').disabled=!sel;
+  document.getElementById('btn-del').disabled=!sel;
+  document.getElementById('btn-del-dst').disabled=!selDst;
+  document.getElementById('btn-snap-size').disabled=!sel||!sel.src||!selDst;
+  document.getElementById('btn-snap-size2').disabled=!sel||!sel.src||!selDst;
+  document.getElementById('btn-export-img').disabled=!hasDst;
+  document.getElementById('stat-sel').textContent=sel?(sel.name+(selDst?` [dst ${state.selectedDstIdx+1}]`:'')):'none';
+  renderMappingList();
+  updatePropsPanel();
+}
+
+function renderMappingList() {
+  const list=document.getElementById('mapping-list');
+  list.innerHTML='';
+  if(state.mappings.length===0){
+    list.innerHTML='<div style="padding:12px;color:var(--text3);font-size:11px;text-align:center">No regions yet.<br>Load textures and draw<br>a region (R key).</div>';
+    return;
+  }
+  state.mappings.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='mapping-item'+(m.id===state.selectedId?' selected':'');
+    div.onclick=()=>{state.selectedId=m.id;state.selectedDstIdx=m.dsts.length>0?0:null;updateUI();renderAll();};
+    const hasSrc=!!m.src;
+    let dstTags='';
+    m.dsts.forEach((dr,di)=>{
+      const isSel=m.id===state.selectedId&&state.selectedDstIdx===di;
+      dstTags+=`<span class="mapping-dst-tag${isSel?' sel-dst':''}" onclick="event.stopPropagation();selectDst(${m.id},${di})" title="${dr.x},${dr.y} ${dr.w}×${dr.h}">dst ${di+1}: ${dr.w}×${dr.h}</span>`;
+    });
+    if(m.dsts.length===0) dstTags='<span style="color:var(--red);font-size:10px">no dst</span>';
+    div.innerHTML=`
+      <div class="mapping-color" style="background:${m.color}"></div>
+      <div class="mapping-info">
+        <div class="mapping-name">${m.name}</div>
+        <div class="mapping-coords">${hasSrc?`src: ${m.src.x},${m.src.y} ${m.src.w}×${m.src.h}`:'<span style="color:var(--red)">no src</span>'}</div>
+        <div style="margin-top:3px">${dstTags}</div>
+      </div>
+      <button class="mapping-del" onclick="event.stopPropagation();deleteMappingById(${m.id})">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>`;
+    list.appendChild(div);
+  });
+}
+
+function selectDst(id, di) {
+  state.selectedId=id; state.selectedDstIdx=di;
+  updateUI(); renderAll();
+}
+
+function deleteMappingById(id) {
+  state.mappings=state.mappings.filter(m=>m.id!==id);
+  if(state.selectedId===id){state.selectedId=null;state.selectedDstIdx=null;}
+  updateUI(); renderAll();
+}
+
+function updatePropsPanel() {
+  const sel=state.mappings.find(m=>m.id===state.selectedId);
+  const form=document.getElementById('prop-form');
+  const empty=document.getElementById('prop-empty');
+  if(!sel){form.style.display='none';empty.style.display='';return;}
+  form.style.display=''; empty.style.display='none';
+  document.getElementById('prop-name').value=sel.name;
+  const sr=sel.src||{};
+  document.getElementById('prop-sx').value=sr.x??'';
+  document.getElementById('prop-sy').value=sr.y??'';
+  document.getElementById('prop-sw').value=sr.w??'';
+  document.getElementById('prop-sh').value=sr.h??'';
+  // Dst list
+  const dstList=document.getElementById('prop-dst-list');
+  dstList.innerHTML='';
+  sel.dsts.forEach((dr,di)=>{
+    const isSel=state.selectedDstIdx===di;
+    const row=document.createElement('div');
+    row.className='dst-list-item';
+    row.style.cursor='pointer';
+    row.style.background=isSel?'rgba(108,99,255,0.1)':'';
+    row.style.borderRadius='4px';
+    row.style.padding='3px 4px';
+    row.onclick=()=>selectDst(sel.id,di);
+    row.innerHTML=`<span class="dst-index">${di+1}</span><span style="flex:1;font-size:10px;color:${isSel?'var(--accent2)':'var(--text2)'}">${dr.x},${dr.y} · ${dr.w}×${dr.h}</span>
+      <button style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 2px" onclick="event.stopPropagation();removeDst(${sel.id},${di})" title="Remove">
+        <svg width="9" height="9" viewBox="0 0 9 9"><path d="M1 1l7 7M8 1L1 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>`;
+    dstList.appendChild(row);
+  });
+  if(sel.dsts.length===0){
+    dstList.innerHTML='<div style="font-size:10px;color:var(--text3);padding:4px 0">No destinations. Draw on target or click + Add.</div>';
+  }
+  // Dst coords
+  const coordsDiv=document.getElementById('prop-dst-coords');
+  if(state.selectedDstIdx!==null&&sel.dsts[state.selectedDstIdx]){
+    coordsDiv.style.display='';
+    const dr=sel.dsts[state.selectedDstIdx];
+    document.getElementById('prop-dx').value=dr.x;
+    document.getElementById('prop-dy').value=dr.y;
+    document.getElementById('prop-dw').value=dr.w;
+    document.getElementById('prop-dh').value=dr.h;
+  } else { coordsDiv.style.display='none'; }
+}
+
+function updatePropName() {
+  const sel=state.mappings.find(m=>m.id===state.selectedId); if(!sel) return;
+  sel.name=document.getElementById('prop-name').value;
+  renderMappingList(); renderAll();
+}
+
+function updatePropCoords(role) {
+  const sel=state.mappings.find(m=>m.id===state.selectedId); if(!sel) return;
+  const pre=role==='src'?'s':'d';
+  const x=parseInt(document.getElementById('prop-'+pre+'x').value)||0;
+  const y=parseInt(document.getElementById('prop-'+pre+'y').value)||0;
+  const w=Math.max(1,parseInt(document.getElementById('prop-'+pre+'w').value)||1);
+  const h=Math.max(1,parseInt(document.getElementById('prop-'+pre+'h').value)||1);
+  sel.src={x,y,w,h};
+  renderAll(); renderMappingList();
+}
+
+function updatePropDstCoords() {
+  const sel=state.mappings.find(m=>m.id===state.selectedId); if(!sel) return;
+  if(state.selectedDstIdx===null||!sel.dsts[state.selectedDstIdx]) return;
+  const x=parseInt(document.getElementById('prop-dx').value)||0;
+  const y=parseInt(document.getElementById('prop-dy').value)||0;
+  const w=Math.max(1,parseInt(document.getElementById('prop-dw').value)||1);
+  const h=Math.max(1,parseInt(document.getElementById('prop-dh').value)||1);
+  sel.dsts[state.selectedDstIdx]={x,y,w,h};
+  renderAll(); renderMappingList();
+}
+
+function removeDst(id, di) {
+  const m=state.mappings.find(m=>m.id===id); if(!m) return;
+  m.dsts.splice(di,1);
+  if(state.selectedId===id){
+    state.selectedDstIdx=m.dsts.length>0?Math.min(state.selectedDstIdx||0,m.dsts.length-1):null;
+  }
+  updateUI(); renderAll();
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportJSON() {
+  const data={
+    version:2,
+    created:new Date().toISOString(),
+    source:state.images.src?{width:state.images.src.width,height:state.images.src.height}:null,
+    target:state.images.dst?{width:state.images.dst.width,height:state.images.dst.height}:null,
+    mappings:state.mappings.map(m=>({
+      id:m.id, name:m.name, color:m.color,
+      src:m.src?{x:m.src.x,y:m.src.y,width:m.src.w,height:m.src.h}:null,
+      dsts:m.dsts.map(d=>({x:d.x,y:d.y,width:d.w,height:d.h}))
+    }))
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='texture-mappings.json'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function buildMappedCanvas() {
+  const dstImg=state.images.dst, srcImg=state.images.src;
+  if (!dstImg) return null;
+  const out=document.createElement('canvas');
+  out.width=dstImg.width; out.height=dstImg.height;
+  const ctx=out.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  const includeBase=document.getElementById('tog-base').checked;
+  if (includeBase) ctx.drawImage(dstImg,0,0);
+  state.mappings.forEach(m=>{
+    if(!m.src||m.dsts.length===0||!srcImg) return;
+    m.dsts.forEach(dr=>{
+      const tmp=document.createElement('canvas');
+      tmp.width=dr.w; tmp.height=dr.h;
+      const tctx=tmp.getContext('2d');
+      tctx.imageSmoothingEnabled=false;
+      tctx.drawImage(srcImg,m.src.x,m.src.y,m.src.w,m.src.h,0,0,dr.w,dr.h);
+      ctx.drawImage(tmp,dr.x,dr.y);
+    });
+  });
+  return out;
+}
+
+function previewResult() {
+  const mapped=buildMappedCanvas();
+  if(!mapped){alert('Load a target texture first.');return;}
+  const pc=document.getElementById('preview-canvas');
+  pc.width=mapped.width; pc.height=mapped.height;
+  const ctx=pc.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(mapped,0,0);
+  const totalDsts=state.mappings.reduce((s,m)=>s+m.dsts.length,0);
+  const info=`${mapped.width}×${mapped.height}px · ${state.mappings.length} region(s) · ${totalDsts} destination(s) · base: ${document.getElementById('tog-base').checked?'included':'excluded'}`;
+  document.getElementById('preview-modal-info').textContent=info;
+  document.getElementById('preview-info').textContent=`${totalDsts} dst(s) applied`;
+  document.getElementById('preview-modal').classList.add('open');
+}
+
+function exportImage() {
+  const mapped=buildMappedCanvas(); if(!mapped){alert('Load a target texture first.');return;}
+  mapped.toBlob(blob=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='mapped-texture.png'; a.click();
+    URL.revokeObjectURL(a.href);
+  },'image/png');
+}
+
+// ─── MODAL CLOSE ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.code==='Escape')document.getElementById('preview-modal').classList.remove('open');});
+document.getElementById('preview-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+
+updateUI();
+</script>
+</body>
+  </html>
