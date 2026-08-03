@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Community Post Card</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: repeating-conic-gradient(#1a1a1a 0% 25%, #121212 0% 50%) 0 0 / 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #e0e0e0;
+    gap: 24px;
+  }
+
+  h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.05em; color: #888; text-transform: uppercase; }
+
+  .panel {
+    background: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 22px 26px;
+    width: 100%;
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel h2 { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 0.07em; }
+
+  .row { display: flex; gap: 10px; align-items: center; }
+
+  input[type="text"], input[type="password"] {
+    flex: 1;
+    background: #111;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    color: #e0e0e0;
+    padding: 9px 13px;
+    font-size: 0.93rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: #555; }
+  input::placeholder { color: #444; }
+
+  button.btn {
+    background: #cc0000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 17px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  button.btn:hover { background: #aa0000; }
+  button.btn:disabled { background: #3a3a3a; color: #666; cursor: not-allowed; }
+
+  .hint { font-size: 0.76rem; color: #555; line-height: 1.5; }
+  .hint a { color: #777; }
+  .hint code { background: #2a2a2a; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+  .status-line { font-size: 0.83rem; min-height: 1.2em; }
+  .err { color: #e06060; }
+  .ok  { color: #5bba5b; }
+  .inf { color: #888; }
+
+  .spinner {
+    display: inline-block; width: 13px; height: 13px;
+    border: 2px solid #444; border-top-color: #cc0000;
+    border-radius: 50%; animation: spin 0.65s linear infinite;
+    vertical-align: middle; margin-right: 5px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Post list */
+  #post-list { display: flex; flex-direction: column; gap: 7px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+  #post-list::-webkit-scrollbar { width: 5px; }
+  #post-list::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  .post-item {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 9px;
+    padding: 11px 13px;
+    cursor: pointer;
+    font-size: 0.86rem;
+    color: #bbb;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .post-item:hover { border-color: #555; background: #181818; color: #eee; }
+
+  /* ── THE CARD ── */
+  #card-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 680px;
+  }
+  .card-controls { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; }
+
+  #post-card {
+    background: #212121;
+    border: 2px solid #3d3d3d;
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    width: 100%;
+    box-shadow: 8px 10px 32px 0 rgba(0,0,0,0.8);
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 11px;
+  }
+  .avatar-wrap {
+    width: 38px; height: 38px; border-radius: 50%;
+    overflow: hidden; flex-shrink: 0;
+    background: #333;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 700; color: #fff;
+  }
+  .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+  .channel-name { font-size: 0.93rem; font-weight: 600; color: #f1f1f1; }
+  .post-date { font-size: 0.78rem; color: #888; margin-top: 1px; }
+  .three-dots { margin-left: auto; color: #777; font-size: 1.25rem; cursor: default; line-height:1; }
+
+  .card-text {
+    font-size: 0.91rem;
+    color: #ddd;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 13px;
+  }
+  .card-text:empty { display: none; }
+
+  .card-img {
+    width: 100%;
+    border-radius: 11px;
+    display: block;
+    max-height: 440px;
+    object-fit: cover;
+    margin-bottom: 13px;
+  }
+
+  .card-footer { display: flex; align-items: center; gap: 16px; }
+  .like-group { display: flex; align-items: center; gap: 5px; color: #999; font-size: 0.85rem; }
+  .like-group svg { width: 17px; height: 17px; fill: #999; }
+
+  button.btn.sec {
+    background: #2a2a2a; color: #aaa; font-size: 0.8rem; padding: 7px 13px;
+  }
+  button.btn.sec:hover { background: #383838; color: #eee; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>YouTube Community Post Card</h1>
+
+<!-- API Key -->
+<div class="panel">
+  <h2>YouTube Data API Key <span style="color:#444">(for channel lookup only)</span></h2>
+  <div class="row">
+    <input type="password" id="api-key" placeholder="AIza…" autocomplete="off">
+  </div>
+  <p class="hint">
+    Only used to resolve a handle → channel ID.<br>
+    <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a>
+    → Enable <b>YouTube Data API v3</b> → Credentials → API Key → restrict to public data. ✓
+  </p>
+</div>
+
+<!-- Handle -->
+<div class="panel">
+  <h2>Channel Handle</h2>
+  <div class="row">
+    <input type="text" id="handle" placeholder="@knarfy" autocomplete="off">
+    <button class="btn" id="find-btn" onclick="findChannel()">Find</button>
+  </div>
+  <div class="status-line" id="ch-status"></div>
+</div>
+
+<!-- Post list -->
+<div class="panel hidden" id="panel-posts">
+  <h2>Pick a Community Post</h2>
+  <div id="post-list"></div>
+  <div class="status-line" id="post-status"></div>
+</div>
+
+<!-- Card output -->
+<div id="card-wrap" class="hidden">
+  <div class="card-controls">
+    <button class="btn sec" onclick="exportPng()">⬇ Save as PNG</button>
+    <button class="btn sec" onclick="goBack()">↩ Pick another post</button>
+    <button class="btn sec" onclick="resetAll()">⟳ Start over</button>
+  </div>
+  <div id="post-card">
+    <div class="card-header">
+      <div class="avatar-wrap" id="card-av"></div>
+      <div>
+        <div class="channel-name" id="card-name"></div>
+        <div class="post-date" id="card-date"></div>
+      </div>
+      <span class="three-dots">⋮</span>
+    </div>
+    <div class="card-text" id="card-text"></div>
+    <img class="card-img hidden" id="card-img" alt="" crossorigin="anonymous">
+    <div class="card-footer">
+      <div class="like-group">
+        <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+        <span id="card-likes">—</span>
+      </div>
+      <div class="like-group">
+        <svg viewBox="0 0 24 24" style="transform:scaleY(-1)"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+      </div>
+      <div class="like-group" style="margin-left:2px;">
+        <svg viewBox="0 0 24 24" style="fill:#999;width:17px;height:17px;"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────
+let gChannelId = '';
+let gChannelName = '';
+let gAvatarUrl = '';
+let gPosts = [];
+
+// ── Helpers ────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function status(el, html, cls = '') {
+  el.className = 'status-line ' + cls;
+  el.innerHTML = html;
+}
+function loading(el, msg) {
+  status(el, `<span class="spinner"></span>${msg}`, 'inf');
+}
+function err(el, msg) { status(el, '✕ ' + msg, 'err'); }
+function ok(el, msg)  { status(el, '✓ ' + msg, 'ok'); }
+
+function fmtCount(n) {
+  if (!n && n !== 0) return '—';
+  n = parseInt(n);
+  if (isNaN(n)) return '—';
+  if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
+  return String(n);
+}
+
+function timeAgo(publishedAt) {
+  if (!publishedAt) return '';
+  const diff = Date.now() - new Date(publishedAt);
+  const d = Math.floor(diff / 86400000);
+  if (d < 1) return 'today';
+  if (d === 1) return '1 day ago';
+  if (d < 30) return d + ' days ago';
+  const m = Math.floor(d / 30);
+  if (m < 12) return m + ' month' + (m>1?'s':'') + ' ago';
+  const y = Math.floor(m / 12);
+  return y + ' year' + (y>1?'s':'') + ' ago';
+}
+
+// ── Step 1: Resolve channel handle → ID ───────────────
+async function findChannel() {
+  const key    = $('api-key').value.trim();
+  const handle = $('handle').value.trim().replace(/^@/, '');
+  const el     = $('ch-status');
+  if (!key)    { err(el, 'Paste your API key first.'); return; }
+  if (!handle) { err(el, 'Enter a channel handle.'); return; }
+
+  loading(el, 'Looking up channel…');
+  $('find-btn').disabled = true;
+
+  try {
+    // forHandle param (official, works for @handles)
+    let url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=${encodeURIComponent(handle)}&key=${key}`;
+    let r = await fetch(url);
+    let d = await r.json();
+
+    if (d.error) throw new Error(d.error.message);
+
+    if (!d.items?.length) {
+      // fallback: search
+      url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent('@'+handle)}&maxResults=1&key=${key}`;
+      r = await fetch(url); d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      if (!d.items?.length) throw new Error(`Channel "@${handle}" not found.`);
+      gChannelId   = d.items[0].snippet.channelId || d.items[0].id.channelId;
+      gChannelName = d.items[0].snippet.channelTitle;
+      gAvatarUrl   = d.items[0].snippet.thumbnails?.default?.url || '';
+    } else {
+      gChannelId   = d.items[0].id;
+      gChannelName = d.items[0].snippet.title;
+      gAvatarUrl   = d.items[0].snippet.thumbnails?.default?.url || '';
+    }
+
+    ok(el, `Found: ${gChannelName}`);
+    loadPosts();
+  } catch(e) {
+    err(el, e.message);
+  } finally {
+    $('find-btn').disabled = false;
+  }
+}
+
+// ── Step 2: Fetch community posts via YouTube's internal browse API ──
+async function loadPosts() {
+  const panel  = $('panel-posts');
+  const listEl = $('post-list');
+  const stEl   = $('post-status');
+  panel.classList.remove('hidden');
+  listEl.innerHTML = '';
+  loading(stEl, 'Fetching community posts…');
+
+  try {
+    // YouTube's internal API — same endpoint the website uses
+    // No auth needed for public channels
+    const CORS = 'https://corsproxy.io/?';
+    const YT   = 'https://www.youtube.com/youtubei/v1/browse?prettyPrint=false';
+
+    const body = {
+      context: {
+        client: {
+          clientName: 'WEB',
+          clientVersion: '2.20240101.00.00',
+          hl: 'en',
+          gl: 'US'
+        }
+      },
+      browseId: gChannelId,
+      params: 'EgmKAQnWHYABCIAB'  // "Community" tab selector token
+    };
+
+    const resp = await fetch(CORS + encodeURIComponent(YT), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    gPosts = parsePosts(data);
+
+    if (!gPosts.length) {
+      err(stEl, 'No community posts found. This channel may not have a Community tab yet.');
+      return;
+    }
+
+    stEl.innerHTML = '';
+    gPosts.forEach((p, i) => {
+      const div = document.createElement('div');
+      div.className = 'post-item';
+      div.textContent = p.text || (p.imageUrl ? '[image post]' : '[post]');
+      div.onclick = () => showCard(p);
+      listEl.appendChild(div);
+    });
+
+  } catch(e) {
+    err(stEl, 'Could not load posts: ' + e.message +
+      '. Try opening the HTML file locally (not via file://) or check the CORS proxy.');
+  }
+}
+
+// ── Parse the messy YouTube internal response ──────────
+function parsePosts(data) {
+  const posts = [];
+
+  function walkRuns(runs) {
+    if (!runs) return '';
+    return runs.map(r => r.text || '').join('');
+  }
+
+  function findIn(obj, key) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    if (key in obj) return obj[key];
+    for (const v of Object.values(obj)) {
+      const found = findIn(v, key);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+
+  // Dig for backstagePostThreadRenderer or sharedPostRenderer items
+  function collectPosts(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) { obj.forEach(collectPosts); return; }
+
+    if (obj.backstagePostRenderer) {
+      const r = obj.backstagePostRenderer;
+      const text = walkRuns(r.contentText?.runs);
+      const imgArr = r.backstageAttachment?.backstageImageRenderer?.image?.thumbnails
+                  || r.backstageAttachment?.postMultiImageRenderer?.images?.flatMap(i =>
+                      i.backstageImageRenderer?.image?.thumbnails || []);
+      const imgUrl = Array.isArray(imgArr) && imgArr.length
+        ? imgArr[imgArr.length - 1].url : '';
+      const likes = r.voteCount?.simpleText || '';
+      const date  = r.publishedTimeText?.runs?.[0]?.text
+                 || r.publishedTimeText?.simpleText || '';
+      posts.push({ text, imageUrl: imgUrl, likes, date });
+      return; // don't recurse into children
+    }
+
+    for (const v of Object.values(obj)) collectPosts(v);
+  }
+
+  collectPosts(data);
+  return posts;
+}
+
+// ── Step 3: Render the card ────────────────────────────
+async function showCard(post) {
+  // Avatar
+  const av = $('card-av');
+  av.innerHTML = '';
+  if (gAvatarUrl) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.crossOrigin = 'anonymous';
+    // use corsproxy to avoid tainted canvas
+    img.src = 'https://corsproxy.io/?' + encodeURIComponent(gAvatarUrl);
+    av.appendChild(img);
+  } else {
+    av.textContent = gChannelName.charAt(0).toUpperCase();
+    av.style.background = '#c00';
+  }
+
+  $('card-name').textContent = gChannelName;
+  $('card-date').textContent = post.date || '';
+  $('card-text').textContent = post.text || '';
+  $('card-likes').textContent = post.likes || '—';
+
+  const imgEl = $('card-img');
+  if (post.imageUrl) {
+    imgEl.src = 'https://corsproxy.io/?' + encodeURIComponent(post.imageUrl);
+    imgEl.classList.remove('hidden');
+  } else {
+    imgEl.classList.add('hidden');
+  }
+
+  $('card-wrap').classList.remove('hidden');
+  setTimeout(() => $('post-card').scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+}
+
+// ── Export ─────────────────────────────────────────────
+async function exportPng() {
+  const card = $('post-card');
+  const canvas = await html2canvas(card, {
+    backgroundColor: null,
+    scale: 2,
+    useCORS: true,
+    allowTaint: false,
+    logging: false
+  });
+  const a = document.createElement('a');
+  a.download = 'community-post.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function goBack() {
+  $('card-wrap').classList.add('hidden');
+  $('panel-posts').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetAll() {
+  $('card-wrap').classList.add('hidden');
+  $('panel-posts').classList.add('hidden');
+  $('post-list').innerHTML = '';
+  $('ch-status').innerHTML = '';
+  $('post-status').innerHTML = '';
+  gPosts = []; gChannelId = ''; gChannelName = ''; gAvatarUrl = '';
+}
+
+// Enter key on handle
+$('handle').addEventListener('keydown', e => { if (e.key === 'Enter') findChannel(); });
+</script>
+</body>
+</html>
