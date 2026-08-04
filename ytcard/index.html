@@ -3,504 +3,398 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YT Community Post Card</title>
+<title>YouTube Post Card Generator</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#111827;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 16px;gap:24px}
+  h1{color:#fff;font-size:1.35rem;font-weight:700;letter-spacing:-.02em;text-align:center}
+  h1 em{color:#ff4444;font-style:normal}
 
-  body {
-    min-height: 100vh;
-    background: repeating-conic-gradient(#1a1a1a 0% 25%, #121212 0% 50%) 0 0 / 24px 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 40px 20px;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    color: #e0e0e0;
-    gap: 24px;
+  .panel{background:#1c1c1c;border:1.5px solid #2e2e2e;border-radius:16px;padding:24px;width:100%;max-width:540px;display:flex;flex-direction:column;gap:14px}
+  .panel-title{color:#777;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .hint{color:#555;font-size:.78rem;line-height:1.5}
+  .hint code{color:#888;background:#222;padding:1px 5px;border-radius:4px;font-size:.75rem}
+
+  .row{display:flex;gap:8px}
+  input,textarea{flex:1;background:#111;border:1.5px solid #2a2a2a;border-radius:9px;color:#e0e0e0;font-size:.9rem;padding:9px 13px;outline:none;font-family:inherit;transition:border-color .15s}
+  input:focus,textarea:focus{border-color:#ff4444}
+  input::placeholder,textarea::placeholder{color:#3a3a3a}
+  textarea{resize:vertical;line-height:1.5}
+
+  .cols{display:flex;gap:10px}
+  .cols .field{flex:1;display:flex;flex-direction:column;gap:5px}
+  label{color:#666;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+
+  btn,button{border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s,transform .1s}
+  button:active{transform:scale(.97)}
+  .btn-red{background:#e03333;color:#fff;font-size:.88rem;padding:9px 18px;white-space:nowrap}
+  .btn-red:hover{background:#c82b2b}
+  .btn-red:disabled{background:#444;cursor:not-allowed}
+  .btn-gray{background:#252525;border:1.5px solid #383838;color:#bbb;font-size:.85rem;padding:9px 18px}
+  .btn-gray:hover{background:#2e2e2e;color:#fff}
+
+  .status{font-size:.8rem;min-height:17px;transition:color .2s}
+  .s-idle{color:#555}.s-busy{color:#f59e0b}.s-ok{color:#34d399}.s-err{color:#f87171}
+
+  .divider{display:flex;align-items:center;gap:10px;color:#333;font-size:.75rem}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:#262626}
+
+  /* ── CARD ── */
+  #out{display:none;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:560px}
+  .out-label{color:#444;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase}
+
+  .yt-card{
+    background:#212121;
+    border:2px solid #383838;
+    border-radius:18px;
+    box-shadow:8px 8px 0 rgba(0,0,0,.7);
+    width:100%;padding:14px 14px 10px;
+    font-family:'Roboto','Segoe UI',sans-serif;color:#fff
   }
+  .yt-head{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .yt-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#e03333,#7a1111);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+  .yt-av img{width:100%;height:100%;object-fit:cover}
+  .yt-meta{flex:1;min-width:0}
+  .yt-name{font-size:.92rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:5px}
+  .yt-check{width:14px;height:14px;fill:#aaa}
+  .yt-date{font-size:.73rem;color:#888;margin-top:1px}
+  .yt-dots{color:#666;font-size:1.2rem;padding:4px;cursor:default;flex-shrink:0}
+  .yt-body{font-size:.9rem;color:#ddd;line-height:1.58;white-space:pre-wrap;word-break:break-word;margin-bottom:10px}
+  .yt-img{width:100%;border-radius:11px;display:block;margin-bottom:10px;object-fit:cover;max-height:340px;background:#2a2a2a}
+  .yt-bar{display:flex;align-items:center;gap:4px;padding-top:8px;border-top:1px solid #2a2a2a}
+  .yt-pill{display:flex;align-items:center;gap:5px;background:#2a2a2a;border-radius:20px;padding:5px 11px;color:#ccc;font-size:.78rem;font-weight:500;cursor:default}
+  .yt-pill svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+  .yt-pill-share{margin-left:auto}
 
-  h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.05em; color: #888; text-transform: uppercase; }
-
-  .panel {
-    background: #1c1c1c;
-    border: 1px solid #333;
-    border-radius: 14px;
-    padding: 22px 26px;
-    width: 100%;
-    max-width: 580px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .panel h2 { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 0.07em; }
-
-  .row { display: flex; gap: 10px; align-items: center; }
-
-  input[type="text"], input[type="password"] {
-    flex: 1;
-    background: #111;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    color: #e0e0e0;
-    padding: 9px 13px;
-    font-size: 0.93rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  input:focus { border-color: #555; }
-  input::placeholder { color: #444; }
-
-  button.btn {
-    background: #cc0000;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 9px 17px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s;
-  }
-  button.btn:hover { background: #aa0000; }
-  button.btn:disabled { background: #3a3a3a; color: #666; cursor: not-allowed; }
-
-  .hint { font-size: 0.76rem; color: #555; line-height: 1.5; }
-  .hint a { color: #777; }
-  .hint code { background: #2a2a2a; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
-
-  .status-line { font-size: 0.83rem; min-height: 1.2em; }
-  .err { color: #e06060; }
-  .ok  { color: #5bba5b; }
-  .inf { color: #888; }
-
-  .spinner {
-    display: inline-block; width: 13px; height: 13px;
-    border: 2px solid #444; border-top-color: #cc0000;
-    border-radius: 50%; animation: spin 0.65s linear infinite;
-    vertical-align: middle; margin-right: 5px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Post list */
-  #post-list { display: flex; flex-direction: column; gap: 7px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
-  #post-list::-webkit-scrollbar { width: 5px; }
-  #post-list::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-
-  .post-item {
-    background: #111;
-    border: 1px solid #2a2a2a;
-    border-radius: 9px;
-    padding: 11px 13px;
-    cursor: pointer;
-    font-size: 0.86rem;
-    color: #bbb;
-    line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: border-color 0.12s, background 0.12s;
-  }
-  .post-item:hover { border-color: #555; background: #181818; color: #eee; }
-
-  /* ── THE CARD ── */
-  #card-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    max-width: 680px;
-  }
-  .card-controls { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; }
-
-  #post-card {
-    background: #212121;
-    border: 2px solid #3d3d3d;
-    border-radius: 20px;
-    padding: 18px 18px 16px;
-    width: 100%;
-    box-shadow: 8px 10px 32px 0 rgba(0,0,0,0.8);
-    font-family: 'Roboto', 'Segoe UI', sans-serif;
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    margin-bottom: 11px;
-  }
-  .avatar-wrap {
-    width: 38px; height: 38px; border-radius: 50%;
-    overflow: hidden; flex-shrink: 0;
-    background: #333;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; font-weight: 700; color: #fff;
-  }
-  .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
-
-  .channel-name { font-size: 0.93rem; font-weight: 600; color: #f1f1f1; }
-  .post-date { font-size: 0.78rem; color: #888; margin-top: 1px; }
-  .three-dots { margin-left: auto; color: #777; font-size: 1.25rem; cursor: default; line-height:1; }
-
-  .card-text {
-    font-size: 0.91rem;
-    color: #ddd;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin-bottom: 13px;
-  }
-  .card-text:empty { display: none; }
-
-  .card-img {
-    width: 100%;
-    border-radius: 11px;
-    display: block;
-    max-height: 440px;
-    object-fit: cover;
-    margin-bottom: 13px;
-  }
-
-  .card-footer { display: flex; align-items: center; gap: 16px; }
-  .like-group { display: flex; align-items: center; gap: 5px; color: #999; font-size: 0.85rem; }
-  .like-group svg { width: 17px; height: 17px; fill: #999; }
-
-  button.btn.sec {
-    background: #2a2a2a; color: #aaa; font-size: 0.8rem; padding: 7px 13px;
-  }
-  button.btn.sec:hover { background: #383838; color: #eee; }
-
-  .hidden { display: none !important; }
+  /* spinner */
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid #444;border-top-color:#f59e0b;border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle;margin-right:4px}
+  @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<h1>YouTube Community Post Card</h1>
+<h1>YouTube Post Card <em>●</em> Generator</h1>
 
-<!-- API Key -->
 <div class="panel">
-  <h2>YouTube Data API Key <span style="color:#444">(for channel lookup only)</span></h2>
+  <div class="panel-title">Step 1 — Paste Post URL or Channel Handle</div>
+  <p class="hint">Post URL: <code>youtube.com/post/Ugkx…</code> &nbsp;·&nbsp; or channel: <code>@knarfy</code> to list recent posts</p>
   <div class="row">
-    <input type="password" id="api-key" placeholder="AIza…" autocomplete="off">
+    <input id="url-in" type="text" placeholder="https://www.youtube.com/post/Ugkx...  or  @knarfy" />
+    <button class="btn-red" id="load-btn">Load</button>
   </div>
-  <p class="hint">
-    Only used to resolve a handle → channel ID.<br>
-    <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a>
-    → Enable <b>YouTube Data API v3</b> → Credentials → API Key → restrict to public data. ✓
-  </p>
+  <div class="status s-idle" id="st"></div>
 </div>
 
-<!-- Handle -->
+<!-- post picker (shown when channel handle given) -->
+<div class="panel" id="picker-panel" style="display:none">
+  <div class="panel-title">Step 2 — Pick a Post</div>
+  <div id="picker-list" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
 <div class="panel">
-  <h2>Channel Handle</h2>
-  <div class="row">
-    <input type="text" id="handle" placeholder="@knarfy" autocomplete="off">
-    <button class="btn" id="find-btn" onclick="findChannel()">Find</button>
+  <div class="divider">or fill in manually</div>
+  <div class="cols">
+    <div class="field"><label>Channel name</label><input id="m-ch" placeholder="Knarfy"/></div>
+    <div class="field"><label>Likes</label><input id="m-lk" placeholder="13K" style="max-width:90px"/></div>
   </div>
-  <div class="status-line" id="ch-status"></div>
+  <div class="field" style="display:flex;flex-direction:column;gap:5px">
+    <label>Post text</label>
+    <textarea id="m-tx" rows="4" placeholder="What's a super sick PvP item you'd like to see…"></textarea>
+  </div>
+  <div class="cols">
+    <div class="field"><label>Date</label><input id="m-dt" placeholder="2 days ago"/></div>
+    <div class="field"><label>Image URL (opt.)</label><input id="m-im" placeholder="https://…"/></div>
+  </div>
+  <button class="btn-red" id="manual-btn">Generate Card</button>
 </div>
 
-<!-- Post list -->
-<div class="panel hidden" id="panel-posts">
-  <h2>Pick a Community Post</h2>
-  <div id="post-list"></div>
-  <div class="status-line" id="post-status"></div>
-</div>
-
-<!-- Card output -->
-<div id="card-wrap" class="hidden">
-  <div class="card-controls">
-    <button class="btn sec" onclick="exportPng()">⬇ Save as PNG</button>
-    <button class="btn sec" onclick="goBack()">↩ Pick another post</button>
-    <button class="btn sec" onclick="resetAll()">⟳ Start over</button>
-  </div>
-  <div id="post-card">
-    <div class="card-header">
-      <div class="avatar-wrap" id="card-av"></div>
-      <div>
-        <div class="channel-name" id="card-name"></div>
-        <div class="post-date" id="card-date"></div>
+<!-- output -->
+<div id="out">
+  <div class="out-label">Your card</div>
+  <div class="yt-card" id="yt-card">
+    <div class="yt-head">
+      <div class="yt-av" id="c-av"><span id="c-lt">K</span></div>
+      <div class="yt-meta">
+        <div class="yt-name" id="c-nm">
+          Knarfy
+          <svg class="yt-check" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </div>
+        <div class="yt-date" id="c-dt">2 days ago</div>
       </div>
-      <span class="three-dots">⋮</span>
+      <div class="yt-dots">⋮</div>
     </div>
-    <div class="card-text" id="card-text"></div>
-    <img class="card-img hidden" id="card-img" alt="" crossorigin="anonymous">
-    <div class="card-footer">
-      <div class="like-group">
+    <div class="yt-body" id="c-tx"></div>
+    <div id="c-img"></div>
+    <div class="yt-bar">
+      <div class="yt-pill">
         <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
-        <span id="card-likes">—</span>
+        <span id="c-lk">13K</span>
       </div>
-      <div class="like-group">
-        <svg viewBox="0 0 24 24" style="transform:scaleY(-1)"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+      <div class="yt-pill">
+        <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
       </div>
-      <div class="like-group" style="margin-left:2px;">
-        <svg viewBox="0 0 24 24" style="fill:#999;width:17px;height:17px;"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+      <div class="yt-pill yt-pill-share">
+        <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+        Share
       </div>
     </div>
   </div>
+  <button class="btn-gray" id="dl-btn">⬇ Download PNG</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
+// ── helpers ──
+const $  = id => document.getElementById(id);
+const st = (msg, cls) => { $('st').textContent = msg; $('st').className = 'status ' + cls; };
 
-// ── State ──────────────────────────────────────────────
-let gChannelId = '';
-let gChannelName = '';
-let gAvatarUrl = '';
-let gPosts = [];
+// CORS proxies to try in order
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
 
-// ── Helpers ────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-
-function status(el, html, cls = '') {
-  el.className = 'status-line ' + cls;
-  el.innerHTML = html;
-}
-function loading(el, msg) {
-  status(el, `<span class="spinner"></span>${msg}`, 'inf');
-}
-function err(el, msg) { status(el, '✕ ' + msg, 'err'); }
-function ok(el, msg)  { status(el, '✓ ' + msg, 'ok'); }
-
-function fmtCount(n) {
-  if (!n && n !== 0) return '—';
-  n = parseInt(n);
-  if (isNaN(n)) return '—';
-  if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
-  return String(n);
+async function fetchViaProxy(url) {
+  for (const proxy of PROXIES) {
+    try {
+      const r = await fetch(proxy(url), { headers: { 'x-requested-with': 'XMLHttpRequest' } });
+      if (r.ok) {
+        const text = await r.text();
+        if (text.length > 200) return text; // got real content
+      }
+    } catch(e) { /* try next */ }
+  }
+  throw new Error('All proxies failed — check your connection or fill in manually below.');
 }
 
-function timeAgo(publishedAt) {
-  if (!publishedAt) return '';
-  const diff = Date.now() - new Date(publishedAt);
-  const d = Math.floor(diff / 86400000);
-  if (d < 1) return 'today';
-  if (d === 1) return '1 day ago';
-  if (d < 30) return d + ' days ago';
-  const m = Math.floor(d / 30);
-  if (m < 12) return m + ' month' + (m>1?'s':'') + ' ago';
-  const y = Math.floor(m / 12);
-  return y + ' year' + (y>1?'s':'') + ' ago';
+// ── InnerTube API: fetch channel community posts by channel ID ──
+// Uses YouTube's internal browse API (no key needed, just a client context)
+async function innerTubeBrowse(channelId) {
+  const body = {
+    context: {
+      client: { clientName: 'WEB', clientVersion: '2.20240101.00.00', hl: 'en', gl: 'US' }
+    },
+    browseId: channelId,
+    params: 'Egljb21tdW5pdHkYAyAB' // base64 for community tab
+  };
+  // InnerTube endpoint — no API key needed for browse
+  const url = 'https://www.youtube.com/youtubei/v1/browse?prettyPrint=false';
+  const text = await fetchViaProxy(url + '&__=' + Date.now());
+  // fallback: POST isn't possible via simple proxy GET, so fetch the HTML page instead
+  throw new Error('USE_HTML');
 }
 
-// ── Step 1: Resolve channel handle → ID ───────────────
-async function findChannel() {
-  const key    = $('api-key').value.trim();
-  const handle = $('handle').value.trim().replace(/^@/, '');
-  const el     = $('ch-status');
-  if (!key)    { err(el, 'Paste your API key first.'); return; }
-  if (!handle) { err(el, 'Enter a channel handle.'); return; }
+// ── Parse ytInitialData from HTML page ──
+function parseInitialData(html) {
+  const m = html.match(/ytInitialData\s*=\s*(\{[\s\S]*?\});\s*(?:var |<\/script>|window\[)/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch(e) {
+    // try a bigger chunk
+    const start = html.indexOf('ytInitialData = ') + 16;
+    const chunk = html.slice(start, start + 2000000);
+    const end = chunk.lastIndexOf('};') + 2;
+    try { return JSON.parse(chunk.slice(0, end)); } catch(e2) { return null; }
+  }
+}
 
-  loading(el, 'Looking up channel…');
-  $('find-btn').disabled = true;
+function deepFind(obj, key, _depth=0) {
+  if (_depth > 30 || !obj || typeof obj !== 'object') return undefined;
+  if (key in obj) return obj[key];
+  for (const v of Object.values(obj)) {
+    const f = deepFind(v, key, _depth + 1);
+    if (f !== undefined) return f;
+  }
+}
+
+function deepFindAll(obj, key, results=[], _depth=0) {
+  if (_depth > 30 || !obj || typeof obj !== 'object') return results;
+  if (key in obj) results.push(obj[key]);
+  for (const v of Object.values(obj)) deepFindAll(v, key, results, _depth + 1);
+  return results;
+}
+
+function getText(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') return obj;
+  if (obj.simpleText) return obj.simpleText;
+  if (obj.runs) return obj.runs.map(r => r.text || '').join('');
+  return '';
+}
+
+function parsePostRenderer(p) {
+  const text = getText(p.contentText || p.content || {});
+  const channel = getText(p.authorText || p.displayName || {});
+  const date = getText(p.publishedTimeText || {});
+  const likes = getText(p.voteCount || p.likeCount || {});
+  const avatarThumbs = (p.authorThumbnail || p.avatar || {}).thumbnails || [];
+  const avatarUrl = avatarThumbs.length ? avatarThumbs[avatarThumbs.length-1].url : '';
+  const imgRenderer = deepFind(p, 'backstageImageRenderer') || deepFind(p, 'postImageRenderer');
+  const imgThumbs = (imgRenderer?.image?.thumbnails) || [];
+  const imageUrl = imgThumbs.length ? imgThumbs[imgThumbs.length-1].url : '';
+  return { text, channel, date, likes, avatarUrl, imageUrl };
+}
+
+// ── resolve handle → channel ID via YouTube search page ──
+async function resolveHandle(handle) {
+  st('Looking up channel…', 's-busy');
+  const cleanHandle = handle.startsWith('@') ? handle : '@' + handle;
+  const html = await fetchViaProxy(`https://www.youtube.com/${cleanHandle}/community`);
+  return html; // return the community page HTML directly
+}
+
+// ── main load handler ──
+$('load-btn').addEventListener('click', async () => {
+  const val = $('url-in').value.trim();
+  if (!val) return;
+  $('load-btn').disabled = true;
+  $('picker-panel').style.display = 'none';
 
   try {
-    // forHandle param (official, works for @handles)
-    let url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=${encodeURIComponent(handle)}&key=${key}`;
-    let r = await fetch(url);
-    let d = await r.json();
+    // detect: post URL or channel handle
+    const isPostUrl = val.includes('/post/') || val.includes('community?lb=');
+    const isHandle  = val.startsWith('@') || (!val.includes('/') && !val.includes('.'));
+    const isChannelUrl = val.includes('youtube.com/') && !isPostUrl;
 
-    if (d.error) throw new Error(d.error.message);
+    if (isPostUrl) {
+      st('Fetching post…', 's-busy');
+      const postUrl = val.startsWith('http') ? val : 'https://www.youtube.com/post/' + val;
+      const html = await fetchViaProxy(postUrl);
+      const yt = parseInitialData(html);
+      if (!yt) throw new Error('Could not parse page. Try the manual form below.');
 
-    if (!d.items?.length) {
-      // fallback: search
-      url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent('@'+handle)}&maxResults=1&key=${key}`;
-      r = await fetch(url); d = await r.json();
-      if (d.error) throw new Error(d.error.message);
-      if (!d.items?.length) throw new Error(`Channel "@${handle}" not found.`);
-      gChannelId   = d.items[0].snippet.channelId || d.items[0].id.channelId;
-      gChannelName = d.items[0].snippet.channelTitle;
-      gAvatarUrl   = d.items[0].snippet.thumbnails?.default?.url || '';
+      const postRenderers = deepFindAll(yt, 'backstagePostRenderer');
+      if (!postRenderers.length) throw new Error('No post found on page. Try the manual form.');
+
+      const d = parsePostRenderer(postRenderers[0]);
+      if (!d.text && !d.channel) throw new Error('Post data empty. Try the manual form.');
+      prefillManual(d);
+      renderCard(d);
+      st('✓ Post loaded!', 's-ok');
+
     } else {
-      gChannelId   = d.items[0].id;
-      gChannelName = d.items[0].snippet.title;
-      gAvatarUrl   = d.items[0].snippet.thumbnails?.default?.url || '';
+      // channel handle or URL — load community tab and list posts
+      st('Fetching community posts…', 's-busy');
+      const handle = isHandle ? val : val.replace(/https?:\/\/(www\.)?youtube\.com\//,'').split('/')[0];
+      const cleanHandle = handle.startsWith('@') ? handle : '@' + handle;
+      const html = await fetchViaProxy(`https://www.youtube.com/${cleanHandle}/community`);
+      const yt = parseInitialData(html);
+      if (!yt) throw new Error('Could not parse page data.');
+
+      const postRenderers = deepFindAll(yt, 'backstagePostRenderer');
+      if (!postRenderers.length) throw new Error('No community posts found for this channel, or the channel doesn\'t have a Posts tab.');
+
+      st(`✓ Found ${postRenderers.length} posts — pick one below`, 's-ok');
+      showPicker(postRenderers);
     }
 
-    ok(el, `Found: ${gChannelName}`);
-    loadPosts();
   } catch(e) {
-    err(el, e.message);
-  } finally {
-    $('find-btn').disabled = false;
+    st('✗ ' + e.message, 's-err');
   }
-}
 
-// ── Step 2: Fetch community posts via YouTube's internal browse API ──
-async function loadPosts() {
-  const panel  = $('panel-posts');
-  const listEl = $('post-list');
-  const stEl   = $('post-status');
-  panel.classList.remove('hidden');
-  listEl.innerHTML = '';
-  loading(stEl, 'Fetching community posts…');
+  $('load-btn').disabled = false;
+});
 
-  try {
-    // YouTube's internal API — same endpoint the website uses
-    // No auth needed for public channels
-    const CORS = 'https://corsproxy.io/?';
-    const YT   = 'https://www.youtube.com/youtubei/v1/browse?prettyPrint=false';
-
-    const body = {
-      context: {
-        client: {
-          clientName: 'WEB',
-          clientVersion: '2.20240101.00.00',
-          hl: 'en',
-          gl: 'US'
-        }
-      },
-      browseId: gChannelId,
-      params: 'EgmKAQnWHYABCIAB'  // "Community" tab selector token
+function showPicker(renderers) {
+  const list = $('picker-list');
+  list.innerHTML = '';
+  renderers.slice(0, 8).forEach((p, i) => {
+    const d = parsePostRenderer(p);
+    const btn = document.createElement('button');
+    btn.className = 'btn-gray';
+    btn.style.cssText = 'text-align:left;border-radius:10px;padding:10px 13px;font-weight:400;font-size:.83rem;line-height:1.4;color:#ccc';
+    const preview = (d.text || '(no text)').slice(0, 130);
+    btn.textContent = preview + (d.text.length > 130 ? '…' : '');
+    btn.onclick = () => {
+      prefillManual(d);
+      renderCard(d);
+      $('picker-panel').style.display = 'none';
+      $('out').scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-
-    const resp = await fetch(CORS + encodeURIComponent(YT), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-
-    gPosts = parsePosts(data);
-
-    if (!gPosts.length) {
-      err(stEl, 'No community posts found. This channel may not have a Community tab yet.');
-      return;
-    }
-
-    stEl.innerHTML = '';
-    gPosts.forEach((p, i) => {
-      const div = document.createElement('div');
-      div.className = 'post-item';
-      div.textContent = p.text || (p.imageUrl ? '[image post]' : '[post]');
-      div.onclick = () => showCard(p);
-      listEl.appendChild(div);
-    });
-
-  } catch(e) {
-    err(stEl, 'Could not load posts: ' + e.message +
-      '. Try opening the HTML file locally (not via file://) or check the CORS proxy.');
-  }
-}
-
-// ── Parse the messy YouTube internal response ──────────
-function parsePosts(data) {
-  const posts = [];
-
-  function walkRuns(runs) {
-    if (!runs) return '';
-    return runs.map(r => r.text || '').join('');
-  }
-
-  function findIn(obj, key) {
-    if (!obj || typeof obj !== 'object') return undefined;
-    if (key in obj) return obj[key];
-    for (const v of Object.values(obj)) {
-      const found = findIn(v, key);
-      if (found !== undefined) return found;
-    }
-    return undefined;
-  }
-
-  // Dig for backstagePostThreadRenderer or sharedPostRenderer items
-  function collectPosts(obj) {
-    if (!obj || typeof obj !== 'object') return;
-    if (Array.isArray(obj)) { obj.forEach(collectPosts); return; }
-
-    if (obj.backstagePostRenderer) {
-      const r = obj.backstagePostRenderer;
-      const text = walkRuns(r.contentText?.runs);
-      const imgArr = r.backstageAttachment?.backstageImageRenderer?.image?.thumbnails
-                  || r.backstageAttachment?.postMultiImageRenderer?.images?.flatMap(i =>
-                      i.backstageImageRenderer?.image?.thumbnails || []);
-      const imgUrl = Array.isArray(imgArr) && imgArr.length
-        ? imgArr[imgArr.length - 1].url : '';
-      const likes = r.voteCount?.simpleText || '';
-      const date  = r.publishedTimeText?.runs?.[0]?.text
-                 || r.publishedTimeText?.simpleText || '';
-      posts.push({ text, imageUrl: imgUrl, likes, date });
-      return; // don't recurse into children
-    }
-
-    for (const v of Object.values(obj)) collectPosts(v);
-  }
-
-  collectPosts(data);
-  return posts;
-}
-
-// ── Step 3: Render the card ────────────────────────────
-async function showCard(post) {
-  // Avatar
-  const av = $('card-av');
-  av.innerHTML = '';
-  if (gAvatarUrl) {
-    const img = document.createElement('img');
-    img.alt = '';
-    img.crossOrigin = 'anonymous';
-    // use corsproxy to avoid tainted canvas
-    img.src = 'https://corsproxy.io/?' + encodeURIComponent(gAvatarUrl);
-    av.appendChild(img);
-  } else {
-    av.textContent = gChannelName.charAt(0).toUpperCase();
-    av.style.background = '#c00';
-  }
-
-  $('card-name').textContent = gChannelName;
-  $('card-date').textContent = post.date || '';
-  $('card-text').textContent = post.text || '';
-  $('card-likes').textContent = post.likes || '—';
-
-  const imgEl = $('card-img');
-  if (post.imageUrl) {
-    imgEl.src = 'https://corsproxy.io/?' + encodeURIComponent(post.imageUrl);
-    imgEl.classList.remove('hidden');
-  } else {
-    imgEl.classList.add('hidden');
-  }
-
-  $('card-wrap').classList.remove('hidden');
-  setTimeout(() => $('post-card').scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
-}
-
-// ── Export ─────────────────────────────────────────────
-async function exportPng() {
-  const card = $('post-card');
-  const canvas = await html2canvas(card, {
-    backgroundColor: null,
-    scale: 2,
-    useCORS: true,
-    allowTaint: false,
-    logging: false
+    list.appendChild(btn);
   });
+  $('picker-panel').style.display = 'flex';
+  $('picker-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function prefillManual(d) {
+  if (d.channel) $('m-ch').value = d.channel;
+  if (d.text)    $('m-tx').value = d.text;
+  if (d.likes)   $('m-lk').value = d.likes;
+  if (d.date)    $('m-dt').value = d.date;
+  if (d.imageUrl) $('m-im').value = d.imageUrl;
+}
+
+// ── render card ──
+function renderCard(d) {
+  const ch = d.channel || $('m-ch').value || 'Unknown';
+  $('c-nm').childNodes[0].textContent = ch + ' ';
+  $('c-lt').textContent = ch[0]?.toUpperCase() || '?';
+  $('c-dt').textContent = d.date  || $('m-dt').value || '';
+  $('c-tx').textContent = d.text  || $('m-tx').value || '';
+  $('c-lk').textContent = d.likes || $('m-lk').value || '0';
+
+  // avatar
+  const av = $('c-av');
+  av.querySelector('img')?.remove();
+  $('c-lt').style.display = '';
+  if (d.avatarUrl) {
+    const img = document.createElement('img');
+    img.src = d.avatarUrl;
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { $('c-lt').style.display = 'none'; };
+    av.prepend(img);
+  }
+
+  // post image
+  const wrap = $('c-img');
+  wrap.innerHTML = '';
+  const imgUrl = d.imageUrl || $('m-im').value;
+  if (imgUrl) {
+    const img = document.createElement('img');
+    img.className = 'yt-img';
+    img.src = imgUrl;
+    img.crossOrigin = 'anonymous';
+    wrap.appendChild(img);
+  }
+
+  $('out').style.display = 'flex';
+  setTimeout(() => $('out').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+// ── manual generate ──
+$('manual-btn').addEventListener('click', () => {
+  const text = $('m-tx').value.trim();
+  if (!text && !$('m-ch').value.trim()) { alert('Fill in at least a channel name or post text.'); return; }
+  renderCard({
+    channel: $('m-ch').value.trim(),
+    text,
+    likes:    $('m-lk').value.trim(),
+    date:     $('m-dt').value.trim(),
+    imageUrl: $('m-im').value.trim(),
+  });
+});
+
+// ── download PNG ──
+$('dl-btn').addEventListener('click', async () => {
+  const btn = $('dl-btn');
+  btn.disabled = true; btn.textContent = 'Rendering…';
+  if (!window.html2canvas) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const canvas = await html2canvas($('yt-card'), { backgroundColor: null, scale: 2, useCORS: true, allowTaint: false });
   const a = document.createElement('a');
-  a.download = 'community-post.png';
+  a.download = 'yt-post-card.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
-}
+  btn.disabled = false; btn.textContent = '⬇ Download PNG';
+});
 
-function goBack() {
-  $('card-wrap').classList.add('hidden');
-  $('panel-posts').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function resetAll() {
-  $('card-wrap').classList.add('hidden');
-  $('panel-posts').classList.add('hidden');
-  $('post-list').innerHTML = '';
-  $('ch-status').innerHTML = '';
-  $('post-status').innerHTML = '';
-  gPosts = []; gChannelId = ''; gChannelName = ''; gAvatarUrl = '';
-}
-
-// Enter key on handle
-$('handle').addEventListener('keydown', e => { if (e.key === 'Enter') findChannel(); });
+$('url-in').addEventListener('keydown', e => { if (e.key === 'Enter') $('load-btn').click(); });
 </script>
 </body>
 </html>
