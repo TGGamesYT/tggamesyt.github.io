@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NBS Converter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#fafaf7;--fg:#1f2328;--mut:#6b7078;--card:#fff;--bd:#d9d9d2;--ac:#2f7d4f;--acfg:#fff;--err:#b3261e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17191c;--fg:#e8e8e3;--mut:#9a9fa6;--card:#202327;--bd:#3a3e44;--ac:#4cae77;--acfg:#0d1a12;--err:#f2928b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17191c;--fg:#e8e8e3;--mut:#9a9fa6;--card:#202327;--bd:#3a3e44;--ac:#4cae77;--acfg:#0d1a12;--err:#f2928b;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+p.sub{color:var(--mut);margin:0 0 20px}
+#drop{border:2px dashed var(--bd);border-radius:12px;background:var(--card);padding:32px 16px;text-align:center;cursor:pointer}
+#drop.over{border-color:var(--ac)}
+button{font:inherit;border:0;border-radius:8px;padding:8px 14px;background:var(--ac);color:var(--acfg);cursor:pointer}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+.row{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-top:12px}
+.row b{word-break:break-all}
+.meta{color:var(--mut);font-size:.875rem;margin:4px 0 8px}
+.err{color:var(--err)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+label.opt{display:flex;gap:8px;align-items:center;margin-top:14px;color:var(--mut);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+<h1>NBS Converter</h1>
+<p class="sub">Converts old-format Note Block Studio files (pre-2019) to the current NBS v5 format. Everything runs in your browser; nothing is uploaded.</p>
+<div id="drop"><div>Drop .nbs files here or</div><p><button id="pick">Choose files</button></p><input id="inp" type="file" accept=".nbs" multiple hidden></div>
+<label class="opt"><input type="checkbox" id="zipall" checked> Save as .zip (the viewer only allows certain download types, so .nbs is wrapped in a zip)</label>
+<div id="out"></div>
+</main>
+<script>
+(function(){
+var out=document.getElementById('out'),drop=document.getElementById('drop'),inp=document.getElementById('inp');
+document.getElementById('pick').onclick=function(e){e.stopPropagation();inp.click()};
+drop.onclick=function(){inp.click()};
+inp.onchange=function(){handle(inp.files);inp.value=''};
+['dragover','dragenter'].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.add('over')})});
+['dragleave','drop'].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.remove('over')})});
+drop.addEventListener('drop',function(e){handle(e.dataTransfer.files)});
+
+function parseOld(buf){
+  var dv=new DataView(buf),p=0,u8=new Uint8Array(buf);
+  function s16(){var v=dv.getUint16(p,true);p+=2;return v}
+  function str(){var n=dv.getInt32(p,true);p+=4;if(n<0||p+n>buf.byteLength)throw new Error('bad string');var s='';for(var i=0;i<n;i++)s+=String.fromCharCode(u8[p+i]);p+=n;return s}
+  var h={};h.len=s16();h.layers=s16();
+  if(h.len===0)throw new Error('NEWFMT');
+  h.name=str();h.author=str();h.orig=str();h.desc=str();
+  h.tempo=s16();p+=3;p+=20;str();
+  var notes=[],tick=-1,j,lj,layer,maxL=-1;
+  while(p+2<=buf.byteLength){
+    j=s16();if(j===0)break;tick+=j;layer=-1;
+    while(true){lj=s16();if(lj===0)break;layer+=lj;notes.push([tick,layer,u8[p],u8[p+1]]);p+=2;if(layer>maxL)maxL=layer}
+  }
+  var L=[],n=Math.max(h.layers,maxL+1);
+  for(var i=0;i<n;i++){
+    try{var nm=str();var v=u8[p++];if(p>buf.byteLength)throw 0;L.push([nm,v||100])}catch(e){L.push(['',100])}
+  }
+  h.last=notes.length?notes[notes.length-1][0]:h.len;
+  return {h:h,notes:notes,layers:L};
+}
+function enc(s){return new TextEncoder().encode(s)}
+function build(m,title){
+  var parts=[],len=0;
+  function push(a){parts.push(a);len+=a.length}
+  function b(n,sz,val){var a=new Uint8Array(sz);new DataView(a.buffer).setInt32(0,val,true);return a.subarray(0,sz)}
+  function w16(v){var a=new Uint8Array(2);new DataView(a.buffer).setInt16(0,v,true);push(a)}
+  function w32(v){var a=new Uint8Array(4);new DataView(a.buffer).setInt32(0,v,true);push(a)}
+  function w8(v){push(new Uint8Array([v&255]))}
+  function ws(s){var e=enc(s);w32(e.length);push(e)}
+  var h=m.h;
+  w16(0);w8(5);w8(16);w16(h.last);w16(m.layers.length);
+  ws(h.name||title);ws(h.author);ws(h.orig);ws(h.desc||'Converted from old NBS format');
+  w16(h.tempo);w8(0);w8(10);w8(4);for(var i=0;i<5;i++)w32(0);ws('');
+  w8(0);w8(0);w16(0);
+  var tick=-1,i=0,n=m.notes,k;
+  while(i<n.length){
+    var t=n[i][0];w16(t-tick);tick=t;var lay=-1;
+    for(;i<n.length&&n[i][0]===t;i++){w16(n[i][1]-lay);lay=n[i][1];w8(n[i][2]);w8(n[i][3]);w8(100);w8(100);w16(0)}
+    w16(0);
+  }
+  w16(0);
+  m.layers.forEach(function(l){ws(l[0]);w8(0);w8(l[1]);w8(100)});
+  w8(0);
+  var o=new Uint8Array(len),q=0;parts.forEach(function(a){o.set(a,q);q+=a.length});return o;
+}
+var crcT=(function(){var t=[],c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc(a){var c=0xFFFFFFFF;for(var i=0;i<a.length;i++)c=crcT[(c^a[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zip(name,data){
+  var nm=enc(name),c=crc(data),a=[];
+  function u16(v){return [v&255,(v>>8)&255]}function u32(v){return [v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255]}
+  var loc=[].concat(u32(0x04034b50),u16(20),u16(0x800),u16(0),u16(0),u16(0x21),u32(c),u32(data.length),u32(data.length),u16(nm.length),u16(0));
+  var off=loc.length+nm.length+data.length;
+  var cen=[].concat(u32(0x02014b50),u16(20),u16(20),u16(0x800),u16(0),u16(0),u16(0x21),u32(c),u32(data.length),u32(data.length),u16(nm.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(0));
+  var end=[].concat(u32(0x06054b50),u16(0),u16(0),u16(1),u16(1),u32(cen.length+nm.length),u32(off),u16(0));
+  return new Blob([new Uint8Array(loc),nm,data,new Uint8Array(cen),nm,new Uint8Array(end)],{type:'application/zip'});
+}
+function save(fname,bytes){
+  var useZip=document.getElementById('zipall').checked;
+  var blob=useZip?zip(fname,bytes):new Blob([bytes],{type:'application/octet-stream'});
+  var dl=useZip?fname.replace(/\.nbs$/i,'')+'.zip':fname;
+  return (window.claude&&claude.use?claude.use('downloads'):Promise.resolve(null)).then(function(d){
+    if(d)return d.save({filename:dl,data:blob});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=dl;document.body.appendChild(a);a.click();a.remove();
+  });
+}
+function handle(files){
+  Array.prototype.forEach.call(files,function(f){
+    var row=document.createElement('div');row.className='row';
+    var nm=document.createElement('b');nm.textContent=f.name;row.appendChild(nm);
+    var meta=document.createElement('div');meta.className='meta';row.appendChild(meta);
+    out.insertBefore(row,out.firstChild);
+    f.arrayBuffer().then(function(buf){
+      var m;
+      try{m=parseOld(buf)}catch(e){
+        meta.className='meta err';
+        meta.textContent=e.message==='NEWFMT'?'Already in the new NBS format (v1 and up), so no conversion needed.':'Could not read this file: '+e.message;
+        return;
+      }
+      var base=f.name.replace(/\.nbs$/i,'');
+      var bytes=build(m,base.replace(/[_]+/g,' ').trim());
+      meta.textContent=m.notes.length+' notes, '+m.layers.length+' layers, tempo '+(m.h.tempo/100)+' t/s. Converted to NBS v5 ('+bytes.length+' bytes).';
+      var acts=document.createElement('div');acts.className='acts';
+      var bt=document.createElement('button');bt.textContent='Download';
+      var msg=document.createElement('span');msg.className='meta';
+      bt.onclick=function(){save(base+'.nbs',bytes).then(function(){msg.textContent='Saved.'},function(e){msg.textContent=(e&&e.code==='declined')?'Cancelled.':'Save failed'+(e&&e.code?' ('+e.code+')':'')+'.'})};
+      acts.appendChild(bt);acts.appendChild(msg);row.appendChild(acts);
+    });
+  });
+}
+})();
+</script>
+</body>
+</html>
