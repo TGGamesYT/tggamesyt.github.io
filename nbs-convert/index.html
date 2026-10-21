@@ -28,9 +28,8 @@ label.opt{display:flex;gap:8px;align-items:center;margin-top:14px;color:var(--mu
 <body>
 <main>
 <h1>NBS Converter</h1>
-<p class="sub">Converts old-format Note Block Studio files (pre-2019) to the current NBS v5 format. Everything runs in your browser; nothing is uploaded.</p>
+<p class="sub">Converts Note Block Studio files in the old format and versions 1 to 4 to the current NBS v5 format. Everything runs in your browser; nothing is uploaded.</p>
 <div id="drop"><div>Drop .nbs files here or</div><p><button id="pick">Choose files</button></p><input id="inp" type="file" accept=".nbs" multiple hidden></div>
-<label class="opt"><input type="checkbox" id="zipall" checked> Save as .zip (the viewer only allows certain download types, so .nbs is wrapped in a zip)</label>
 <div id="out"></div>
 </main>
 <script>
@@ -43,69 +42,66 @@ inp.onchange=function(){handle(inp.files);inp.value=''};
 ['dragleave','drop'].forEach(function(t){drop.addEventListener(t,function(e){e.preventDefault();drop.classList.remove('over')})});
 drop.addEventListener('drop',function(e){handle(e.dataTransfer.files)});
 
-function parseOld(buf){
+function parseAny(buf){
   var dv=new DataView(buf),p=0,u8=new Uint8Array(buf);
   function s16(){var v=dv.getUint16(p,true);p+=2;return v}
-  function str(){var n=dv.getInt32(p,true);p+=4;if(n<0||p+n>buf.byteLength)throw new Error('bad string');var s='';for(var i=0;i<n;i++)s+=String.fromCharCode(u8[p+i]);p+=n;return s}
-  var h={};h.len=s16();h.layers=s16();
-  if(h.len===0)throw new Error('NEWFMT');
-  h.name=str();h.author=str();h.orig=str();h.desc=str();
-  h.tempo=s16();p+=3;p+=20;str();
-  var notes=[],tick=-1,j,lj,layer,maxL=-1;
+  function s32(){var v=dv.getInt32(p,true);p+=4;return v}
+  function b(){return dv.getUint8(p++)}
+  function str(){var n=s32();if(n<0||p+n>buf.byteLength)throw new Error('bad string');var s='';for(var i=0;i<n;i++)s+=String.fromCharCode(u8[p+i]);p+=n;return s}
+  var m={h:{},notes:[],layers:[],inst:[],vc:10,ver:0},h=m.h,first=s16(),ver=0,nl;
+  if(first===0){ver=b();if(ver>=5)throw new Error('CURRENT');if(ver<1)throw new Error('unknown version');m.vc=b();m.ver=ver;h.len=ver>=3?s16():0}
+  else h.len=first;
+  nl=s16();h.name=str();h.author=str();h.orig=str();h.desc=str();
+  h.tempo=s16();b();b();b();p+=20;str();
+  h.loop=[0,0,0];if(ver>=4){h.loop=[b(),b(),s16()]}
+  var tick=-1,j,lj,layer,maxL=-1,ins,key,vel,pan;
   while(p+2<=buf.byteLength){
     j=s16();if(j===0)break;tick+=j;layer=-1;
-    while(true){lj=s16();if(lj===0)break;layer+=lj;notes.push([tick,layer,u8[p],u8[p+1]]);p+=2;if(layer>maxL)maxL=layer}
+    while(true){lj=s16();if(lj===0)break;layer+=lj;ins=b();key=b();vel=100;pan=100;
+      if(ver>=4){vel=b();pan=b();p+=2}
+      m.notes.push([tick,layer,ins,key,vel,pan]);if(layer>maxL)maxL=layer}
   }
-  var L=[],n=Math.max(h.layers,maxL+1);
+  h.last=m.notes.length?m.notes[m.notes.length-1][0]:h.len;
+  var n=Math.max(nl,maxL+1);
   for(var i=0;i<n;i++){
-    try{var nm=str();var v=u8[p++];if(p>buf.byteLength)throw 0;L.push([nm,v||100])}catch(e){L.push(['',100])}
+    try{var nm=str(),lock=0,st=100;if(ver>=4)lock=b();var v=b();if(ver>=2)st=b();if(p>buf.byteLength)throw 0;m.layers.push([nm,v||100,lock,st])}
+    catch(e){m.layers.push(['',100,0,100])}
   }
-  h.last=notes.length?notes[notes.length-1][0]:h.len;
-  return {h:h,notes:notes,layers:L};
+  if(ver>=1){try{var c=b();for(var k=0;k<c;k++)m.inst.push([str(),str(),b(),b()])}catch(e){m.inst=[]}}
+  return m;
 }
 function enc(s){return new TextEncoder().encode(s)}
 function build(m,title){
   var parts=[],len=0;
   function push(a){parts.push(a);len+=a.length}
-  function b(n,sz,val){var a=new Uint8Array(sz);new DataView(a.buffer).setInt32(0,val,true);return a.subarray(0,sz)}
   function w16(v){var a=new Uint8Array(2);new DataView(a.buffer).setInt16(0,v,true);push(a)}
   function w32(v){var a=new Uint8Array(4);new DataView(a.buffer).setInt32(0,v,true);push(a)}
   function w8(v){push(new Uint8Array([v&255]))}
   function ws(s){var e=enc(s);w32(e.length);push(e)}
-  var h=m.h;
+  var h=m.h,vc=m.ver>=1?m.vc:16;
+  function map(i){return (m.ver>=1&&i>=vc)?i-vc+16:i}
   w16(0);w8(5);w8(16);w16(h.last);w16(m.layers.length);
-  ws(h.name||title);ws(h.author);ws(h.orig);ws(h.desc||'Converted from old NBS format');
+  ws(h.name||title);ws(h.author);ws(h.orig);ws(h.desc||'Converted to NBS v5');
   w16(h.tempo);w8(0);w8(10);w8(4);for(var i=0;i<5;i++)w32(0);ws('');
-  w8(0);w8(0);w16(0);
-  var tick=-1,i=0,n=m.notes,k;
+  w8(h.loop[0]);w8(h.loop[1]);w16(h.loop[2]);
+  var tick=-1,n=m.notes;i=0;
   while(i<n.length){
     var t=n[i][0];w16(t-tick);tick=t;var lay=-1;
-    for(;i<n.length&&n[i][0]===t;i++){w16(n[i][1]-lay);lay=n[i][1];w8(n[i][2]);w8(n[i][3]);w8(100);w8(100);w16(0)}
+    for(;i<n.length&&n[i][0]===t;i++){w16(n[i][1]-lay);lay=n[i][1];w8(map(n[i][2]));w8(n[i][3]);w8(n[i][4]);w8(n[i][5]);w16(0)}
     w16(0);
   }
   w16(0);
-  m.layers.forEach(function(l){ws(l[0]);w8(0);w8(l[1]);w8(100)});
-  w8(0);
+  m.layers.forEach(function(l){ws(l[0]);w8(l[2]);w8(l[1]);w8(l[3])});
+  w8(m.inst.length);
+  m.inst.forEach(function(c){ws(c[0]);ws(c[1]);w8(c[2]);w8(c[3])});
   var o=new Uint8Array(len),q=0;parts.forEach(function(a){o.set(a,q);q+=a.length});return o;
 }
-var crcT=(function(){var t=[],c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
-function crc(a){var c=0xFFFFFFFF;for(var i=0;i<a.length;i++)c=crcT[(c^a[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
-function zip(name,data){
-  var nm=enc(name),c=crc(data),a=[];
-  function u16(v){return [v&255,(v>>8)&255]}function u32(v){return [v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255]}
-  var loc=[].concat(u32(0x04034b50),u16(20),u16(0x800),u16(0),u16(0),u16(0x21),u32(c),u32(data.length),u32(data.length),u16(nm.length),u16(0));
-  var off=loc.length+nm.length+data.length;
-  var cen=[].concat(u32(0x02014b50),u16(20),u16(20),u16(0x800),u16(0),u16(0),u16(0x21),u32(c),u32(data.length),u32(data.length),u16(nm.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(0));
-  var end=[].concat(u32(0x06054b50),u16(0),u16(0),u16(1),u16(1),u32(cen.length+nm.length),u32(off),u16(0));
-  return new Blob([new Uint8Array(loc),nm,data,new Uint8Array(cen),nm,new Uint8Array(end)],{type:'application/zip'});
-}
 function save(fname,bytes){
-  var useZip=document.getElementById('zipall').checked;
-  var blob=useZip?zip(fname,bytes):new Blob([bytes],{type:'application/octet-stream'});
-  var dl=useZip?fname.replace(/\.nbs$/i,'')+'.zip':fname;
+  var blob=new Blob([bytes],{type:'application/octet-stream'});
+  function anchor(){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove()}
   return (window.claude&&claude.use?claude.use('downloads'):Promise.resolve(null)).then(function(d){
-    if(d)return d.save({filename:dl,data:blob});
-    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=dl;document.body.appendChild(a);a.click();a.remove();
+    if(!d){anchor();return}
+    return d.save({filename:fname,data:blob}).catch(function(e){if(e&&e.code==='rejected_extension'){anchor();return}throw e});
   });
 }
 function handle(files){
@@ -116,14 +112,14 @@ function handle(files){
     out.insertBefore(row,out.firstChild);
     f.arrayBuffer().then(function(buf){
       var m;
-      try{m=parseOld(buf)}catch(e){
+      try{m=parseAny(buf)}catch(e){
         meta.className='meta err';
-        meta.textContent=e.message==='NEWFMT'?'Already in the new NBS format (v1 and up), so no conversion needed.':'Could not read this file: '+e.message;
+        meta.textContent=e.message==='CURRENT'?'Already NBS v5, so no conversion needed.':'Could not read this file: '+e.message;
         return;
       }
       var base=f.name.replace(/\.nbs$/i,'');
       var bytes=build(m,base.replace(/[_]+/g,' ').trim());
-      meta.textContent=m.notes.length+' notes, '+m.layers.length+' layers, tempo '+(m.h.tempo/100)+' t/s. Converted to NBS v5 ('+bytes.length+' bytes).';
+      meta.textContent=m.notes.length+' notes, '+m.layers.length+' layers, tempo '+(m.h.tempo/100)+' t/s. '+(m.ver?'Version '+m.ver:'Old format')+' converted to NBS v5 ('+bytes.length+' bytes).';
       var acts=document.createElement('div');acts.className='acts';
       var bt=document.createElement('button');bt.textContent='Download';
       var msg=document.createElement('span');msg.className='meta';
