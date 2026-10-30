@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>I dont know</title>
+
+    <meta name="description" content="I dont know - this redirects to a random path on my website.">
+
+    <!-- Open Graph Embed -->
+    <meta property="og:title" content="I dont know">
+    <meta property="og:description" content="I dont know - this redirects to a random path on my website.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tggamesyt.dev/idk/">
+
+    <!-- Twitter Embed -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="I dont know">
+    <meta name="twitter:description" content="I dont know - this redirects to a random path on my website.">
+
+</head>
+<body>
+    <script>
+        const OWNER = "TGGamesYT";
+        const REPO = "tggamesyt.github.io";
+        const CURRENT_FOLDER = "/idk/";
+
+        async function redirectRandomly() {
+            try {
+                // Get repository information
+                const repoResponse = await fetch(
+                    `https://api.github.com/repos/${OWNER}/${REPO}`
+                );
+
+                if (!repoResponse.ok) {
+                    throw new Error("Could not fetch repository info");
+                }
+
+                const repo = await repoResponse.json();
+                const branch = repo.default_branch;
+
+                // Get the entire repository tree
+                const treeResponse = await fetch(
+                    `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${branch}?recursive=1`
+                );
+
+                if (!treeResponse.ok) {
+                    throw new Error("Could not fetch repository tree");
+                }
+
+                const tree = await treeResponse.json();
+
+                if (tree.truncated) {
+                    throw new Error("Repository tree is too large");
+                }
+
+                // Find every folder containing an index.html
+                const folders = tree.tree
+                    .filter(file =>
+                        file.type === "blob" &&
+                        file.path.endsWith("/index.html")
+                    )
+                    .map(file =>
+                        "/" + file.path.substring(
+                            0,
+                            file.path.lastIndexOf("/") + 1
+                        )
+                    );
+
+                // Include the root folder if it has an index.html
+                if (tree.tree.some(file =>
+                    file.type === "blob" &&
+                    file.path === "index.html"
+                )) {
+                    folders.push("/");
+                }
+
+                if (folders.length === 0) {
+                    throw new Error("No index.html files found");
+                }
+
+                // Pick a random folder
+                const selected =
+                    folders[Math.floor(Math.random() * folders.length)];
+
+                // Did we somehow select ourselves?
+                if (selected === CURRENT_FOLDER) {
+                    document.body.innerHTML =
+                        "<h1>wow, I dont know how you managed to do that</h1>";
+                    return;
+                }
+
+                // Redirect
+                window.location.replace(selected);
+
+            } catch (error) {
+                console.error(error);
+
+                document.body.innerHTML =
+                    "<h1>Something went wrong.</h1>";
+            }
+        }
+
+        redirectRandomly();
+    </script>
+</body>
+</html>
