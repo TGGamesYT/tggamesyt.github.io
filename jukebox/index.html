@@ -273,6 +273,10 @@
         .split('_')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join('_');
+      document.getElementById('disc-image').onerror = function() {
+          this.onerror = null;
+          this.src = `https://minecraft.wiki/images/Invicon_Music_Disc_${formattedName.toLowerCase()}.png`;
+      };
       document.getElementById('disc-image').src = `https://minecraft.wiki/images/Invicon_Music_Disc_${formattedName}.png`;
     const audio = document.getElementById('audio-player');
     audio.src = `https://tggamesyt.dev/jukebox/${disc}.ogg`;
