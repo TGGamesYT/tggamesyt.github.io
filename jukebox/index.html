@@ -323,7 +323,9 @@
 
         if (element) {
           const parts = element.innerHTML.split(/<br\s*\/?>/i);
-          const discTitle = parts[1]?.trim() || 'Unknown';
+          const discTitle = parts[1]
+            ? new DOMParser().parseFromString(parts[1], 'text/html').body.textContent.trim()
+            : 'Unknown';
           const display = document.getElementById('discTitle');
           display.textContent = `Currently playing: ${discTitle}`;
         } else {
